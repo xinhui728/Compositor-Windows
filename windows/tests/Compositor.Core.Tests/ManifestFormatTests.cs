@@ -141,8 +141,10 @@ public class ManifestFormatTests : ProjectTestBase
 
         using var snapshot = ProjectStore.Load(PathIn("Guide.comp"));
         var written = Serialized(snapshot.Manifest);
-        Assert.Equal(\n            ExpectedMinimalManifest.Replace("\\r\\n", "\\n"),\n            written.Replace("\\r\\n", "\\n")\n        );
-
+        Assert.Equal(
+            ExpectedMinimalManifest.Replace("\r\n", "\n"),
+            written.Replace("\r\n", "\n")
+        );
         var rewritten = Serialized(ManifestJson.Deserialize(Encoding.UTF8.GetBytes(written)));
         Assert.Equal(written, rewritten);
 
