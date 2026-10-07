@@ -22,6 +22,7 @@
     <Nullable>enable</Nullable>
     <!-- The canvas copies a rendered piece into the screen's pixel order. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
 
 </Project>

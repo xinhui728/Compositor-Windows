@@ -1,0 +1,1144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Common.OK" xml:space="preserve"><value>確定</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="Common.Apply" xml:space="preserve"><value>套用</value></data>
+  <data name="Common.Reset" xml:space="preserve"><value>重設</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>關閉</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Common.Remove" xml:space="preserve"><value>移除</value></data>
+  <data name="Common.Preview" xml:space="preserve"><value>預覽</value></data>
+  <data name="Preferences.Title" xml:space="preserve"><value>偏好設定</value></data>
+  <data name="Preferences.Language" xml:space="preserve"><value>語言</value></data>
+  <data name="Preferences.RestartRequired" xml:space="preserve"><value>語言變更會在下次開啟 Compositor 時套用。</value></data>
+  <data name="Language.English" xml:space="preserve"><value>English</value></data>
+  <data name="Language.TraditionalChinese" xml:space="preserve"><value>繁體中文</value></data>
+  <data name="App.Name" xml:space="preserve"><value>Compositor</value></data>
+  <data name="Document.Untitled" xml:space="preserve"><value>未命名</value></data>
+  <data name="Layers.Title" xml:space="preserve"><value>圖層</value></data>
+  <data name="Status.Welcome" xml:space="preserve"><value>選擇「檔案 ▸ 新增專案…」建立空白畫布，或選擇「檔案 ▸ 開啟專案資料夾…」載入 .comp。</value></data>
+  <data name="Menu.File" xml:space="preserve"><value>檔案</value></data>
+  <data name="Menu.Edit" xml:space="preserve"><value>編輯</value></data>
+  <data name="Menu.Layer" xml:space="preserve"><value>圖層</value></data>
+  <data name="Menu.Image" xml:space="preserve"><value>影像</value></data>
+  <data name="Menu.Filter" xml:space="preserve"><value>濾鏡</value></data>
+  <data name="Menu.Tools" xml:space="preserve"><value>工具</value></data>
+  <data name="Menu.Select" xml:space="preserve"><value>選取</value></data>
+  <data name="Menu.View" xml:space="preserve"><value>檢視</value></data>
+  <data name="Menu.Help" xml:space="preserve"><value>說明</value></data>
+  <data name="Menu.NewProject" xml:space="preserve"><value>新增專案…</value></data>
+  <data name="Menu.OpenProject" xml:space="preserve"><value>開啟專案資料夾…</value></data>
+  <data name="Menu.OpenRecent" xml:space="preserve"><value>開啟最近使用的檔案</value></data>
+  <data name="Menu.ImportImage" xml:space="preserve"><value>匯入影像…</value></data>
+  <data name="Menu.Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Menu.SaveAs" xml:space="preserve"><value>另存新檔…</value></data>
+  <data name="Menu.ExportPng" xml:space="preserve"><value>匯出 PNG…</value></data>
+  <data name="Menu.ExportJpeg" xml:space="preserve"><value>匯出 JPEG…</value></data>
+  <data name="Menu.CloseTab" xml:space="preserve"><value>關閉分頁</value></data>
+  <data name="Menu.Exit" xml:space="preserve"><value>結束</value></data>
+  <data name="Menu.Undo" xml:space="preserve"><value>復原</value></data>
+  <data name="Menu.Redo" xml:space="preserve"><value>重做</value></data>
+  <data name="Menu.Cut" xml:space="preserve"><value>剪下</value></data>
+  <data name="Menu.Copy" xml:space="preserve"><value>複製</value></data>
+  <data name="Menu.CopyMerged" xml:space="preserve"><value>複製合併結果</value></data>
+  <data name="Menu.Paste" xml:space="preserve"><value>貼上</value></data>
+  <data name="Menu.LayerViaCopy" xml:space="preserve"><value>透過拷貝建立圖層</value></data>
+  <data name="Menu.FillForegroundColor" xml:space="preserve"><value>以前景色填滿</value></data>
+  <data name="Menu.FillBackgroundColor" xml:space="preserve"><value>以背景色填滿</value></data>
+  <data name="Menu.ClearSelectionPixels" xml:space="preserve"><value>清除選取範圍像素</value></data>
+  <data name="Menu.FlipLayerHorizontal" xml:space="preserve"><value>水平翻轉圖層</value></data>
+  <data name="Menu.FlipLayerVertical" xml:space="preserve"><value>垂直翻轉圖層</value></data>
+  <data name="Menu.FlipCanvasHorizontal" xml:space="preserve"><value>水平翻轉畫布</value></data>
+  <data name="Menu.FlipCanvasVertical" xml:space="preserve"><value>垂直翻轉畫布</value></data>
+  <data name="Menu.KeyboardShortcuts" xml:space="preserve"><value>鍵盤快速鍵…</value></data>
+  <data name="Menu.Preferences" xml:space="preserve"><value>偏好設定…</value></data>
+  <data name="Menu.DuplicateLayer" xml:space="preserve"><value>複製圖層</value></data>
+  <data name="Menu.RenameLayer" xml:space="preserve"><value>重新命名圖層…</value></data>
+  <data name="Menu.DeleteLayer" xml:space="preserve"><value>刪除圖層</value></data>
+  <data name="Menu.MoveLayerUp" xml:space="preserve"><value>上移圖層</value></data>
+  <data name="Menu.MoveLayerDown" xml:space="preserve"><value>下移圖層</value></data>
+  <data name="Menu.GroupSelectedLayers" xml:space="preserve"><value>將選取圖層群組化</value></data>
+  <data name="Menu.MoveOutOfFolder" xml:space="preserve"><value>移出資料夾</value></data>
+  <data name="Menu.DeleteMask" xml:space="preserve"><value>刪除遮色片</value></data>
+  <data name="Menu.EditText" xml:space="preserve"><value>編輯文字…</value></data>
+  <data name="Menu.NewBlankLayer" xml:space="preserve"><value>新增空白圖層</value></data>
+  <data name="Menu.NewFolder" xml:space="preserve"><value>新增資料夾</value></data>
+  <data name="Menu.NewAdjustmentLayer" xml:space="preserve"><value>新增調整圖層</value></data>
+  <data name="Menu.LayerEffects" xml:space="preserve"><value>圖層效果</value></data>
+  <data name="Menu.AddMask" xml:space="preserve"><value>新增遮色片</value></data>
+  <data name="Menu.RevealAllWhite" xml:space="preserve"><value>全部顯示（白色）</value></data>
+  <data name="Menu.HideAllBlack" xml:space="preserve"><value>全部隱藏（黑色）</value></data>
+  <data name="Menu.HueSaturation" xml:space="preserve"><value>色相／飽和度…</value></data>
+  <data name="Menu.Levels" xml:space="preserve"><value>色階…</value></data>
+  <data name="Menu.AutoLevels" xml:space="preserve"><value>自動色階</value></data>
+  <data name="Menu.AutoContrast" xml:space="preserve"><value>自動對比</value></data>
+  <data name="Menu.AutoColor" xml:space="preserve"><value>自動色彩</value></data>
+  <data name="Menu.AutoColorNeutralMidtones" xml:space="preserve"><value>自動色彩與中性中間調</value></data>
+  <data name="Menu.Curves" xml:space="preserve"><value>曲線…</value></data>
+  <data name="Menu.Exposure" xml:space="preserve"><value>曝光…</value></data>
+  <data name="Menu.BlackWhite" xml:space="preserve"><value>黑白…</value></data>
+  <data name="Menu.GradientMap" xml:space="preserve"><value>漸層對應…</value></data>
+  <data name="Menu.ColorBalance" xml:space="preserve"><value>色彩平衡…</value></data>
+  <data name="Menu.Grain" xml:space="preserve"><value>顆粒…</value></data>
+  <data name="Menu.Invert" xml:space="preserve"><value>負片</value></data>
+  <data name="Menu.CanvasSize" xml:space="preserve"><value>畫布尺寸…</value></data>
+  <data name="Menu.ImageSize" xml:space="preserve"><value>影像尺寸…</value></data>
+  <data name="Menu.Trim" xml:space="preserve"><value>修剪…</value></data>
+  <data name="Menu.CameraRawFilter" xml:space="preserve"><value>Camera Raw 濾鏡…</value></data>
+  <data name="Menu.GaussianBlur" xml:space="preserve"><value>高斯模糊…</value></data>
+  <data name="Menu.MotionBlur" xml:space="preserve"><value>動態模糊…</value></data>
+  <data name="Menu.AddNoise" xml:space="preserve"><value>增加雜訊…</value></data>
+  <data name="Menu.BloomGlow" xml:space="preserve"><value>暈光／光暈…</value></data>
+  <data name="Menu.Dither" xml:space="preserve"><value>抖動…</value></data>
+  <data name="Menu.ContentAwareFill" xml:space="preserve"><value>內容感知填滿</value></data>
+  <data name="Menu.Vignette" xml:space="preserve"><value>暗角…</value></data>
+  <data name="Menu.TonalContrast" xml:space="preserve"><value>色調對比…</value></data>
+  <data name="Menu.LensCorrection" xml:space="preserve"><value>鏡頭校正…</value></data>
+  <data name="Menu.BrushSettings" xml:space="preserve"><value>筆刷設定</value></data>
+  <data name="Menu.Size" xml:space="preserve"><value>大小…</value></data>
+  <data name="Menu.Hardness" xml:space="preserve"><value>硬度…</value></data>
+  <data name="Menu.Opacity" xml:space="preserve"><value>不透明度…</value></data>
+  <data name="Menu.Color" xml:space="preserve"><value>顏色…</value></data>
+  <data name="Menu.SpotHealingContentAware" xml:space="preserve"><value>污點修復：內容感知</value></data>
+  <data name="Menu.SpotHealingCreateTexture" xml:space="preserve"><value>污點修復：建立紋理</value></data>
+  <data name="Menu.SpotHealingProximityMatch" xml:space="preserve"><value>污點修復：相近比對</value></data>
+  <data name="Menu.SelectAll" xml:space="preserve"><value>全部選取</value></data>
+  <data name="Menu.Deselect" xml:space="preserve"><value>取消選取</value></data>
+  <data name="Menu.Inverse" xml:space="preserve"><value>反轉選取</value></data>
+  <data name="Menu.Expand" xml:space="preserve"><value>擴張…</value></data>
+  <data name="Menu.Contract" xml:space="preserve"><value>收縮…</value></data>
+  <data name="Menu.Feather" xml:space="preserve"><value>羽化…</value></data>
+  <data name="Menu.LayerPixels" xml:space="preserve"><value>圖層像素</value></data>
+  <data name="Menu.MaskBlackAreas" xml:space="preserve"><value>遮色片的黑色區域</value></data>
+  <data name="Menu.ColorRange" xml:space="preserve"><value>色彩範圍…</value></data>
+  <data name="Menu.ZoomIn" xml:space="preserve"><value>放大</value></data>
+  <data name="Menu.ZoomOut" xml:space="preserve"><value>縮小</value></data>
+  <data name="Menu.FitOnScreen" xml:space="preserve"><value>符合螢幕</value></data>
+  <data name="Menu.ActualPixels" xml:space="preserve"><value>實際像素</value></data>
+  <data name="Menu.ShowGrid" xml:space="preserve"><value>顯示格線</value></data>
+  <data name="Menu.HideGrid" xml:space="preserve"><value>隱藏格線</value></data>
+  <data name="Menu.Rulers" xml:space="preserve"><value>尺標</value></data>
+  <data name="Menu.Guides" xml:space="preserve"><value>參考線</value></data>
+  <data name="Menu.LockGuides" xml:space="preserve"><value>鎖定參考線</value></data>
+  <data name="Menu.ShowTransformControls" xml:space="preserve"><value>顯示變形控制項</value></data>
+  <data name="Menu.PixelGrid" xml:space="preserve"><value>像素格線（800% 以上）</value></data>
+  <data name="Menu.Snap" xml:space="preserve"><value>貼齊</value></data>
+  <data name="Menu.GridSettings" xml:space="preserve"><value>格線設定…</value></data>
+  <data name="Menu.NewGuide" xml:space="preserve"><value>新增參考線…</value></data>
+  <data name="Menu.ClearGuides" xml:space="preserve"><value>清除參考線</value></data>
+  <data name="Menu.CheckForUpdates" xml:space="preserve"><value>檢查更新…</value></data>
+  <data name="Menu.GradientOptions" xml:space="preserve"><value>漸層選項</value></data>
+  <data name="Menu.ShapeKind" xml:space="preserve"><value>形狀種類</value></data>
+  <data name="Menu.CropRatio" xml:space="preserve"><value>裁切比例</value></data>
+  <data name="Menu.PaintOnLayerMask" xml:space="preserve"><value>在圖層遮色片上繪製</value></data>
+  <data name="Menu.BrushErases" xml:space="preserve"><value>筆刷擦除</value></data>
+  <data name="ColorPicker.ClickCanvasToSample" xml:space="preserve"><value>按一下畫布以取樣</value></data>
+  <data name="ColorRange.Title" xml:space="preserve"><value>色彩範圍</value></data>
+  <data name="ColorRange.Invert" xml:space="preserve"><value>反轉</value></data>
+  <data name="ColorRange.Fuzziness" xml:space="preserve"><value>顏色容差</value></data>
+  <data name="ColorRange.Mode.Replace" xml:space="preserve"><value>取代</value></data>
+  <data name="ColorRange.Mode.Add" xml:space="preserve"><value>加入</value></data>
+  <data name="ColorRange.Mode.Remove" xml:space="preserve"><value>移除</value></data>
+  <data name="ColorRange.Mode.ReplaceHint" xml:space="preserve"><value>按一下影像以選取該顏色</value></data>
+  <data name="ColorRange.Mode.AddHint" xml:space="preserve"><value>按一下影像以將該顏色加入選取範圍</value></data>
+  <data name="ColorRange.Mode.RemoveHint" xml:space="preserve"><value>按一下影像以從選取範圍移除該顏色</value></data>
+  <data name="ColorRange.Hint.Pick" xml:space="preserve"><value>按一下影像以挑選要選取的顏色。</value></data>
+  <data name="ColorRange.Hint.Picked" xml:space="preserve"><value>按住 Shift 並按一下可加入顏色；按住 Alt 並按一下可移除顏色。已挑選 {0} 種顏色，已移除 {1} 種。</value></data>
+  <data name="ColorRange.Problem.NoMatchingColor" xml:space="preserve"><value>影像中沒有這個顏色</value></data>
+  <data name="TextDialog.Text" xml:space="preserve"><value>文字</value></data>
+  <data name="TextDialog.Font" xml:space="preserve"><value>字型</value></data>
+  <data name="TextDialog.SizePixels" xml:space="preserve"><value>大小（像素）</value></data>
+  <data name="TextDialog.ColorRgb" xml:space="preserve"><value>顏色，紅綠藍 0–255</value></data>
+  <data name="TextDialog.Tracking" xml:space="preserve"><value>字距（字元間像素）</value></data>
+  <data name="TextDialog.Leading" xml:space="preserve"><value>行距，0 表示自動</value></data>
+  <data name="TextDialog.Alignment" xml:space="preserve"><value>對齊</value></data>
+  <data name="TextDialog.Alignment.Left" xml:space="preserve"><value>靠左</value></data>
+  <data name="TextDialog.Alignment.Center" xml:space="preserve"><value>置中</value></data>
+  <data name="TextDialog.Alignment.Right" xml:space="preserve"><value>靠右</value></data>
+  <data name="ToolOptions.Zoom" xml:space="preserve"><value>縮放 {0:0}%</value></data>
+  <data name="ToolOptions.Value.Size" xml:space="preserve"><value>大小 {0:0}</value></data>
+  <data name="ToolOptions.Value.Hardness" xml:space="preserve"><value>硬度 {0:0}%</value></data>
+  <data name="ToolOptions.Value.Opacity" xml:space="preserve"><value>不透明度 {0:0}%</value></data>
+  <data name="ToolOptions.Value.BlurRadius" xml:space="preserve"><value>半徑 {0:0.#}</value></data>
+  <data name="ToolOptions.Value.CornerRadius" xml:space="preserve"><value>圓角半徑 {0:0}</value></data>
+  <data name="ToolOptions.Value.Tolerance" xml:space="preserve"><value>容差 {0}</value></data>
+  <data name="ToolOptions.Value.Sample" xml:space="preserve"><value>取樣 {0}</value></data>
+  <data name="ToolOptions.Value.Width" xml:space="preserve"><value>寬度 {0:0}</value></data>
+  <data name="ToolOptions.Aligned" xml:space="preserve"><value>對齊</value></data>
+  <data name="ToolOptions.Contiguous" xml:space="preserve"><value>連續</value></data>
+  <data name="ToolOptions.Antialias" xml:space="preserve"><value>消除鋸齒</value></data>
+  <data name="ToolOptions.SampleRing" xml:space="preserve"><value>取樣環</value></data>
+  <data name="ToolOptions.Reverse" xml:space="preserve"><value>反轉</value></data>
+  <data name="ToolOptions.ApplyCrop" xml:space="preserve"><value>套用裁切</value></data>
+  <data name="ToolOptions.FlipHorizontal" xml:space="preserve"><value>水平翻轉</value></data>
+  <data name="ToolOptions.FlipVertical" xml:space="preserve"><value>垂直翻轉</value></data>
+  <data name="ToolOptions.EditText" xml:space="preserve"><value>編輯文字…</value></data>
+  <data name="ToolOptions.BrushMode.Paint" xml:space="preserve"><value>繪製</value></data>
+  <data name="ToolOptions.BrushMode.Erase" xml:space="preserve"><value>擦除</value></data>
+  <data name="ToolOptions.MaskPaint.Hide" xml:space="preserve"><value>繪製黑色 · 隱藏</value></data>
+  <data name="ToolOptions.MaskPaint.Reveal" xml:space="preserve"><value>繪製白色 · 顯示</value></data>
+  <data name="ToolOptions.HealMode.ContentAware" xml:space="preserve"><value>內容感知</value></data>
+  <data name="ToolOptions.HealMode.CreateTexture" xml:space="preserve"><value>建立紋理</value></data>
+  <data name="ToolOptions.HealMode.ProximityMatch" xml:space="preserve"><value>相近比對</value></data>
+  <data name="ToolOptions.Sample.ThisLayer" xml:space="preserve"><value>取樣：目前圖層</value></data>
+  <data name="ToolOptions.Sample.AllLayers" xml:space="preserve"><value>取樣：所有圖層</value></data>
+  <data name="ToolOptions.Shape.Rectangle" xml:space="preserve"><value>矩形</value></data>
+  <data name="ToolOptions.Shape.Ellipse" xml:space="preserve"><value>橢圓形</value></data>
+  <data name="ToolOptions.Shape.Line" xml:space="preserve"><value>直線</value></data>
+  <data name="ToolOptions.Lasso.Freehand" xml:space="preserve"><value>自由手繪</value></data>
+  <data name="ToolOptions.Lasso.Polygonal" xml:space="preserve"><value>多邊形</value></data>
+  <data name="ToolOptions.Gradient.Linear" xml:space="preserve"><value>線性</value></data>
+  <data name="ToolOptions.Gradient.Radial" xml:space="preserve"><value>放射狀</value></data>
+  <data name="ToolOptions.Gradient.Angle" xml:space="preserve"><value>角度</value></data>
+  <data name="ToolOptions.Gradient.Reflected" xml:space="preserve"><value>反射</value></data>
+  <data name="ToolOptions.Gradient.Diamond" xml:space="preserve"><value>菱形</value></data>
+  <data name="ToolOptions.GradientTo.Nothing" xml:space="preserve"><value>至透明</value></data>
+  <data name="ToolOptions.GradientTo.Background" xml:space="preserve"><value>至背景顏色</value></data>
+  <data name="ToolOptions.Tool.Pan" xml:space="preserve"><value>平移</value></data>
+  <data name="ToolOptions.Tool.Transform" xml:space="preserve"><value>變形</value></data>
+  <data name="ToolOptions.Tool.Marquee" xml:space="preserve"><value>矩形選取畫面</value></data>
+  <data name="ToolOptions.Tool.Ellipse" xml:space="preserve"><value>橢圓選取畫面</value></data>
+  <data name="ToolOptions.Tool.Lasso" xml:space="preserve"><value>套索</value></data>
+  <data name="ToolOptions.Tool.Polygon" xml:space="preserve"><value>多邊形套索</value></data>
+  <data name="ToolOptions.Tool.Wand" xml:space="preserve"><value>魔術棒</value></data>
+  <data name="ToolOptions.Tool.Brush" xml:space="preserve"><value>筆刷</value></data>
+  <data name="ToolOptions.Tool.Clone" xml:space="preserve"><value>仿製印章</value></data>
+  <data name="ToolOptions.Tool.Blur" xml:space="preserve"><value>模糊筆刷</value></data>
+  <data name="ToolOptions.Tool.Liquify" xml:space="preserve"><value>液化筆刷</value></data>
+  <data name="ToolOptions.Tool.Smudge" xml:space="preserve"><value>指尖筆刷</value></data>
+  <data name="ToolOptions.Tool.Heal" xml:space="preserve"><value>污點修復</value></data>
+  <data name="ToolOptions.Tool.Eyedropper" xml:space="preserve"><value>滴管</value></data>
+  <data name="ToolOptions.Tool.Type" xml:space="preserve"><value>文字</value></data>
+  <data name="ToolOptions.Tool.Crop" xml:space="preserve"><value>裁切</value></data>
+  <data name="ToolOptions.Tool.Shape" xml:space="preserve"><value>形狀</value></data>
+  <data name="ToolOptions.Tool.Gradient" xml:space="preserve"><value>漸層</value></data>
+  <data name="ToolRail.SwapColors" xml:space="preserve"><value>交換前景色與背景色</value></data>
+  <data name="ToolRail.ResetColors" xml:space="preserve"><value>重設為黑色與白色</value></data>
+  <data name="ToolRail.ForegroundColor" xml:space="preserve"><value>前景色</value></data>
+  <data name="ToolRail.BackgroundColor" xml:space="preserve"><value>背景色</value></data>
+  <data name="ToolRail.Tooltip.Pan" xml:space="preserve"><value>平移 — 拖曳以捲動畫面</value></data>
+  <data name="ToolRail.Tooltip.Move" xml:space="preserve"><value>移動 — 拖曳圖層，或拖曳控制點以縮放及旋轉</value></data>
+  <data name="ToolRail.Tooltip.Marquee" xml:space="preserve"><value>矩形選取畫面 — 拖曳以建立矩形</value></data>
+  <data name="ToolRail.Tooltip.Ellipse" xml:space="preserve"><value>橢圓選取畫面 — 拖曳以建立橢圓</value></data>
+  <data name="ToolRail.Tooltip.Lasso" xml:space="preserve"><value>套索 — 拖曳以圈選形狀</value></data>
+  <data name="ToolRail.Tooltip.Polygon" xml:space="preserve"><value>多邊形套索 — 按一下每個角點</value></data>
+  <data name="ToolRail.Tooltip.Wand" xml:space="preserve"><value>魔術棒 — 按一下顏色</value></data>
+  <data name="ToolRail.Tooltip.Brush" xml:space="preserve"><value>筆刷</value></data>
+  <data name="ToolRail.Tooltip.Clone" xml:space="preserve"><value>仿製印章 — 請先按住 Alt 並按一下設定來源</value></data>
+  <data name="ToolRail.Tooltip.Blur" xml:space="preserve"><value>模糊筆刷</value></data>
+  <data name="ToolRail.Tooltip.Liquify" xml:space="preserve"><value>液化筆刷 — 推移像素</value></data>
+  <data name="ToolRail.Tooltip.Smudge" xml:space="preserve"><value>指尖筆刷 — 拖曳顏色</value></data>
+  <data name="ToolRail.Tooltip.Heal" xml:space="preserve"><value>污點修復</value></data>
+  <data name="ToolRail.Tooltip.Eyedropper" xml:space="preserve"><value>滴管 — 按一下畫布</value></data>
+  <data name="ToolRail.Tooltip.Type" xml:space="preserve"><value>文字 — 按一下以放置文字</value></data>
+  <data name="ToolRail.Tooltip.Crop" xml:space="preserve"><value>裁切 — 拖曳框線後套用</value></data>
+  <data name="ToolRail.Tooltip.Shape" xml:space="preserve"><value>形狀 — 拖曳以繪製矩形、橢圓或直線</value></data>
+  <data name="ToolRail.Tooltip.Gradient" xml:space="preserve"><value>漸層 — 拖曳其方向線</value></data>
+  <data name="NewDocument.Title" xml:space="preserve"><value>新增專案</value></data>
+  <data name="NewDocument.Preset" xml:space="preserve"><value>預設集</value></data>
+  <data name="NewDocument.WidthPixels" xml:space="preserve"><value>寬度（像素）</value></data>
+  <data name="NewDocument.HeightPixels" xml:space="preserve"><value>高度（像素）</value></data>
+  <data name="NewDocument.ResolutionPerInch" xml:space="preserve"><value>解析度（每英吋）</value></data>
+  <data name="NewDocument.CanvasAtLeastOnePixel" xml:space="preserve"><value>畫布的寬度與高度至少各為 1 個像素。</value></data>
+  <data name="NewDocument.SideAtMostPixels" xml:space="preserve"><value>任一邊最多為 {0} 個像素。</value></data>
+  <data name="NewDocument.SizeEstimate" xml:space="preserve"><value>{0:0.#} 百萬像素，開啟時約佔用 {1:0} MB 記憶體</value></data>
+  <data name="NewDocument.TooLargeToHold" xml:space="preserve"><value> — 太大而無法容納（上限為 {0} 百萬像素）</value></data>
+  <data name="NewDocument.Preset.Custom" xml:space="preserve"><value>自訂</value></data>
+  <data name="NewDocument.Preset.InstagramSquare" xml:space="preserve"><value>Instagram 正方形</value></data>
+  <data name="NewDocument.Preset.InstagramPortrait" xml:space="preserve"><value>Instagram 直式</value></data>
+  <data name="NewDocument.Preset.InstagramStory" xml:space="preserve"><value>Instagram 限時動態</value></data>
+  <data name="NewDocument.Preset.YouTubeThumbnail" xml:space="preserve"><value>YouTube 縮圖</value></data>
+  <data name="NewDocument.Preset.A4At300Ppi" xml:space="preserve"><value>A4（每英吋 300 像素）</value></data>
+  <data name="NewDocument.Preset.A3At300Ppi" xml:space="preserve"><value>A3（每英吋 300 像素）</value></data>
+  <data name="ImageSize.Title" xml:space="preserve"><value>影像尺寸</value></data>
+  <data name="ImageSize.ConstrainProportions" xml:space="preserve"><value>限制比例</value></data>
+  <data name="ImageSize.Resampling" xml:space="preserve"><value>重新取樣</value></data>
+  <data name="ImageSize.Bicubic" xml:space="preserve"><value>雙立方（最適合相片）</value></data>
+  <data name="ImageSize.Nearest" xml:space="preserve"><value>最鄰近（最適合像素藝術）</value></data>
+  <data name="CanvasSize.Title" xml:space="preserve"><value>畫布尺寸</value></data>
+  <data name="CanvasSize.Anchor" xml:space="preserve"><value>錨點</value></data>
+  <data name="CanvasSize.Anchor.TopLeft" xml:space="preserve"><value>左上</value></data>
+  <data name="CanvasSize.Anchor.Top" xml:space="preserve"><value>上方</value></data>
+  <data name="CanvasSize.Anchor.TopRight" xml:space="preserve"><value>右上</value></data>
+  <data name="CanvasSize.Anchor.Left" xml:space="preserve"><value>左側</value></data>
+  <data name="CanvasSize.Anchor.Center" xml:space="preserve"><value>中央</value></data>
+  <data name="CanvasSize.Anchor.Right" xml:space="preserve"><value>右側</value></data>
+  <data name="CanvasSize.Anchor.BottomLeft" xml:space="preserve"><value>左下</value></data>
+  <data name="CanvasSize.Anchor.Bottom" xml:space="preserve"><value>下方</value></data>
+  <data name="CanvasSize.Anchor.BottomRight" xml:space="preserve"><value>右下</value></data>
+  <data name="Guide.Title" xml:space="preserve"><value>新增參考線</value></data>
+  <data name="Guide.Horizontal" xml:space="preserve"><value>水平（橫向）</value></data>
+  <data name="Guide.Vertical" xml:space="preserve"><value>垂直（縱向）</value></data>
+  <data name="Guide.Direction" xml:space="preserve"><value>方向</value></data>
+  <data name="Guide.PositionPixels" xml:space="preserve"><value>位置（像素）</value></data>
+  <data name="Guide.CanvasNote" xml:space="preserve"><value>畫布尺寸為 {0} × {1}。參考線可以放在畫布外的工作區。</value></data>
+  <data name="GridSettings.Title" xml:space="preserve"><value>格線設定</value></data>
+  <data name="GridSettings.SpacingPixels" xml:space="preserve"><value>間距（像素）</value></data>
+  <data name="GridSettings.Subdivisions" xml:space="preserve"><value>細分</value></data>
+  <data name="GridSettings.LimitsNote" xml:space="preserve"><value>間距介於 {0} 至 {1} 像素，最多可細分為 {2} 格。</value></data>
+  <data name="JpegQuality.Title" xml:space="preserve"><value>JPEG 品質</value></data>
+  <data name="JpegQuality.Export" xml:space="preserve"><value>匯出</value></data>
+  <data name="JpegQuality.HigherLargerFile" xml:space="preserve"><value>較高的品質可保留更多影像細節，但檔案會更大。</value></data>
+  <data name="JpegQuality.Quality" xml:space="preserve"><value>品質</value></data>
+  <data name="Trim.Title" xml:space="preserve"><value>修剪</value></data>
+  <data name="Trim.TransparentPixels" xml:space="preserve"><value>透明像素</value></data>
+  <data name="Trim.TopLeftPixelColor" xml:space="preserve"><value>左上角像素顏色</value></data>
+  <data name="Trim.BottomRightPixelColor" xml:space="preserve"><value>右下角像素顏色</value></data>
+  <data name="Trim.Top" xml:space="preserve"><value>上方</value></data>
+  <data name="Trim.Bottom" xml:space="preserve"><value>下方</value></data>
+  <data name="Trim.Left" xml:space="preserve"><value>左側</value></data>
+  <data name="Trim.Right" xml:space="preserve"><value>右側</value></data>
+  <data name="Trim.BasedOn" xml:space="preserve"><value>依據</value></data>
+  <data name="Trim.TrimAway" xml:space="preserve"><value>修剪掉</value></data>
+  <data name="Trim.Tolerance" xml:space="preserve"><value>容差</value></data>
+  <data name="Update.WhatChanged" xml:space="preserve"><value>查看更新內容…</value></data>
+  <data name="Shortcut.Title" xml:space="preserve"><value>鍵盤快速鍵</value></data>
+  <data name="Shortcut.SearchPlaceholder" xml:space="preserve"><value>搜尋快速鍵</value></data>
+  <data name="Shortcut.RestoreDefaults" xml:space="preserve"><value>還原預設值</value></data>
+  <data name="Shortcut.Instructions" xml:space="preserve"><value>按一下按鍵後，再按下要使用的按鍵。Backspace 會清除該列，Escape 會停止錄製；儲存後才會套用變更。</value></data>
+  <data name="Shortcut.PressKeys" xml:space="preserve"><value>按下按鍵…</value></data>
+  <data name="Shortcut.Unbound" xml:space="preserve"><value>—</value></data>
+  <data name="Shortcut.Group.Menus" xml:space="preserve"><value>選單</value></data>
+  <data name="Shortcut.Group.CanvasLayers" xml:space="preserve"><value>畫布與圖層</value></data>
+  <data name="Shortcut.WindowsKeyReserved" xml:space="preserve"><value>Windows 鍵為 Windows 保留，無法使用。</value></data>
+  <data name="Shortcut.InvalidKey" xml:space="preserve"><value>{0} 不是由 Ctrl、Alt 或 Shift 組成的有效快速鍵。</value></data>
+  <data name="Shortcut.ReservedByWindows" xml:space="preserve"><value>{0} 為 Windows 保留的快速鍵。</value></data>
+  <data name="Shortcut.Duplicate" xml:space="preserve"><value>{0} 同時指派給「{1}」。</value></data>
+  <data name="Tool.Pan" xml:space="preserve"><value>平移</value></data>
+  <data name="Tool.Move" xml:space="preserve"><value>移動</value></data>
+  <data name="Tool.Marquee" xml:space="preserve"><value>矩形選取畫面</value></data>
+  <data name="Tool.Ellipse" xml:space="preserve"><value>橢圓選取畫面</value></data>
+  <data name="Tool.Lasso" xml:space="preserve"><value>套索</value></data>
+  <data name="Tool.Polygon" xml:space="preserve"><value>多邊形套索</value></data>
+  <data name="Tool.Wand" xml:space="preserve"><value>魔術棒</value></data>
+  <data name="Tool.Brush" xml:space="preserve"><value>筆刷</value></data>
+  <data name="Tool.Clone" xml:space="preserve"><value>仿製印章</value></data>
+  <data name="Tool.Blur" xml:space="preserve"><value>模糊筆刷</value></data>
+  <data name="Tool.Liquify" xml:space="preserve"><value>液化筆刷</value></data>
+  <data name="Tool.Smudge" xml:space="preserve"><value>指尖筆刷</value></data>
+  <data name="Tool.Heal" xml:space="preserve"><value>污點修復</value></data>
+  <data name="Tool.Eyedropper" xml:space="preserve"><value>滴管</value></data>
+  <data name="Tool.Type" xml:space="preserve"><value>文字</value></data>
+  <data name="Tool.Crop" xml:space="preserve"><value>裁切</value></data>
+  <data name="Tool.Shape" xml:space="preserve"><value>形狀</value></data>
+  <data name="Tool.Gradient" xml:space="preserve"><value>漸層</value></data>
+  <data name="BlendMode.Normal" xml:space="preserve"><value>正常</value></data>
+  <data name="BlendMode.Darken" xml:space="preserve"><value>變暗</value></data>
+  <data name="BlendMode.Multiply" xml:space="preserve"><value>色彩增值</value></data>
+  <data name="BlendMode.ColorBurn" xml:space="preserve"><value>加深顏色</value></data>
+  <data name="BlendMode.LinearBurn" xml:space="preserve"><value>線性加深</value></data>
+  <data name="BlendMode.Lighten" xml:space="preserve"><value>變亮</value></data>
+  <data name="BlendMode.Screen" xml:space="preserve"><value>濾色</value></data>
+  <data name="BlendMode.ColorDodge" xml:space="preserve"><value>加亮顏色</value></data>
+  <data name="BlendMode.LinearDodgeAdd" xml:space="preserve"><value>線性加亮（增加）</value></data>
+  <data name="BlendMode.Overlay" xml:space="preserve"><value>覆蓋</value></data>
+  <data name="BlendMode.SoftLight" xml:space="preserve"><value>柔光</value></data>
+  <data name="BlendMode.HardLight" xml:space="preserve"><value>實光</value></data>
+  <data name="BlendMode.VividLight" xml:space="preserve"><value>強烈光源</value></data>
+  <data name="BlendMode.LinearLight" xml:space="preserve"><value>線性光源</value></data>
+  <data name="BlendMode.PinLight" xml:space="preserve"><value>小光源</value></data>
+  <data name="BlendMode.HardMix" xml:space="preserve"><value>實色混合</value></data>
+  <data name="BlendMode.Difference" xml:space="preserve"><value>差異</value></data>
+  <data name="BlendMode.Exclusion" xml:space="preserve"><value>排除</value></data>
+  <data name="BlendMode.Subtract" xml:space="preserve"><value>減去</value></data>
+  <data name="BlendMode.Divide" xml:space="preserve"><value>除</value></data>
+  <data name="BlendMode.Hue" xml:space="preserve"><value>色相</value></data>
+  <data name="BlendMode.Saturation" xml:space="preserve"><value>飽和度</value></data>
+  <data name="BlendMode.Color" xml:space="preserve"><value>顏色</value></data>
+  <data name="BlendMode.Luminosity" xml:space="preserve"><value>明度</value></data>
+  <data name="Adjustment.HueSaturation" xml:space="preserve"><value>色相／飽和度</value></data>
+  <data name="Adjustment.Levels" xml:space="preserve"><value>色階</value></data>
+  <data name="Adjustment.Curves" xml:space="preserve"><value>曲線</value></data>
+  <data name="Adjustment.Exposure" xml:space="preserve"><value>曝光</value></data>
+  <data name="Adjustment.GradientMap" xml:space="preserve"><value>漸層對應</value></data>
+  <data name="Adjustment.Grain" xml:space="preserve"><value>顆粒</value></data>
+  <data name="Adjustment.AddNoise" xml:space="preserve"><value>增加雜訊</value></data>
+  <data name="Adjustment.GaussianBlur" xml:space="preserve"><value>高斯模糊</value></data>
+  <data name="Adjustment.MotionBlur" xml:space="preserve"><value>動態模糊</value></data>
+  <data name="Adjustment.Invert" xml:space="preserve"><value>反相</value></data>
+  <data name="Adjustment.BlackWhite" xml:space="preserve"><value>黑白</value></data>
+  <data name="Adjustment.ColorBalance" xml:space="preserve"><value>色彩平衡</value></data>
+  <data name="Filter.GaussianBlur" xml:space="preserve"><value>高斯模糊</value></data>
+  <data name="Filter.MotionBlur" xml:space="preserve"><value>動態模糊</value></data>
+  <data name="Filter.BloomGlow" xml:space="preserve"><value>暈光／光暈</value></data>
+  <data name="Filter.AddNoise" xml:space="preserve"><value>增加雜訊</value></data>
+  <data name="Filter.Vignette" xml:space="preserve"><value>暗角</value></data>
+  <data name="Filter.TonalContrast" xml:space="preserve"><value>色調對比</value></data>
+  <data name="Filter.LensCorrection" xml:space="preserve"><value>鏡頭校正</value></data>
+  <data name="Effect.Stroke" xml:space="preserve"><value>筆畫</value></data>
+  <data name="Effect.DropShadow" xml:space="preserve"><value>陰影</value></data>
+  <data name="Effect.ColorOverlay" xml:space="preserve"><value>顏色覆蓋</value></data>
+  <data name="Effect.InnerShadow" xml:space="preserve"><value>內陰影</value></data>
+  <data name="Effect.OuterGlow" xml:space="preserve"><value>外光暈</value></data>
+  <data name="Effect.InnerGlow" xml:space="preserve"><value>內光暈</value></data>
+  <data name="Shape.Rectangle" xml:space="preserve"><value>矩形</value></data>
+  <data name="Shape.Ellipse" xml:space="preserve"><value>橢圓形</value></data>
+  <data name="Shape.Line" xml:space="preserve"><value>直線</value></data>
+  <data name="Gradient.Linear" xml:space="preserve"><value>線性</value></data>
+  <data name="Gradient.Radial" xml:space="preserve"><value>放射狀</value></data>
+  <data name="Healing.ContentAware" xml:space="preserve"><value>內容感知</value></data>
+  <data name="Healing.CreateTexture" xml:space="preserve"><value>建立紋理</value></data>
+  <data name="Healing.ProximityMatch" xml:space="preserve"><value>相近比對</value></data>
+  <data name="ColorRange.Master" xml:space="preserve"><value>全體</value></data>
+  <data name="ColorRange.Reds" xml:space="preserve"><value>紅色</value></data>
+  <data name="ColorRange.Yellows" xml:space="preserve"><value>黃色</value></data>
+  <data name="ColorRange.Greens" xml:space="preserve"><value>綠色</value></data>
+  <data name="ColorRange.Cyans" xml:space="preserve"><value>青色</value></data>
+  <data name="ColorRange.Blues" xml:space="preserve"><value>藍色</value></data>
+  <data name="ColorRange.Magentas" xml:space="preserve"><value>洋紅色</value></data>
+  <data name="LevelsChannel.Rgb" xml:space="preserve"><value>RGB</value></data>
+  <data name="LevelsChannel.Red" xml:space="preserve"><value>紅色</value></data>
+  <data name="LevelsChannel.Green" xml:space="preserve"><value>綠色</value></data>
+  <data name="LevelsChannel.Blue" xml:space="preserve"><value>藍色</value></data>
+  <data name="TextAlignment.Left" xml:space="preserve"><value>靠左</value></data>
+  <data name="TextAlignment.Center" xml:space="preserve"><value>置中</value></data>
+  <data name="TextAlignment.Right" xml:space="preserve"><value>靠右</value></data>
+  <data name="GuideAxis.Horizontal" xml:space="preserve"><value>水平</value></data>
+  <data name="GuideAxis.Vertical" xml:space="preserve"><value>垂直</value></data>
+  <data name="Shortcut.Command.Menus:Undo" xml:space="preserve"><value>復原</value></data>
+  <data name="Shortcut.Command.Menus:Redo" xml:space="preserve"><value>重做</value></data>
+  <data name="Shortcut.Command.Menus:New Project" xml:space="preserve"><value>新增專案</value></data>
+  <data name="Shortcut.Command.Menus:Open Project" xml:space="preserve"><value>開啟專案</value></data>
+  <data name="Shortcut.Command.Menus:Save" xml:space="preserve"><value>儲存</value></data>
+  <data name="Shortcut.Command.Menus:Save As" xml:space="preserve"><value>另存新檔</value></data>
+  <data name="Shortcut.Command.Menus:Export PNG" xml:space="preserve"><value>匯出 PNG</value></data>
+  <data name="Shortcut.Command.Menus:Export JPEG" xml:space="preserve"><value>匯出 JPEG</value></data>
+  <data name="Shortcut.Command.Menus:Close Tab" xml:space="preserve"><value>關閉分頁</value></data>
+  <data name="Shortcut.Command.Menus:Fit Canvas" xml:space="preserve"><value>符合畫面</value></data>
+  <data name="Shortcut.Command.Menus:Actual Pixels" xml:space="preserve"><value>實際像素</value></data>
+  <data name="Shortcut.Command.Menus:Zoom In" xml:space="preserve"><value>放大</value></data>
+  <data name="Shortcut.Command.Menus:Zoom Out" xml:space="preserve"><value>縮小</value></data>
+  <data name="Shortcut.Command.Menus:Show Transform Controls" xml:space="preserve"><value>顯示變形控制項</value></data>
+  <data name="Shortcut.Command.Menus:Cut" xml:space="preserve"><value>剪下</value></data>
+  <data name="Shortcut.Command.Menus:Copy" xml:space="preserve"><value>複製</value></data>
+  <data name="Shortcut.Command.Menus:Copy Merged" xml:space="preserve"><value>複製合併結果</value></data>
+  <data name="Shortcut.Command.Menus:Paste" xml:space="preserve"><value>貼上</value></data>
+  <data name="Shortcut.Command.Menus:Fill with Foreground Color" xml:space="preserve"><value>以前景色填滿</value></data>
+  <data name="Shortcut.Command.Menus:Fill with Background Color" xml:space="preserve"><value>以背景色填滿</value></data>
+  <data name="Shortcut.Command.Menus:Content-Aware Fill" xml:space="preserve"><value>內容感知填滿</value></data>
+  <data name="Shortcut.Command.Menus:Select All" xml:space="preserve"><value>全部選取</value></data>
+  <data name="Shortcut.Command.Menus:Deselect" xml:space="preserve"><value>取消選取</value></data>
+  <data name="Shortcut.Command.Menus:Inverse Selection" xml:space="preserve"><value>反轉選取範圍</value></data>
+  <data name="Shortcut.Command.Menus:Curves" xml:space="preserve"><value>曲線</value></data>
+  <data name="Shortcut.Command.Menus:Levels" xml:space="preserve"><value>色階</value></data>
+  <data name="Shortcut.Command.Menus:Hue/Saturation" xml:space="preserve"><value>色相／飽和度</value></data>
+  <data name="Shortcut.Command.Menus:Invert" xml:space="preserve"><value>反相</value></data>
+  <data name="Shortcut.Command.Menus:Canvas Size" xml:space="preserve"><value>畫布尺寸</value></data>
+  <data name="Shortcut.Command.Menus:Image Size" xml:space="preserve"><value>影像尺寸</value></data>
+  <data name="Shortcut.Command.Menus:Layer via Copy" xml:space="preserve"><value>透過拷貝建立圖層</value></data>
+  <data name="Shortcut.Command.Menus:Duplicate Layer" xml:space="preserve"><value>複製圖層</value></data>
+  <data name="Shortcut.Command.Menus:Toggle Clipping Mask" xml:space="preserve"><value>切換剪裁遮色片</value></data>
+  <data name="Shortcut.Command.Menus:Group Layers" xml:space="preserve"><value>群組圖層</value></data>
+  <data name="Shortcut.Command.Menus:New Blank Layer" xml:space="preserve"><value>新增空白圖層</value></data>
+  <data name="Shortcut.Command.Menus:Move Layer Up" xml:space="preserve"><value>上移圖層</value></data>
+  <data name="Shortcut.Command.Menus:Move Layer Down" xml:space="preserve"><value>下移圖層</value></data>
+  <data name="Shortcut.Command.Menus:Merge Layers" xml:space="preserve"><value>合併圖層</value></data>
+  <data name="Shortcut.Command.Menus:Rename Layer" xml:space="preserve"><value>重新命名圖層</value></data>
+  <data name="Shortcut.Command.Menus:Delete Layer" xml:space="preserve"><value>刪除圖層</value></data>
+  <data name="Shortcut.Command.Menus:Show Grid" xml:space="preserve"><value>顯示格線</value></data>
+  <data name="Shortcut.Command.Menus:Show Guides" xml:space="preserve"><value>顯示參考線</value></data>
+  <data name="Shortcut.Command.Menus:Show Rulers" xml:space="preserve"><value>顯示尺標</value></data>
+  <data name="Shortcut.Command.Menus:Snap" xml:space="preserve"><value>貼齊</value></data>
+  <data name="Shortcut.Command.Menus:Lock Guides" xml:space="preserve"><value>鎖定參考線</value></data>
+  <data name="Shortcut.Command.Menus:New Guide" xml:space="preserve"><value>新增參考線</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Hand tool" xml:space="preserve"><value>手形工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move / Transform tool" xml:space="preserve"><value>移動／變形工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Marquee tool" xml:space="preserve"><value>矩形選取工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Lasso tool" xml:space="preserve"><value>套索工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Magic wand" xml:space="preserve"><value>魔術棒工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Brush tool" xml:space="preserve"><value>筆刷工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Clone Stamp" xml:space="preserve"><value>仿製印章工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Blur / Smudge / Liquify" xml:space="preserve"><value>模糊／塗抹／液化工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Spot Healing" xml:space="preserve"><value>污點修復工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Eyedropper tool" xml:space="preserve"><value>滴管工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Type tool" xml:space="preserve"><value>文字工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Crop tool" xml:space="preserve"><value>裁切工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Shape tool" xml:space="preserve"><value>形狀工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Gradient tool" xml:space="preserve"><value>漸層工具</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Swap foreground/background" xml:space="preserve"><value>交換前景色／背景色</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Reset colors" xml:space="preserve"><value>重設顏色</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Temporary Hand tool (hold)" xml:space="preserve"><value>暫時使用手形工具（按住）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Decrease brush size" xml:space="preserve"><value>縮小筆刷大小</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Increase brush size" xml:space="preserve"><value>放大筆刷大小</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Decrease brush hardness" xml:space="preserve"><value>降低筆刷硬度</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Increase brush hardness" xml:space="preserve"><value>提高筆刷硬度</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Previous blend mode" xml:space="preserve"><value>前一個混合模式</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Next blend mode" xml:space="preserve"><value>下一個混合模式</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Cycle shape kind" xml:space="preserve"><value>循環切換形狀種類</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Apply Canvas Operation" xml:space="preserve"><value>套用畫布操作</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Cancel Canvas Operation" xml:space="preserve"><value>取消畫布操作</value></data>
+  <data name="CameraRaw.Title" xml:space="preserve"><value>Camera Raw 濾鏡</value></data>
+  <data name="CameraRaw.ClippedShadows" xml:space="preserve"><value>剪裁的陰影</value></data>
+  <data name="CameraRaw.ClippedHighlights" xml:space="preserve"><value>剪裁的亮部</value></data>
+  <data name="CameraRaw.SharpeningMask" xml:space="preserve"><value>銳利化遮色片</value></data>
+  <data name="CameraRaw.EmptyReadout" xml:space="preserve"><value>R —   G —   B —</value></data>
+  <data name="CameraRaw.Readout" xml:space="preserve"><value>R {0}   G {1}   B {2}</value></data>
+  <data name="CameraRaw.DrawGuides" xml:space="preserve"><value>繪製參考線</value></data>
+  <data name="CameraRaw.StopDrawing" xml:space="preserve"><value>停止繪製</value></data>
+  <data name="CameraRaw.ClearGuides" xml:space="preserve"><value>清除參考線</value></data>
+  <data name="CameraRaw.GuideInstructions" xml:space="preserve"><value>在影像上拖曳以繪製應保持水平或垂直的線。一條線可旋轉影像；第二條較陡的線可加入透視校正。</value></data>
+  <data name="CameraRaw.OneGuideDrawing" xml:space="preserve"><value>已繪製 1 條參考線 — 再拖曳一次以新增參考線。</value></data>
+  <data name="CameraRaw.OneGuide" xml:space="preserve"><value>已繪製 1 條參考線 — 使用「繪製參考線」以新增參考線。</value></data>
+  <data name="CameraRaw.ManyGuidesDrawing" xml:space="preserve"><value>已繪製 {0} 條參考線 — 再拖曳一次以新增參考線。</value></data>
+  <data name="CameraRaw.ManyGuides" xml:space="preserve"><value>已繪製 {0} 條參考線 — 使用「繪製參考線」以新增參考線。</value></data>
+  <data name="CameraRaw.Light" xml:space="preserve"><value>光源</value></data>
+  <data name="CameraRaw.ExposureStops" xml:space="preserve"><value>曝光度（級）</value></data>
+  <data name="CameraRaw.Contrast" xml:space="preserve"><value>對比</value></data>
+  <data name="CameraRaw.Highlights" xml:space="preserve"><value>亮部</value></data>
+  <data name="CameraRaw.Shadows" xml:space="preserve"><value>陰影</value></data>
+  <data name="CameraRaw.Whites" xml:space="preserve"><value>白色</value></data>
+  <data name="CameraRaw.Blacks" xml:space="preserve"><value>黑色</value></data>
+  <data name="CameraRaw.Color" xml:space="preserve"><value>顏色</value></data>
+  <data name="CameraRaw.TemperatureCoolToWarm" xml:space="preserve"><value>色溫（冷色至暖色）</value></data>
+  <data name="CameraRaw.TintGreenToMagenta" xml:space="preserve"><value>色調（綠色至洋紅）</value></data>
+  <data name="CameraRaw.Vibrance" xml:space="preserve"><value>自然飽和度</value></data>
+  <data name="CameraRaw.Saturation" xml:space="preserve"><value>飽和度</value></data>
+  <data name="CameraRaw.Effects" xml:space="preserve"><value>效果</value></data>
+  <data name="CameraRaw.Texture" xml:space="preserve"><value>紋理</value></data>
+  <data name="CameraRaw.Clarity" xml:space="preserve"><value>清晰度</value></data>
+  <data name="CameraRaw.Dehaze" xml:space="preserve"><value>去除霧霾</value></data>
+  <data name="CameraRaw.Glow" xml:space="preserve"><value>光暈</value></data>
+  <data name="CameraRaw.GlowStyle" xml:space="preserve"><value>光暈樣式</value></data>
+  <data name="CameraRaw.GlowStyle.Diffusion" xml:space="preserve"><value>柔焦</value></data>
+  <data name="CameraRaw.GlowStyle.Bloom" xml:space="preserve"><value>泛光</value></data>
+  <data name="CameraRaw.GlowStyle.Halation" xml:space="preserve"><value>暈光</value></data>
+  <data name="CameraRaw.GlowRange" xml:space="preserve"><value>光暈範圍</value></data>
+  <data name="CameraRaw.GlowSpread" xml:space="preserve"><value>光暈擴散</value></data>
+  <data name="CameraRaw.GlowWarmth" xml:space="preserve"><value>光暈暖色調</value></data>
+  <data name="CameraRaw.VignetteAmount" xml:space="preserve"><value>暈影量</value></data>
+  <data name="CameraRaw.VignetteStyle" xml:space="preserve"><value>暈影樣式</value></data>
+  <data name="CameraRaw.VignetteStyle.HighlightPriority" xml:space="preserve"><value>亮部優先</value></data>
+  <data name="CameraRaw.VignetteStyle.ColorPriority" xml:space="preserve"><value>顏色優先</value></data>
+  <data name="CameraRaw.VignetteStyle.PaintOverlay" xml:space="preserve"><value>顏料覆蓋</value></data>
+  <data name="CameraRaw.VignetteMidpoint" xml:space="preserve"><value>暈影中點</value></data>
+  <data name="CameraRaw.VignetteRoundness" xml:space="preserve"><value>暈影圓度</value></data>
+  <data name="CameraRaw.VignetteFeather" xml:space="preserve"><value>暈影羽化</value></data>
+  <data name="CameraRaw.VignetteHighlights" xml:space="preserve"><value>暈影亮部</value></data>
+  <data name="CameraRaw.GrainAmount" xml:space="preserve"><value>顆粒量</value></data>
+  <data name="CameraRaw.GrainSize" xml:space="preserve"><value>顆粒大小</value></data>
+  <data name="CameraRaw.GrainRoughness" xml:space="preserve"><value>顆粒粗糙度</value></data>
+  <data name="CameraRaw.Detail" xml:space="preserve"><value>細節</value></data>
+  <data name="CameraRaw.SharpenAmount" xml:space="preserve"><value>銳利化量</value></data>
+  <data name="CameraRaw.SharpenRadius" xml:space="preserve"><value>銳利化半徑</value></data>
+  <data name="CameraRaw.SharpenDetail" xml:space="preserve"><value>銳利化細節</value></data>
+  <data name="CameraRaw.SharpenMasking" xml:space="preserve"><value>銳利化遮色片</value></data>
+  <data name="CameraRaw.NoiseLuminance" xml:space="preserve"><value>明亮度雜訊</value></data>
+  <data name="CameraRaw.NoiseLuminanceDetail" xml:space="preserve"><value>明亮度雜訊細節</value></data>
+  <data name="CameraRaw.NoiseLuminanceContrast" xml:space="preserve"><value>明亮度雜訊對比</value></data>
+  <data name="CameraRaw.NoiseColor" xml:space="preserve"><value>色彩雜訊</value></data>
+  <data name="CameraRaw.NoiseColorDetail" xml:space="preserve"><value>色彩雜訊細節</value></data>
+  <data name="CameraRaw.NoiseColorSmoothness" xml:space="preserve"><value>色彩雜訊平滑度</value></data>
+  <data name="CameraRaw.Optics" xml:space="preserve"><value>鏡頭</value></data>
+  <data name="CameraRaw.RemoveChromaticAberration" xml:space="preserve"><value>移除色差</value></data>
+  <data name="CameraRaw.LensProfile" xml:space="preserve"><value>鏡頭設定檔</value></data>
+  <data name="CameraRaw.ProfileDistortion" xml:space="preserve"><value>設定檔扭曲</value></data>
+  <data name="CameraRaw.ProfileVignetting" xml:space="preserve"><value>設定檔暈影</value></data>
+  <data name="CameraRaw.Distortion" xml:space="preserve"><value>扭曲</value></data>
+  <data name="CameraRaw.PurpleAmount" xml:space="preserve"><value>紫色量</value></data>
+  <data name="CameraRaw.PurpleHueLow" xml:space="preserve"><value>紫色色相下限</value></data>
+  <data name="CameraRaw.PurpleHueHigh" xml:space="preserve"><value>紫色色相上限</value></data>
+  <data name="CameraRaw.GreenAmount" xml:space="preserve"><value>綠色量</value></data>
+  <data name="CameraRaw.GreenHueLow" xml:space="preserve"><value>綠色色相下限</value></data>
+  <data name="CameraRaw.GreenHueHigh" xml:space="preserve"><value>綠色色相上限</value></data>
+  <data name="CameraRaw.LensVignette" xml:space="preserve"><value>鏡頭暈影</value></data>
+  <data name="CameraRaw.LensVignetteMidpoint" xml:space="preserve"><value>鏡頭暈影中點</value></data>
+  <data name="CameraRaw.Geometry" xml:space="preserve"><value>幾何</value></data>
+  <data name="CameraRaw.Upright" xml:space="preserve"><value>垂直校正</value></data>
+  <data name="CameraRaw.Upright.Off" xml:space="preserve"><value>關閉</value></data>
+  <data name="CameraRaw.Upright.Guided" xml:space="preserve"><value>引導</value></data>
+  <data name="CameraRaw.Projection" xml:space="preserve"><value>投影</value></data>
+  <data name="CameraRaw.Projection.Perspective" xml:space="preserve"><value>透視</value></data>
+  <data name="CameraRaw.Projection.Rectilinear" xml:space="preserve"><value>直線</value></data>
+  <data name="CameraRaw.Vertical" xml:space="preserve"><value>垂直</value></data>
+  <data name="CameraRaw.Horizontal" xml:space="preserve"><value>水平</value></data>
+  <data name="CameraRaw.Rotate" xml:space="preserve"><value>旋轉</value></data>
+  <data name="CameraRaw.Aspect" xml:space="preserve"><value>外觀比例</value></data>
+  <data name="CameraRaw.Scale" xml:space="preserve"><value>縮放</value></data>
+  <data name="CameraRaw.OffsetX" xml:space="preserve"><value>X 位移</value></data>
+  <data name="CameraRaw.OffsetY" xml:space="preserve"><value>Y 位移</value></data>
+  <data name="CameraRaw.ConstrainCrop" xml:space="preserve"><value>限制裁切</value></data>
+  <data name="CameraRaw.Calibration" xml:space="preserve"><value>校正</value></data>
+  <data name="CameraRaw.ProcessVersion" xml:space="preserve"><value>處理程序版本</value></data>
+  <data name="CameraRaw.ShadowTint" xml:space="preserve"><value>陰影色調</value></data>
+  <data name="CameraRaw.RedHue" xml:space="preserve"><value>紅色色相</value></data>
+  <data name="CameraRaw.RedSaturation" xml:space="preserve"><value>紅色飽和度</value></data>
+  <data name="CameraRaw.GreenHue" xml:space="preserve"><value>綠色色相</value></data>
+  <data name="CameraRaw.GreenSaturation" xml:space="preserve"><value>綠色飽和度</value></data>
+  <data name="CameraRaw.BlueHue" xml:space="preserve"><value>藍色色相</value></data>
+  <data name="CameraRaw.BlueSaturation" xml:space="preserve"><value>藍色飽和度</value></data>
+  <data name="CameraRaw.Curve" xml:space="preserve"><value>曲線</value></data>
+  <data name="CameraRaw.WholePicture" xml:space="preserve"><value>整體影像</value></data>
+  <data name="CameraRaw.Red" xml:space="preserve"><value>紅色</value></data>
+  <data name="CameraRaw.Green" xml:space="preserve"><value>綠色</value></data>
+  <data name="CameraRaw.Blue" xml:space="preserve"><value>藍色</value></data>
+  <data name="CameraRaw.RefineSaturation" xml:space="preserve"><value>微調飽和度</value></data>
+  <data name="CameraRaw.ColorMixer" xml:space="preserve"><value>顏色混合器</value></data>
+  <data name="CameraRaw.MixerRow" xml:space="preserve"><value>{0}：{1}</value></data>
+  <data name="CameraRaw.Mixer.Reds" xml:space="preserve"><value>紅色</value></data>
+  <data name="CameraRaw.Mixer.Oranges" xml:space="preserve"><value>橙色</value></data>
+  <data name="CameraRaw.Mixer.Yellows" xml:space="preserve"><value>黃色</value></data>
+  <data name="CameraRaw.Mixer.Greens" xml:space="preserve"><value>綠色</value></data>
+  <data name="CameraRaw.Mixer.Aquas" xml:space="preserve"><value>青色</value></data>
+  <data name="CameraRaw.Mixer.Blues" xml:space="preserve"><value>藍色</value></data>
+  <data name="CameraRaw.Mixer.Purples" xml:space="preserve"><value>紫色</value></data>
+  <data name="CameraRaw.Mixer.Magentas" xml:space="preserve"><value>洋紅</value></data>
+  <data name="CameraRaw.PointColor" xml:space="preserve"><value>點選顏色</value></data>
+  <data name="CameraRaw.PointColorInstructions" xml:space="preserve"><value>從影像外選擇筆刷目前的顏色，接著調整它。macOS 版可在畫布上按一下選取顏色；此面板尚未提供該功能。</value></data>
+  <data name="CameraRaw.AddBrushColor" xml:space="preserve"><value>新增筆刷顏色</value></data>
+  <data name="CameraRaw.Hue" xml:space="preserve"><value>色相</value></data>
+  <data name="CameraRaw.Lightness" xml:space="preserve"><value>明度</value></data>
+  <data name="CameraRaw.Luminance" xml:space="preserve"><value>明亮度</value></data>
+  <data name="CameraRaw.TurnHue" xml:space="preserve"><value>調整色相</value></data>
+  <data name="CameraRaw.RaiseSaturation" xml:space="preserve"><value>調整飽和度</value></data>
+  <data name="CameraRaw.MoveLightness" xml:space="preserve"><value>調整明度</value></data>
+  <data name="CameraRaw.HueRange" xml:space="preserve"><value>色相範圍</value></data>
+  <data name="CameraRaw.SaturationRange" xml:space="preserve"><value>飽和度範圍</value></data>
+  <data name="CameraRaw.LightnessRange" xml:space="preserve"><value>明度範圍</value></data>
+  <data name="CameraRaw.PointListItem" xml:space="preserve"><value>{0}：色相 {1:0}°、飽和度 {2:0.00}、明度 {3:0.00}</value></data>
+  <data name="CameraRaw.ColorGrading" xml:space="preserve"><value>顏色分級</value></data>
+  <data name="CameraRaw.Midtones" xml:space="preserve"><value>中間調</value></data>
+  <data name="CameraRaw.Amount" xml:space="preserve"><value>量</value></data>
+  <data name="CameraRaw.GradingRow" xml:space="preserve"><value>{0}：{1}</value></data>
+  <data name="CameraRaw.GradingBlending" xml:space="preserve"><value>分級混合</value></data>
+  <data name="CameraRaw.GradingBalance" xml:space="preserve"><value>分級平衡</value></data>
+  <data name="Common.Discard" xml:space="preserve"><value>捨棄</value></data>
+  <data name="Common.Keep" xml:space="preserve"><value>保留</value></data>
+  <data name="Confirm.DiscardUnsavedTitle" xml:space="preserve"><value>要捨棄未儲存的變更嗎？</value></data>
+  <data name="Confirm.UnsavedNamed" xml:space="preserve"><value>{0} 自上次儲存後已變更。</value></data>
+  <data name="Confirm.UnsavedUntitled" xml:space="preserve"><value>此專案尚未儲存。</value></data>
+  <data name="Confirm.DiscardUnsavedMessage" xml:space="preserve"><value>{0} 未儲存的內容將會遺失。</value></data>
+  <data name="Dialog.BackgroundColorPickerTitle" xml:space="preserve"><value>選擇背景顏色</value></data>
+  <data name="Dialog.BlurRadiusLabel" xml:space="preserve"><value>模糊延伸的距離，以像素為單位，0.5 到 50</value></data>
+  <data name="Dialog.BlurRadiusTitle" xml:space="preserve"><value>模糊半徑</value></data>
+  <data name="Dialog.BrushHardnessLabel" xml:space="preserve"><value>百分比；0 為柔邊筆尖，100 為硬邊筆尖</value></data>
+  <data name="Dialog.BrushHardnessTitle" xml:space="preserve"><value>筆刷硬度</value></data>
+  <data name="Dialog.BrushOpacityLabel" xml:space="preserve"><value>百分比，1 到 100</value></data>
+  <data name="Dialog.BrushOpacityTitle" xml:space="preserve"><value>筆刷不透明度</value></data>
+  <data name="Dialog.BrushSizeLabel" xml:space="preserve"><value>直徑（像素），1 到 2000</value></data>
+  <data name="Dialog.BrushSizeTitle" xml:space="preserve"><value>筆刷大小</value></data>
+  <data name="Dialog.CornerRadiusLabel" xml:space="preserve"><value>像素；0 為直角</value></data>
+  <data name="Dialog.CornerRadiusTitle" xml:space="preserve"><value>圓角半徑</value></data>
+  <data name="Dialog.EditTextTitle" xml:space="preserve"><value>編輯文字</value></data>
+  <data name="Dialog.ExportJpegTitle" xml:space="preserve"><value>匯出 JPEG</value></data>
+  <data name="Dialog.ExportPngTitle" xml:space="preserve"><value>匯出 PNG</value></data>
+  <data name="Dialog.FeatherRadiusPixels" xml:space="preserve"><value>半徑（像素）</value></data>
+  <data name="Dialog.FileTypeImages" xml:space="preserve"><value>影像</value></data>
+  <data name="Dialog.ForegroundColorPickerTitle" xml:space="preserve"><value>選擇前景顏色</value></data>
+  <data name="Dialog.ImportImageTitle" xml:space="preserve"><value>匯入影像</value></data>
+  <data name="Dialog.LayerName" xml:space="preserve"><value>圖層名稱</value></data>
+  <data name="Dialog.LineWidthLabel" xml:space="preserve"><value>像素，1 到 200</value></data>
+  <data name="Dialog.LineWidthTitle" xml:space="preserve"><value>線條寬度</value></data>
+  <data name="Dialog.ModifySelectionTitle" xml:space="preserve"><value>修改選取範圍 — {0}</value></data>
+  <data name="Dialog.OpenProjectFolderTitle" xml:space="preserve"><value>開啟 Compositor 專案資料夾</value></data>
+  <data name="Dialog.Pixels" xml:space="preserve"><value>像素</value></data>
+  <data name="Dialog.RenameLayerTitle" xml:space="preserve"><value>重新命名圖層</value></data>
+  <data name="Dialog.SaveProjectTitle" xml:space="preserve"><value>儲存專案</value></data>
+  <data name="Dialog.ShapeNumberLabel" xml:space="preserve"><value>文件像素，0 到 1000</value></data>
+  <data name="Dialog.WandSampleSizeLabel" xml:space="preserve"><value>點按周圍取樣範圍的寬度，0 到 100</value></data>
+  <data name="Dialog.WandSampleSizeTitle" xml:space="preserve"><value>魔術棒取樣大小</value></data>
+  <data name="Dialog.WandToleranceLabel" xml:space="preserve"><value>允許的顏色差異，0 到 255</value></data>
+  <data name="Dialog.WandToleranceTitle" xml:space="preserve"><value>魔術棒容許度</value></data>
+  <data name="Term.BackgroundColor" xml:space="preserve"><value>背景</value></data>
+  <data name="Term.CornerRadius" xml:space="preserve"><value>圓角半徑</value></data>
+  <data name="Term.ForegroundColor" xml:space="preserve"><value>前景</value></data>
+  <data name="Term.LineWidth" xml:space="preserve"><value>線條寬度</value></data>
+  <data name="Term.Off" xml:space="preserve"><value>關閉</value></data>
+  <data name="Term.On" xml:space="preserve"><value>開啟</value></data>
+  <data name="SelectionAmount.Expand" xml:space="preserve"><value>擴張</value></data>
+  <data name="SelectionAmount.Contract" xml:space="preserve"><value>收縮</value></data>
+  <data name="SelectionAmount.Feather" xml:space="preserve"><value>羽化</value></data>
+  <data name="Layer.Opacity" xml:space="preserve"><value>不透明度</value></data>
+  <data name="Layer.Hidden" xml:space="preserve"><value>隱藏</value></data>
+  <data name="Layer.Mask" xml:space="preserve"><value>遮色片</value></data>
+  <data name="Layer.Clipped" xml:space="preserve"><value>剪裁</value></data>
+  <data name="Status.AdjustmentApplied" xml:space="preserve"><value>已套用「{0}」</value></data>
+  <data name="Status.AdjustmentNeedsPixels" xml:space="preserve"><value>「{0}」需要含有像素的圖層</value></data>
+  <data name="Status.AdjustmentSet" xml:space="preserve"><value>已設定「{0}」調整</value></data>
+  <data name="Status.AmountMustBeWholeNumber" xml:space="preserve"><value>數值必須是 1 到 {0} 的整數</value></data>
+  <data name="Status.AutoLevelsApplied" xml:space="preserve"><value>自動色階：{0}</value></data>
+  <data name="Status.AutoLevelsNeedsPixels" xml:space="preserve"><value>自動色階需要含有像素的圖層</value></data>
+  <data name="Status.AutoLevelsNoPixels" xml:space="preserve"><value>該圖層沒有可延展的內容</value></data>
+  <data name="Status.BlendMode" xml:space="preserve"><value>混合模式：{0}</value></data>
+  <data name="Status.BrushColor" xml:space="preserve"><value>筆刷顏色 {0}、{1}、{2}</value></data>
+  <data name="Status.BrushErases" xml:space="preserve"><value>筆刷正在擦除</value></data>
+  <data name="Status.BrushHardness" xml:space="preserve"><value>筆刷：{0:0}% 硬度</value></data>
+  <data name="Status.BrushOpacity" xml:space="preserve"><value>筆刷不透明度 {0:0}%</value></data>
+  <data name="Status.BrushPaints" xml:space="preserve"><value>筆刷正在繪製</value></data>
+  <data name="Status.BrushPaintsMask" xml:space="preserve"><value>筆刷正在繪製圖層遮色片；白色顯示內容，使用橡皮擦會繪製黑色</value></data>
+  <data name="Status.BrushPaintsPixels" xml:space="preserve"><value>筆刷正在繪製圖層像素</value></data>
+  <data name="Status.BrushSettings" xml:space="preserve"><value>{0}{1}，顏色 {2:0}、{3:0}、{4:0}</value></data>
+  <data name="Status.BrushSettingsChanged" xml:space="preserve"><value>筆刷：{0:0} 像素，{1}</value></data>
+  <data name="Status.BrushSize" xml:space="preserve"><value>筆刷：{0:0} 像素</value></data>
+  <data name="Status.CameraRawApplied" xml:space="preserve"><value>Camera Raw：曝光 {0:0.##}、對比 {1:0}、飽和度 {2:0}</value></data>
+  <data name="Status.CameraRawNeedsPixels" xml:space="preserve"><value>Camera Raw 需要含有像素的圖層</value></data>
+  <data name="Status.CameraRawOpened" xml:space="preserve"><value>Camera Raw：面板已停駐在右側，畫布會顯示調整結果</value></data>
+  <data name="Status.CanvasResized" xml:space="preserve"><value>畫布現在為 {0} × {1}</value></data>
+  <data name="Status.CanvasSizeTooLarge" xml:space="preserve"><value>此尺寸對畫布而言過大</value></data>
+  <data name="Status.CanvasTooLargeForJpeg" xml:space="preserve"><value>此畫布太大，無法寫入單一 JPEG。</value></data>
+  <data name="Status.CanvasTooLargeToSample" xml:space="preserve"><value>此畫布太大，無法一次讀取顏色</value></data>
+  <data name="Status.CannotMakeShape" xml:space="preserve"><value>無法建立該形狀</value></data>
+  <data name="Status.ClippedLayerCannotDelete" xml:space="preserve"><value>保留的圖層剪裁至已刪除的圖層；macOS 版可點陣化或取消連結，目前此版本尚未支援</value></data>
+  <data name="Status.CloneNeedsAltClick" xml:space="preserve"><value>請先按住 Alt 並按一下以設定仿製印章來源</value></data>
+  <data name="Status.CloneSourceSet" xml:space="preserve"><value>仿製印章正從 {0:0}、{1:0} 複製；請在畫布上拖曳</value></data>
+  <data name="Status.ColorRangeInstructions" xml:space="preserve"><value>顏色範圍：按一下影像以挑選要選取的顏色</value></data>
+  <data name="Status.ColorRangePicked" xml:space="preserve"><value>已挑選 {0} 種顏色</value></data>
+  <data name="Status.ColorRangeSelected" xml:space="preserve"><value>已選取接近 {0} 種顏色、容許度 {1:0} 的內容</value></data>
+  <data name="Status.ColorUnchanged" xml:space="preserve"><value>{0}顏色維持不變</value></data>
+  <data name="Status.ColorValue" xml:space="preserve"><value>{0}顏色：{1:0}、{2:0}、{3:0}</value></data>
+  <data name="Status.ContentAwareFillApplied" xml:space="preserve"><value>已套用內容感知填滿</value></data>
+  <data name="Status.ContentAwareFillNeedsPixels" xml:space="preserve"><value>內容感知填滿需要含有像素的圖層</value></data>
+  <data name="Status.ContentAwareFillNeedsSelection" xml:space="preserve"><value>內容感知填滿需要選取範圍</value></data>
+  <data name="Status.ContentAwareFillNoSource" xml:space="preserve"><value>內容感知填滿找不到可用來源；請縮小選取範圍</value></data>
+  <data name="Status.Copied" xml:space="preserve"><value>已複製 {0} × {1}</value></data>
+  <data name="Status.CopiedMerged" xml:space="preserve"><value>已從平面化影像複製 {0} × {1}</value></data>
+  <data name="Status.CropAnyRatio" xml:space="preserve"><value>裁切：任意比例</value></data>
+  <data name="Status.CropCancelled" xml:space="preserve"><value>裁切：放開以取消</value></data>
+  <data name="Status.CropInvalidFrame" xml:space="preserve"><value>此框選範圍無法用來裁切畫布</value></data>
+  <data name="Status.CropNeedsFrame" xml:space="preserve"><value>請先拖曳出裁切框</value></data>
+  <data name="Status.CropRatio" xml:space="preserve"><value>裁切：{0:0.##} 比 1</value></data>
+  <data name="Status.Cut" xml:space="preserve"><value>已剪下 {0} × {1}</value></data>
+  <data name="Status.DitherApplied" xml:space="preserve"><value>已套用網點：{0}，{1:0} 色調</value></data>
+  <data name="Status.DitherNeedsPixels" xml:space="preserve"><value>網點需要含有像素的圖層</value></data>
+  <data name="Status.DocumentInfo" xml:space="preserve"><value>{0:0}%    {1} × {2} px    sRGB · 透明{3}</value></data>
+  <data name="Status.DraggingSelectionPixels" xml:space="preserve"><value>正在拖曳選取範圍內的像素</value></data>
+  <data name="Status.EffectsCleared" xml:space="preserve"><value>已清除效果</value></data>
+  <data name="Status.Exported" xml:space="preserve"><value>已匯出 {0}</value></data>
+  <data name="Status.ExportFailed" xml:space="preserve"><value>無法匯出：{0}</value></data>
+  <data name="Status.FilterApplied" xml:space="preserve"><value>已套用「{0}」</value></data>
+  <data name="Status.FilterNeedsPixels" xml:space="preserve"><value>「{0}」需要含有像素的圖層</value></data>
+  <data name="Status.GradientApplied" xml:space="preserve"><value>漸層長度為 {0:0} 像素</value></data>
+  <data name="Status.GradientNeedsLine" xml:space="preserve"><value>請拖曳漸層方向線</value></data>
+  <data name="Status.GradientSettings" xml:space="preserve"><value>漸層：{0}、{1}{2}</value></data>
+  <data name="Status.GridHidden" xml:space="preserve"><value>格點已隱藏</value></data>
+  <data name="Status.GridSettingsSaved" xml:space="preserve"><value>格點間距 {0} 像素，分割為 {1} 格</value></data>
+  <data name="Status.GridShown" xml:space="preserve"><value>格點間距 {0} 像素</value></data>
+  <data name="Status.GroupLayersFailed" xml:space="preserve"><value>無法將這些圖層放入群組。</value></data>
+  <data name="Status.GuideAt" xml:space="preserve"><value>參考線位置 {0:0.#}</value></data>
+  <data name="Status.GuideCreated" xml:space="preserve"><value>{0}參考線位置 {1:0.#}</value></data>
+  <data name="Status.GuideLimit" xml:space="preserve"><value>此文件已達參考線數量上限。</value></data>
+  <data name="Status.GuideRemoved" xml:space="preserve"><value>已移除參考線</value></data>
+  <data name="Status.GuidesCleared" xml:space="preserve"><value>已清除參考線</value></data>
+  <data name="Status.GuidesHidden" xml:space="preserve"><value>參考線已隱藏</value></data>
+  <data name="Status.GuidesLocked" xml:space="preserve"><value>參考線已鎖定，無法從尺規拖出</value></data>
+  <data name="Status.GuidesLockedShort" xml:space="preserve"><value>參考線已鎖定</value></data>
+  <data name="Status.GuidesShown" xml:space="preserve"><value>參考線已顯示</value></data>
+  <data name="Status.GuidesUnlocked" xml:space="preserve"><value>參考線已解除鎖定</value></data>
+  <data name="Status.HealingMode" xml:space="preserve"><value>污點修復：{0}</value></data>
+  <data name="Status.HistoryEdited" xml:space="preserve"><value>已編輯</value></data>
+  <data name="Status.HistoryRedo" xml:space="preserve"><value>重做 {0}</value></data>
+  <data name="Status.HistoryUndo" xml:space="preserve"><value>復原 {0}</value></data>
+  <data name="Status.ImageResized" xml:space="preserve"><value>影像現在為 {0} × {1}，解析度 {2:0.##} 每英吋</value></data>
+  <data name="Status.ImageSizeTooLarge" xml:space="preserve"><value>此尺寸過大，無法重新取樣。</value></data>
+  <data name="Status.ImportedImage" xml:space="preserve"><value>已匯入 {0}，尺寸 {1} × {2}</value></data>
+  <data name="Status.ImportFailed" xml:space="preserve"><value>無法匯入影像：{0}</value></data>
+  <data name="Status.InvalidLayerName" xml:space="preserve"><value>名稱空白，或與現有圖層名稱相同</value></data>
+  <data name="Status.InvalidNumberRange" xml:space="preserve"><value>必須是介於 {0:0} 到 {1:0} 的數字</value></data>
+  <data name="Status.LayerCopyLimit" xml:space="preserve"><value>無法複製圖層：已沒有可容納 10,000 個圖層的空間。</value></data>
+  <data name="Status.LayerHasNoHiddenMask" xml:space="preserve"><value>該圖層沒有遮色片，或遮色片未隱藏任何內容</value></data>
+  <data name="Status.LayerHasNoPixelsForSelection" xml:space="preserve"><value>該圖層沒有可供建立選取範圍的像素</value></data>
+  <data name="Status.LayerLimit" xml:space="preserve"><value>此文件已達圖層數量上限。</value></data>
+  <data name="Status.LayerMadeFromSelection" xml:space="preserve"><value>已從選取範圍建立圖層</value></data>
+  <data name="Status.LayerNotText" xml:space="preserve"><value>該圖層不是文字圖層</value></data>
+  <data name="Status.MovingPixels" xml:space="preserve"><value>正在移動像素 {0}、{1}</value></data>
+  <data name="Status.NewCanvas" xml:space="preserve"><value>新增 {0} × {1} 畫布，解析度 {2:0.##} 每英吋，尚未儲存</value></data>
+  <data name="Status.NewImportedDocument" xml:space="preserve"><value>{0} — {1} × {2}，{3} 個圖層，尚未儲存</value></data>
+  <data name="Status.NoEffects" xml:space="preserve"><value>此圖層沒有效果</value></data>
+  <data name="Status.NoGuides" xml:space="preserve"><value>沒有可清除的參考線</value></data>
+  <data name="Status.NoPictureToSample" xml:space="preserve"><value>沒有可取樣顏色的影像</value></data>
+  <data name="Status.NoSelectionPixelsToMove" xml:space="preserve"><value>選取範圍內沒有可移動的內容</value></data>
+  <data name="Status.NothingDrawnThere" xml:space="preserve"><value>該處沒有繪製內容</value></data>
+  <data name="Status.NothingToClear" xml:space="preserve"><value>沒有可清除的內容：該圖層沒有像素，或選取範圍未涵蓋它</value></data>
+  <data name="Status.NothingToClearMask" xml:space="preserve"><value>沒有可清除的內容：選取範圍未涵蓋該遮色片</value></data>
+  <data name="Status.NothingToExport" xml:space="preserve"><value>尚無可匯出的內容。</value></data>
+  <data name="Status.NothingToFill" xml:space="preserve"><value>沒有可填滿的內容：該圖層沒有像素，或選取範圍未涵蓋它</value></data>
+  <data name="Status.NothingToMerge" xml:space="preserve"><value>沒有可合併的圖層</value></data>
+  <data name="Status.NothingToPaste" xml:space="preserve"><value>沒有可貼上的內容</value></data>
+  <data name="Status.NothingToTrim" xml:space="preserve"><value>沒有可修剪的內容</value></data>
+  <data name="Status.OpenFailed" xml:space="preserve"><value>無法開啟：{0}</value></data>
+  <data name="Status.OpenRecentFailed" xml:space="preserve"><value>無法開啟 {0}：{1}</value></data>
+  <data name="Status.Pasted" xml:space="preserve"><value>已貼上 {0} × {1}</value></data>
+  <data name="Status.PickerSampled" xml:space="preserve"><value>已將 {0}、{1}、{2} 取樣至色彩選擇器</value></data>
+  <data name="Status.PickingColor" xml:space="preserve"><value>正在選取{0}顏色；按一下畫布即可取樣</value></data>
+  <data name="Status.PixelsMoved" xml:space="preserve"><value>已移動像素 {0}、{1}</value></data>
+  <data name="Status.PixelGridHidden" xml:space="preserve"><value>像素格點已隱藏</value></data>
+  <data name="Status.PixelGridShown" xml:space="preserve"><value>像素格點會在 800% 以上顯示</value></data>
+  <data name="Status.ProjectChangedExternally" xml:space="preserve"><value>專案已被其他程式寫入；請儲存或重新開啟以取得變更</value></data>
+  <data name="Status.ProjectChangedExternallyInvalid" xml:space="preserve"><value>專案已被其他程式寫入，但目前內容無法讀取</value></data>
+  <data name="Status.ProjectOpened" xml:space="preserve"><value>{0} — {1} × {2}，{3} 個圖層，{4:0} 像素／英吋</value></data>
+  <data name="Status.ProjectPathIsFile" xml:space="preserve"><value>專案是資料夾，該路徑則是檔案。</value></data>
+  <data name="Status.ProjectReloaded" xml:space="preserve"><value>{0} — 已重新開啟，{1} 個圖層</value></data>
+  <data name="Status.Ready" xml:space="preserve"><value>準備就緒</value></data>
+  <data name="Status.ResetColors" xml:space="preserve"><value>前景設為黑色，背景設為白色</value></data>
+  <data name="Status.RulersHidden" xml:space="preserve"><value>尺規已隱藏</value></data>
+  <data name="Status.RulersShown" xml:space="preserve"><value>尺規已顯示</value></data>
+  <data name="Status.Saved" xml:space="preserve"><value>已儲存 {0}</value></data>
+  <data name="Status.SaveFailed" xml:space="preserve"><value>無法儲存：{0}</value></data>
+  <data name="Status.SelectPixelsFirst" xml:space="preserve"><value>請先在含有像素的圖層上選取內容</value></data>
+  <data name="Status.SelectSomethingFirst" xml:space="preserve"><value>請先選取內容</value></data>
+  <data name="Status.SelectSomethingToCopy" xml:space="preserve"><value>請先選取要複製的內容</value></data>
+  <data name="Status.Shape" xml:space="preserve"><value>形狀：{0}</value></data>
+  <data name="Status.ShapeCreated" xml:space="preserve"><value>{0}：{1} × {2}，位置 {3}、{4}</value></data>
+  <data name="Status.ShapeFailed" xml:space="preserve"><value>無法繪製該形狀</value></data>
+  <data name="Status.ShapeNumber" xml:space="preserve"><value>形狀：{0}，{1} {2:0.##} 像素</value></data>
+  <data name="Status.ShapeSettings" xml:space="preserve"><value>形狀：{0}，半徑 {1:0}，寬度 {2:0}</value></data>
+  <data name="Status.ShapeTooLarge" xml:space="preserve"><value>該形狀太大，無法繪製為單一圖層</value></data>
+  <data name="Status.ShortcutsChanged" xml:space="preserve"><value>鍵盤快速鍵已更新：{0} 項自訂對應</value></data>
+  <data name="Status.ShortcutsReset" xml:space="preserve"><value>鍵盤快速鍵已還原為預設值</value></data>
+  <data name="Status.SnapToggled" xml:space="preserve"><value>{0}{1}</value></data>
+  <data name="Status.SnappingOff" xml:space="preserve"><value>貼齊已關閉</value></data>
+  <data name="Status.SnappingOn" xml:space="preserve"><value>貼齊已開啟</value></data>
+  <data name="Status.SwappedColors" xml:space="preserve"><value>已交換前景與背景顏色</value></data>
+  <data name="Status.TabClosed" xml:space="preserve"><value>已關閉 {0}</value></data>
+  <data name="Status.TextCancelled" xml:space="preserve"><value>已取消文字輸入</value></data>
+  <data name="Status.TextCharacters" xml:space="preserve"><value>文字：{0} 個字元</value></data>
+  <data name="Status.TextCreated" xml:space="preserve"><value>文字：{0} 個字元，位置 {1:0}、{2:0}</value></data>
+  <data name="Status.TextDrawFailed" xml:space="preserve"><value>無法繪製該文字</value></data>
+  <data name="Status.TextTooLarge" xml:space="preserve"><value>無法繪製該文字：文字方塊太大，無法放入單一表面</value></data>
+  <data name="Status.TextTyping" xml:space="preserve"><value>正在輸入文字；按 Escape 取消，Ctrl+Enter 確定</value></data>
+  <data name="Status.ToolBlur" xml:space="preserve"><value>模糊筆刷：{0:0} 像素；請拖曳至要柔化的區域</value></data>
+  <data name="Status.ToolBrush" xml:space="preserve"><value>筆刷：{0:0} 像素，{1}；請在畫布上拖曳</value></data>
+  <data name="Status.ToolCloneNeedsSource" xml:space="preserve"><value>仿製印章；請先按住 Alt 並按一下設定來源</value></data>
+  <data name="Status.ToolCloneReady" xml:space="preserve"><value>仿製印章正從 {0:0}、{1:0} 複製；請在畫布上拖曳</value></data>
+  <data name="Status.ToolCrop" xml:space="preserve"><value>裁切；拖曳裁切框，按住 Alt 可從中心擴展，然後選擇「裁切 ▸ 套用」</value></data>
+  <data name="Status.ToolEllipse" xml:space="preserve"><value>橢圓選取畫面；拖曳橢圓，Shift 可增加選取範圍，Alt 可減去</value></data>
+  <data name="Status.ToolEyedropper" xml:space="preserve"><value>滴管；按一下畫布以取樣顏色</value></data>
+  <data name="Status.ToolGradient" xml:space="preserve"><value>漸層（{0}、{1}）；拖曳漸層方向線</value></data>
+  <data name="Status.ToolHeal" xml:space="preserve"><value>污點修復（{0}）：{1:0} 像素；拖曳要修復的區域</value></data>
+  <data name="Status.ToolLasso" xml:space="preserve"><value>套索；沿形狀拖曳，Shift 可增加選取範圍，Alt 可減去</value></data>
+  <data name="Status.ToolLiquify" xml:space="preserve"><value>液化筆刷：{0:0} 像素；拖曳像素至目標位置</value></data>
+  <data name="Status.ToolMarquee" xml:space="preserve"><value>矩形選取畫面；拖曳矩形，Shift 可增加選取範圍，Alt 可減去</value></data>
+  <data name="Status.ToolMove" xml:space="preserve"><value>移動；拖曳圖層，或拖曳控制點以縮放與旋轉</value></data>
+  <data name="Status.ToolPan" xml:space="preserve"><value>平移；拖曳以捲動畫布</value></data>
+  <data name="Status.ToolPolygon" xml:space="preserve"><value>多邊形套索；按一下每個角點，連按兩下以封閉</value></data>
+  <data name="Status.ToolShape" xml:space="preserve"><value>形狀（{0}）；拖曳建立，Shift 可限制為正方形，Alt 可從中心擴展</value></data>
+  <data name="Status.ToolSmudge" xml:space="preserve"><value>塗抹筆刷：{0:0} 像素；拖曳以延展顏色</value></data>
+  <data name="Status.ToolType" xml:space="preserve"><value>文字；按一下文字位置後開始輸入</value></data>
+  <data name="Status.ToolWand" xml:space="preserve"><value>魔術棒；按一下顏色以選取相似內容</value></data>
+  <data name="Status.TransformControlsHidden" xml:space="preserve"><value>變形控制項已隱藏</value></data>
+  <data name="Status.TransformControlsShown" xml:space="preserve"><value>變形控制項已顯示</value></data>
+  <data name="Status.Trimmed" xml:space="preserve"><value>已修剪為 {0} × {1}</value></data>
+  <data name="Status.UnknownShortcutRows" xml:space="preserve"><value>有 {0} 項快速鍵設定使用此版本不認識的按鍵，因此未生效</value></data>
+  <data name="Status.UnsupportedImageFormat" xml:space="preserve"><value>無法讀取 {0} 檔案；可讀取的格式為 {1}</value></data>
+  <data name="Status.UpdateAvailable" xml:space="preserve"><value>Compositor {0} 已推出；目前版本為 {1}</value></data>
+  <data name="Status.UprightGuideOutsideLayer" xml:space="preserve"><value>參考線必須畫在要校正的圖層內</value></data>
+  <data name="Status.UprightGuidesDrawn" xml:space="preserve"><value>垂直校正：已繪製 {0} 條線；影像會依其指示旋轉</value></data>
+  <data name="Status.WandSettings" xml:space="preserve"><value>魔術棒：容許度 {0}，取樣 {1} 像素</value></data>
+  <data name="Status.ZoomedOutLimit" xml:space="preserve"><value>（已縮小至最小倍率）</value></data>
+  <data name="Update.Available" xml:space="preserve"><value>Compositor {0} 已推出{1}；目前版本為 {2}。Windows 版由此存放庫建置。</value></data>
+  <data name="Update.CheckTitle" xml:space="preserve"><value>檢查更新</value></data>
+  <data name="Update.FeedUnavailable" xml:space="preserve"><value>無法連線至更新資訊來源，因此無法確認 {0} 是否為最新版本。</value></data>
+  <data name="Update.NoRelease" xml:space="preserve"><value>更新資訊來源沒有可讀取的發行版本。</value></data>
+  <data name="Update.Published" xml:space="preserve"><value>，發佈於 {0}</value></data>
+  <data name="Update.UpToDate" xml:space="preserve"><value>Compositor {0} 已是最新版本。</value></data>
+  <data name="Dialog.SuggestedProjectFile" xml:space="preserve"><value>未命名.comp</value></data>
+  <data name="Dialog.SuggestedPngFile" xml:space="preserve"><value>Compositor 匯出.png</value></data>
+  <data name="Dialog.SuggestedJpegFile" xml:space="preserve"><value>Compositor 匯出.jpg</value></data>
+  <data name="History.Move Pixels" xml:space="preserve"><value>移動像素</value></data>
+  <data name="History.Move Selection" xml:space="preserve"><value>移動選取範圍</value></data>
+  <data name="History.Move Layer" xml:space="preserve"><value>移動圖層</value></data>
+  <data name="History.Move Layer Up" xml:space="preserve"><value>上移圖層</value></data>
+  <data name="History.Move Layer Down" xml:space="preserve"><value>下移圖層</value></data>
+  <data name="History.Opacity" xml:space="preserve"><value>不透明度</value></data>
+  <data name="History.Blend Mode" xml:space="preserve"><value>混合模式</value></data>
+  <data name="History.Duplicate Layer" xml:space="preserve"><value>複製圖層</value></data>
+  <data name="History.Delete Layers" xml:space="preserve"><value>刪除圖層</value></data>
+  <data name="History.Delete Layer" xml:space="preserve"><value>刪除圖層</value></data>
+  <data name="History.Rename Layer" xml:space="preserve"><value>重新命名圖層</value></data>
+  <data name="History.New Blank Layer" xml:space="preserve"><value>新增空白圖層</value></data>
+  <data name="History.New Folder" xml:space="preserve"><value>新增群組</value></data>
+  <data name="History.Group Layers" xml:space="preserve"><value>群組圖層</value></data>
+  <data name="History.New Adjustment Layer" xml:space="preserve"><value>新增調整圖層</value></data>
+  <data name="History.Merge Down" xml:space="preserve"><value>向下合併</value></data>
+  <data name="History.Merge Layers" xml:space="preserve"><value>合併圖層</value></data>
+  <data name="History.Merge Group" xml:space="preserve"><value>合併群組</value></data>
+  <data name="History.Cut" xml:space="preserve"><value>剪下</value></data>
+  <data name="History.Paste" xml:space="preserve"><value>貼上</value></data>
+  <data name="History.Layer via Copy" xml:space="preserve"><value>經由拷貝新增圖層</value></data>
+  <data name="History.Distort Layers" xml:space="preserve"><value>扭曲圖層</value></data>
+  <data name="History.Distort" xml:space="preserve"><value>扭曲</value></data>
+  <data name="History.Move Guide" xml:space="preserve"><value>移動參考線</value></data>
+  <data name="History.New Guide" xml:space="preserve"><value>新增參考線</value></data>
+  <data name="History.Color Range" xml:space="preserve"><value>顏色範圍</value></data>
+  <data name="History.Edit Text" xml:space="preserve"><value>編輯文字</value></data>
+  <data name="History.Type" xml:space="preserve"><value>文字</value></data>
+  <data name="History.Transform Layers" xml:space="preserve"><value>變形圖層</value></data>
+  <data name="History.Transform" xml:space="preserve"><value>變形</value></data>
+  <data name="History.Import image" xml:space="preserve"><value>匯入影像</value></data>
+  <data name="History.Deselect" xml:space="preserve"><value>取消選取</value></data>
+  <data name="History.Select Layer's Pixels" xml:space="preserve"><value>選取圖層像素</value></data>
+  <data name="History.Select Mask's Black Areas" xml:space="preserve"><value>選取遮色片的黑色區域</value></data>
+  <data name="History.Show Layer" xml:space="preserve"><value>顯示圖層</value></data>
+  <data name="History.Hide Layer" xml:space="preserve"><value>隱藏圖層</value></data>
+  <data name="History.Move Out of Folder" xml:space="preserve"><value>移出群組</value></data>
+  <data name="History.Release Clipping Mask" xml:space="preserve"><value>釋放剪裁遮色片</value></data>
+  <data name="History.Create Clipping Mask" xml:space="preserve"><value>建立剪裁遮色片</value></data>
+  <data name="History.Add Reveal-All Mask" xml:space="preserve"><value>新增全部顯示遮色片</value></data>
+  <data name="History.Add Hide-All Mask" xml:space="preserve"><value>新增全部隱藏遮色片</value></data>
+  <data name="History.Enable Layer Mask" xml:space="preserve"><value>啟用圖層遮色片</value></data>
+  <data name="History.Disable Layer Mask" xml:space="preserve"><value>停用圖層遮色片</value></data>
+  <data name="History.Delete Layer Mask" xml:space="preserve"><value>刪除圖層遮色片</value></data>
+  <data name="History.Link Layer Mask" xml:space="preserve"><value>連結圖層遮色片</value></data>
+  <data name="History.Unlink Layer Mask" xml:space="preserve"><value>取消連結圖層遮色片</value></data>
+  <data name="History.Flip Canvas Horizontal" xml:space="preserve"><value>水平翻轉畫布</value></data>
+  <data name="History.Flip Canvas Vertical" xml:space="preserve"><value>垂直翻轉畫布</value></data>
+  <data name="History.Flip Horizontal" xml:space="preserve"><value>水平翻轉</value></data>
+  <data name="History.Flip Vertical" xml:space="preserve"><value>垂直翻轉</value></data>
+  <data name="History.Gradient Mask" xml:space="preserve"><value>漸層遮色片</value></data>
+  <data name="History.Gradient" xml:space="preserve"><value>漸層</value></data>
+  <data name="History.Camera Raw Filter" xml:space="preserve"><value>Camera Raw 濾鏡</value></data>
+  <data name="History.Dither" xml:space="preserve"><value>網點</value></data>
+  <data name="History.Content-Aware Fill" xml:space="preserve"><value>內容感知填滿</value></data>
+  <data name="History.Clear Effects" xml:space="preserve"><value>清除效果</value></data>
+  <data name="History.Image Size" xml:space="preserve"><value>影像尺寸</value></data>
+  <data name="History.Clear Guides" xml:space="preserve"><value>清除參考線</value></data>
+  <data name="History.Auto Levels" xml:space="preserve"><value>自動色階</value></data>
+  <data name="History.Canvas Size" xml:space="preserve"><value>畫布尺寸</value></data>
+  <data name="History.Trim" xml:space="preserve"><value>修剪</value></data>
+  <data name="History.Crop" xml:space="preserve"><value>裁切</value></data>
+  <data name="History.Fill Mask" xml:space="preserve"><value>填滿遮色片</value></data>
+  <data name="History.Clear Mask" xml:space="preserve"><value>清除遮色片</value></data>
+  <data name="History.Clear" xml:space="preserve"><value>清除</value></data>
+  <data name="History.Rectangular Marquee" xml:space="preserve"><value>矩形選取畫面</value></data>
+  <data name="History.Elliptical Marquee" xml:space="preserve"><value>橢圓選取畫面</value></data>
+  <data name="History.Polygonal Lasso" xml:space="preserve"><value>多邊形套索</value></data>
+  <data name="History.Lasso" xml:space="preserve"><value>套索</value></data>
+  <data name="History.Magic Wand" xml:space="preserve"><value>魔術棒</value></data>
+  <data name="History.Expand Selection" xml:space="preserve"><value>擴張選取範圍</value></data>
+  <data name="History.Contract Selection" xml:space="preserve"><value>收縮選取範圍</value></data>
+  <data name="History.Feather Selection" xml:space="preserve"><value>羽化選取範圍</value></data>
+  <data name="History.Clone Stamp" xml:space="preserve"><value>仿製印章</value></data>
+  <data name="History.Clone Stamp on the mask" xml:space="preserve"><value>在遮色片上使用仿製印章</value></data>
+  <data name="History.Blur" xml:space="preserve"><value>模糊</value></data>
+  <data name="History.Blur on the mask" xml:space="preserve"><value>在遮色片上模糊</value></data>
+  <data name="History.Liquify" xml:space="preserve"><value>液化</value></data>
+  <data name="History.Liquify on the mask" xml:space="preserve"><value>在遮色片上液化</value></data>
+  <data name="History.Smudge" xml:space="preserve"><value>塗抹</value></data>
+  <data name="History.Smudge on the mask" xml:space="preserve"><value>在遮色片上塗抹</value></data>
+  <data name="History.Spot Healing" xml:space="preserve"><value>污點修復</value></data>
+  <data name="History.Spot Healing on the mask" xml:space="preserve"><value>在遮色片上進行污點修復</value></data>
+  <data name="History.Brush" xml:space="preserve"><value>筆刷</value></data>
+  <data name="History.Brush on the mask" xml:space="preserve"><value>在遮色片上繪製筆刷</value></data>
+  <data name="History.Hue/Saturation" xml:space="preserve"><value>色相／飽和度</value></data>
+  <data name="History.Levels" xml:space="preserve"><value>色階</value></data>
+  <data name="History.Curves" xml:space="preserve"><value>曲線</value></data>
+  <data name="History.Exposure" xml:space="preserve"><value>曝光</value></data>
+  <data name="History.Gradient Map" xml:space="preserve"><value>漸層對應</value></data>
+  <data name="History.Grain" xml:space="preserve"><value>顆粒</value></data>
+  <data name="History.Add Noise" xml:space="preserve"><value>增加雜訊</value></data>
+  <data name="History.Gaussian Blur" xml:space="preserve"><value>高斯模糊</value></data>
+  <data name="History.Motion Blur" xml:space="preserve"><value>動態模糊</value></data>
+  <data name="History.Invert" xml:space="preserve"><value>負片效果</value></data>
+  <data name="History.Black &amp; White" xml:space="preserve"><value>黑白</value></data>
+  <data name="History.Color Balance" xml:space="preserve"><value>色彩平衡</value></data>
+  <data name="Adjustment.Amount" xml:space="preserve"><value>數量</value></data>
+  <data name="Adjustment.AmountPercent" xml:space="preserve"><value>數量，%</value></data>
+  <data name="Adjustment.AngleDegrees" xml:space="preserve"><value>角度（度）</value></data>
+  <data name="Adjustment.BlackPoint" xml:space="preserve"><value>黑點</value></data>
+  <data name="Adjustment.Blues" xml:space="preserve"><value>藍色</value></data>
+  <data name="Adjustment.Channel" xml:space="preserve"><value>色版</value></data>
+  <data name="Adjustment.ChooseHighlightsColor" xml:space="preserve"><value>選擇亮部顏色</value></data>
+  <data name="Adjustment.ChooseShadowsColor" xml:space="preserve"><value>選擇陰影顏色</value></data>
+  <data name="Adjustment.ColorBalanceRow" xml:space="preserve"><value>{0}：{1}</value></data>
+  <data name="Adjustment.Colorize" xml:space="preserve"><value>著色</value></data>
+  <data name="Adjustment.CyanToRed" xml:space="preserve"><value>青色至紅色</value></data>
+  <data name="Adjustment.Cyans" xml:space="preserve"><value>青色</value></data>
+  <data name="Adjustment.DistancePixels" xml:space="preserve"><value>距離（像素）</value></data>
+  <data name="Adjustment.ExposureStops" xml:space="preserve"><value>曝光（級）</value></data>
+  <data name="Adjustment.Gamma" xml:space="preserve"><value>Gamma</value></data>
+  <data name="Adjustment.Gaussian" xml:space="preserve"><value>高斯</value></data>
+  <data name="Adjustment.GradientMapHighlightsPickerTitle" xml:space="preserve"><value>色彩選擇器（漸層對應亮部）</value></data>
+  <data name="Adjustment.GradientMapShadowsPickerTitle" xml:space="preserve"><value>色彩選擇器（漸層對應陰影）</value></data>
+  <data name="Adjustment.Greens" xml:space="preserve"><value>綠色</value></data>
+  <data name="Adjustment.Highlights" xml:space="preserve"><value>亮部</value></data>
+  <data name="Adjustment.Hue" xml:space="preserve"><value>色相</value></data>
+  <data name="Adjustment.InvertNoSettings" xml:space="preserve"><value>負片效果沒有可設定的選項。</value></data>
+  <data name="Adjustment.Lightness" xml:space="preserve"><value>明度</value></data>
+  <data name="Adjustment.MagentaToGreen" xml:space="preserve"><value>洋紅色至綠色</value></data>
+  <data name="Adjustment.Magentas" xml:space="preserve"><value>洋紅色</value></data>
+  <data name="Adjustment.Midtones" xml:space="preserve"><value>中間調</value></data>
+  <data name="Adjustment.Monochromatic" xml:space="preserve"><value>單色</value></data>
+  <data name="Adjustment.Offset" xml:space="preserve"><value>位移</value></data>
+  <data name="Adjustment.OutputBlack" xml:space="preserve"><value>輸出黑色</value></data>
+  <data name="Adjustment.OutputWhite" xml:space="preserve"><value>輸出白色</value></data>
+  <data name="Adjustment.PreserveLuminosity" xml:space="preserve"><value>保留明度</value></data>
+  <data name="Adjustment.RadiusPixels" xml:space="preserve"><value>半徑（像素）</value></data>
+  <data name="Adjustment.Range" xml:space="preserve"><value>範圍</value></data>
+  <data name="Adjustment.Reds" xml:space="preserve"><value>紅色</value></data>
+  <data name="Adjustment.Reverse" xml:space="preserve"><value>反轉</value></data>
+  <data name="Adjustment.Roughness" xml:space="preserve"><value>粗糙度</value></data>
+  <data name="Adjustment.Saturation" xml:space="preserve"><value>飽和度</value></data>
+  <data name="Adjustment.Shadows" xml:space="preserve"><value>陰影</value></data>
+  <data name="Adjustment.Size" xml:space="preserve"><value>大小</value></data>
+  <data name="Adjustment.Tint" xml:space="preserve"><value>色調</value></data>
+  <data name="Adjustment.TintHue" xml:space="preserve"><value>色調色相</value></data>
+  <data name="Adjustment.TintSaturation" xml:space="preserve"><value>色調飽和度</value></data>
+  <data name="Adjustment.Title" xml:space="preserve"><value>{0} 調整</value></data>
+  <data name="Adjustment.WhitePoint" xml:space="preserve"><value>白點</value></data>
+  <data name="Adjustment.YellowToBlue" xml:space="preserve"><value>黃色至藍色</value></data>
+  <data name="Adjustment.Yellows" xml:space="preserve"><value>黃色</value></data>
+  <data name="Brush.Hard" xml:space="preserve"><value>硬</value></data>
+  <data name="Brush.HardPercent" xml:space="preserve"><value>{0:0}% 硬度</value></data>
+  <data name="Brush.OpacitySuffix" xml:space="preserve"><value>，{0:0}%</value></data>
+  <data name="Dither.AngleDegrees" xml:space="preserve"><value>角度（度）</value></data>
+  <data name="Dither.BlackAndWhite" xml:space="preserve"><value>黑白</value></data>
+  <data name="Dither.CellSize" xml:space="preserve"><value>儲存格大小</value></data>
+  <data name="Dither.Characters" xml:space="preserve"><value>字元</value></data>
+  <data name="Dither.ChooseDarkColor" xml:space="preserve"><value>選擇深色</value></data>
+  <data name="Dither.ChooseLightColor" xml:space="preserve"><value>選擇淺色</value></data>
+  <data name="Dither.Colors" xml:space="preserve"><value>色彩</value></data>
+  <data name="Dither.Contrast" xml:space="preserve"><value>對比</value></data>
+  <data name="Dither.Dark" xml:space="preserve"><value>深色</value></data>
+  <data name="Dither.DarkColorPickerTitle" xml:space="preserve"><value>色彩選擇器（網點深色）</value></data>
+  <data name="Dither.Density" xml:space="preserve"><value>密度</value></data>
+  <data name="Dither.DiffusionPercent" xml:space="preserve"><value>擴散，%</value></data>
+  <data name="Dither.Dot" xml:space="preserve"><value>圓點</value></data>
+  <data name="Dither.HalftoneAndCharacters" xml:space="preserve"><value>半色調與字元</value></data>
+  <data name="Dither.InkAndPaper" xml:space="preserve"><value>油墨與紙張</value></data>
+  <data name="Dither.Light" xml:space="preserve"><value>淺色</value></data>
+  <data name="Dither.LightColorPickerTitle" xml:space="preserve"><value>色彩選擇器（網點淺色）</value></data>
+  <data name="Dither.Look" xml:space="preserve"><value>樣式</value></data>
+  <data name="Dither.Marks" xml:space="preserve"><value>標記</value></data>
+  <data name="Dither.Original" xml:space="preserve"><value>原始顏色</value></data>
+  <data name="Dither.Pixels" xml:space="preserve"><value>像素</value></data>
+  <data name="Dither.PixelShape" xml:space="preserve"><value>像素形狀</value></data>
+  <data name="Dither.PixelSize" xml:space="preserve"><value>像素大小</value></data>
+  <data name="Dither.Square" xml:space="preserve"><value>方形</value></data>
+  <data name="Dither.Style.Ascii" xml:space="preserve"><value>ASCII</value></data>
+  <data name="Dither.Style.Atkinson" xml:space="preserve"><value>Atkinson</value></data>
+  <data name="Dither.Style.Bayer2" xml:space="preserve"><value>Bayer 2×2</value></data>
+  <data name="Dither.Style.Bayer4" xml:space="preserve"><value>Bayer 4×4</value></data>
+  <data name="Dither.Style.Bayer8" xml:space="preserve"><value>Bayer 8×8</value></data>
+  <data name="Dither.Style.FloydSteinberg" xml:space="preserve"><value>Floyd–Steinberg</value></data>
+  <data name="Dither.Style.HalftoneDiamonds" xml:space="preserve"><value>半色調菱形</value></data>
+  <data name="Dither.Style.HalftoneDots" xml:space="preserve"><value>半色調圓點</value></data>
+  <data name="Dither.Style.HalftoneLines" xml:space="preserve"><value>半色調線條</value></data>
+  <data name="Dither.Style.MacPatterns" xml:space="preserve"><value>Mac 圖樣</value></data>
+  <data name="Dither.TextSize" xml:space="preserve"><value>文字大小</value></data>
+  <data name="Dither.Title" xml:space="preserve"><value>網點</value></data>
+  <data name="Dither.Tones" xml:space="preserve"><value>色調</value></data>
+  <data name="Dither.TwoColors" xml:space="preserve"><value>雙色</value></data>
+  <data name="Effect.AngleDegrees" xml:space="preserve"><value>角度（度）</value></data>
+  <data name="Effect.Blue" xml:space="preserve"><value>藍色</value></data>
+  <data name="Effect.BlurPixels" xml:space="preserve"><value>模糊（像素）</value></data>
+  <data name="Effect.Color" xml:space="preserve"><value>顏色</value></data>
+  <data name="Effect.ColorChannel" xml:space="preserve"><value>{0}：{1}</value></data>
+  <data name="Effect.DistancePixels" xml:space="preserve"><value>距離（像素）</value></data>
+  <data name="Effect.DrawThisEffect" xml:space="preserve"><value>繪製此效果</value></data>
+  <data name="Effect.Green" xml:space="preserve"><value>綠色</value></data>
+  <data name="Effect.InsideEdge" xml:space="preserve"><value>邊緣內側</value></data>
+  <data name="Effect.Opacity" xml:space="preserve"><value>不透明度</value></data>
+  <data name="Effect.Red" xml:space="preserve"><value>紅色</value></data>
+  <data name="Effect.SizePixels" xml:space="preserve"><value>大小（像素）</value></data>
+  <data name="Filter.Amount" xml:space="preserve"><value>數量</value></data>
+  <data name="Filter.AmountPercent" xml:space="preserve"><value>數量，%</value></data>
+  <data name="Filter.AngleDegrees" xml:space="preserve"><value>角度（度）</value></data>
+  <data name="Filter.ChooseVignetteColor" xml:space="preserve"><value>選擇暈影顏色</value></data>
+  <data name="Filter.Color" xml:space="preserve"><value>顏色</value></data>
+  <data name="Filter.DistancePixels" xml:space="preserve"><value>距離（像素）</value></data>
+  <data name="Filter.Distortion" xml:space="preserve"><value>扭曲</value></data>
+  <data name="Filter.Feather" xml:space="preserve"><value>羽化</value></data>
+  <data name="Filter.Gaussian" xml:space="preserve"><value>高斯</value></data>
+  <data name="Filter.Highlights" xml:space="preserve"><value>亮部</value></data>
+  <data name="Filter.Midpoint" xml:space="preserve"><value>中點</value></data>
+  <data name="Filter.Midtones" xml:space="preserve"><value>中間調</value></data>
+  <data name="Filter.Monochromatic" xml:space="preserve"><value>單色</value></data>
+  <data name="Filter.RadiusPixels" xml:space="preserve"><value>半徑（像素）</value></data>
+  <data name="Filter.Roundness" xml:space="preserve"><value>圓度</value></data>
+  <data name="Filter.Shadows" xml:space="preserve"><value>陰影</value></data>
+  <data name="Filter.VignetteColorPickerTitle" xml:space="preserve"><value>色彩選擇器（暈影顏色）</value></data>
+  <data name="Gradient.ReversedSuffix" xml:space="preserve"><value>，反轉</value></data>
+  <data name="Gradient.ToBackground" xml:space="preserve"><value>至背景顏色</value></data>
+  <data name="Gradient.ToNothing" xml:space="preserve"><value>至透明</value></data>
+  <data name="LevelsAuto.Color" xml:space="preserve"><value>色彩</value></data>
+  <data name="LevelsAuto.Contrast" xml:space="preserve"><value>對比</value></data>
+  <data name="LevelsAuto.Neutral" xml:space="preserve"><value>色彩與中性中間調</value></data>
+  <data name="CropRatio.Free" xml:space="preserve"><value>自由</value></data>
+  <data name="CropRatio.Original" xml:space="preserve"><value>原始比例</value></data>
+  <data name="CropRatio.OneToOne" xml:space="preserve"><value>1:1</value></data>
+  <data name="CropRatio.FourToThree" xml:space="preserve"><value>4:3</value></data>
+  <data name="CropRatio.ThreeToFour" xml:space="preserve"><value>3:4</value></data>
+  <data name="CropRatio.SixteenToNine" xml:space="preserve"><value>16:9</value></data>
+  <data name="CropRatio.NineToSixteen" xml:space="preserve"><value>9:16</value></data>
+  <data name="Menu.AdjustmentSettings" xml:space="preserve"><value>調整設定…</value></data>
+  <data name="Menu.ApplyCrop" xml:space="preserve"><value>套用</value></data>
+  <data name="Menu.CancelCrop" xml:space="preserve"><value>取消</value></data>
+  <data name="Menu.ClearEffects" xml:space="preserve"><value>清除效果</value></data>
+  <data name="Menu.ClearRecent" xml:space="preserve"><value>清除最近使用的檔案</value></data>
+  <data name="Menu.CornerRadius" xml:space="preserve"><value>圓角半徑…</value></data>
+  <data name="Menu.CreateClippingMask" xml:space="preserve"><value>建立剪裁遮色片</value></data>
+  <data name="Menu.DisableMask" xml:space="preserve"><value>停用遮色片</value></data>
+  <data name="Menu.EffectWithEllipsis" xml:space="preserve"><value>{0}…</value></data>
+  <data name="Menu.EnableMask" xml:space="preserve"><value>啟用遮色片</value></data>
+  <data name="Menu.GradientBackgroundColor" xml:space="preserve"><value>背景顏色…</value></data>
+  <data name="Menu.GradientReversed" xml:space="preserve"><value>反轉</value></data>
+  <data name="Menu.GradientToBackground" xml:space="preserve"><value>漸層至背景顏色</value></data>
+  <data name="Menu.GradientToNothing" xml:space="preserve"><value>漸層至透明</value></data>
+  <data name="Menu.HideLayer" xml:space="preserve"><value>隱藏圖層</value></data>
+  <data name="Menu.LineWidth" xml:space="preserve"><value>線條寬度…</value></data>
+  <data name="Menu.LinkMask" xml:space="preserve"><value>連結遮色片</value></data>
+  <data name="Menu.MergeDown" xml:space="preserve"><value>向下合併</value></data>
+  <data name="Menu.MergeGroup" xml:space="preserve"><value>合併群組</value></data>
+  <data name="Menu.MergeLayers" xml:space="preserve"><value>合併圖層</value></data>
+  <data name="Menu.NothingYet" xml:space="preserve"><value>尚無項目</value></data>
+  <data name="Menu.ReleaseClippingMask" xml:space="preserve"><value>釋放剪裁遮色片</value></data>
+  <data name="Menu.ShowLayer" xml:space="preserve"><value>顯示圖層</value></data>
+  <data name="Menu.SnapToCanvas" xml:space="preserve"><value>貼齊畫布</value></data>
+  <data name="Menu.SnapToGrid" xml:space="preserve"><value>貼齊格點</value></data>
+  <data name="Menu.SnapToGuides" xml:space="preserve"><value>貼齊參考線</value></data>
+  <data name="Menu.SnapToLayers" xml:space="preserve"><value>貼齊圖層</value></data>
+  <data name="Menu.ToolBlur" xml:space="preserve"><value>模糊筆刷</value></data>
+  <data name="Menu.ToolBrush" xml:space="preserve"><value>筆刷</value></data>
+  <data name="Menu.ToolClone" xml:space="preserve"><value>仿製印章（先按住 Alt 並按一下設定來源）</value></data>
+  <data name="Menu.ToolCrop" xml:space="preserve"><value>裁切（拖曳裁切框後再套用）</value></data>
+  <data name="Menu.ToolEllipse" xml:space="preserve"><value>橢圓選取畫面</value></data>
+  <data name="Menu.ToolEyedropper" xml:space="preserve"><value>滴管（按一下畫布）</value></data>
+  <data name="Menu.ToolGradient" xml:space="preserve"><value>漸層（拖曳漸層方向線）</value></data>
+  <data name="Menu.ToolHeal" xml:space="preserve"><value>污點修復</value></data>
+  <data name="Menu.ToolLasso" xml:space="preserve"><value>套索（手繪）</value></data>
+  <data name="Menu.ToolLiquify" xml:space="preserve"><value>液化筆刷（推動像素）</value></data>
+  <data name="Menu.ToolMarquee" xml:space="preserve"><value>矩形選取畫面</value></data>
+  <data name="Menu.ToolMove" xml:space="preserve"><value>移動（拖曳圖層；按住 Ctrl 拖曳角點可扭曲）</value></data>
+  <data name="Menu.ToolPan" xml:space="preserve"><value>手形工具（拖曳以捲動）</value></data>
+  <data name="Menu.ToolPolygon" xml:space="preserve"><value>多邊形套索（按一下每個角點）</value></data>
+  <data name="Menu.ToolShape" xml:space="preserve"><value>形狀（拖曳建立矩形、橢圓或線條）</value></data>
+  <data name="Menu.ToolSmudge" xml:space="preserve"><value>塗抹筆刷（拖曳顏色）</value></data>
+  <data name="Menu.ToolType" xml:space="preserve"><value>文字（按一下文字位置）</value></data>
+  <data name="Menu.ToolWand" xml:space="preserve"><value>魔術棒（按一下顏色）</value></data>
+  <data name="Menu.UnlinkMask" xml:space="preserve"><value>取消連結遮色片</value></data>
+  <data name="Toolbar.ActualPixelsTooltip" xml:space="preserve"><value>以實際像素顯示畫布</value></data>
+  <data name="Toolbar.Fit" xml:space="preserve"><value>符合視窗</value></data>
+  <data name="Toolbar.FitTooltip" xml:space="preserve"><value>讓畫布符合視窗大小</value></data>
+  <data name="Toolbar.NewCanvasTooltip" xml:space="preserve"><value>新增畫布</value></data>
+  <data name="Toolbar.ZoomInTooltip" xml:space="preserve"><value>放大</value></data>
+  <data name="Toolbar.ZoomOutTooltip" xml:space="preserve"><value>縮小</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 0 (type two for exact %)" xml:space="preserve"><value>不透明度數字 0（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 1 (type two for exact %)" xml:space="preserve"><value>不透明度數字 1（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 2 (type two for exact %)" xml:space="preserve"><value>不透明度數字 2（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 3 (type two for exact %)" xml:space="preserve"><value>不透明度數字 3（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 4 (type two for exact %)" xml:space="preserve"><value>不透明度數字 4（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 5 (type two for exact %)" xml:space="preserve"><value>不透明度數字 5（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 6 (type two for exact %)" xml:space="preserve"><value>不透明度數字 6（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 7 (type two for exact %)" xml:space="preserve"><value>不透明度數字 7（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 8 (type two for exact %)" xml:space="preserve"><value>不透明度數字 8（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Opacity digit 9 (type two for exact %)" xml:space="preserve"><value>不透明度數字 9（輸入兩位可設定精確百分比）</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Left 1 px" xml:space="preserve"><value>向左微移 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Left 10 px" xml:space="preserve"><value>向左微移 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Left 1 px" xml:space="preserve"><value>將選取的像素向左移動 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Left 10 px" xml:space="preserve"><value>將選取的像素向左移動 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Right 1 px" xml:space="preserve"><value>向右微移 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Right 10 px" xml:space="preserve"><value>向右微移 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Right 1 px" xml:space="preserve"><value>將選取的像素向右移動 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Right 10 px" xml:space="preserve"><value>將選取的像素向右移動 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Up 1 px" xml:space="preserve"><value>向上微移 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Up 10 px" xml:space="preserve"><value>向上微移 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Up 1 px" xml:space="preserve"><value>將選取的像素向上移動 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Up 10 px" xml:space="preserve"><value>將選取的像素向上移動 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Down 1 px" xml:space="preserve"><value>向下微移 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Down 10 px" xml:space="preserve"><value>向下微移 10 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Down 1 px" xml:space="preserve"><value>將選取的像素向下移動 1 像素</value></data>
+  <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Down 10 px" xml:space="preserve"><value>將選取的像素向下移動 10 像素</value></data>
+</root>

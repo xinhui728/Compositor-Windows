@@ -9,6 +9,7 @@ public sealed class DesktopApp : Application
 {
     public override void Initialize()
     {
+        L.Initialize();
         // The Mac build asks for the dark appearance and draws its own greys on top of it
         // (ContentView's `.preferredColorScheme(.dark)`), so the port does the same rather than
         // following whatever the machine is set to — a light menu bar over a dark canvas was
