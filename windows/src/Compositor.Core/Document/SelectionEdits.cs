@@ -529,12 +529,22 @@ public static class SelectionEdits
         return builder.Detach();
     }
 
-    /// <summary>The whole canvas minus what is selected, which is Select ▸ Inverse.</summary>
+    /// <summary>
+    /// The whole canvas minus what is selected, which is Select ▸ Inverse. With no active outline there is
+    /// nothing to invert; the inverse of an explicit whole-canvas selection returns to the canonical
+    /// no-active-selection state instead of retaining an invisible empty path.
+    /// </summary>
     public static bool Invert(CanvasDocument document)
     {
         if (document.Selection.Path is not { } path) return false;
         var inverted = Combine(WholeCanvas(document), path, SKPathOp.Difference);
         if (inverted is null) return false;
+        if (inverted.IsEmpty)
+        {
+            inverted.Dispose();
+            document.Selection = DocumentSelection.All;
+            return true;
+        }
         document.Selection = document.Selection.WithPath(inverted);
         return true;
     }

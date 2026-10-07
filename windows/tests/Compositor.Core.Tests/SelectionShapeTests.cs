@@ -182,11 +182,11 @@ public class SelectionShapeTests
         Assert.Equal(255, CoverageAt(document, 0, 0));
         Assert.Equal(255, CoverageAt(document, 19, 19));
         Assert.Equal(0, CoverageAt(document, 10, 10));
-        // Inverting what is already nothing but a canvas-wide selection leaves nothing.
+        // A full selection inverts to the canonical no-active-selection state.
         SelectionEdits.SelectAll(document);
         Assert.True(SelectionEdits.Invert(document));
-        Assert.True(document.Selection.IsEmpty);
-        Assert.Equal(0, CoverageAt(document, 10, 10));
+        Assert.Null(document.Selection.Path);
+        Assert.Equal(255, CoverageAt(document, 10, 10));
     }
 
     [Fact]
@@ -194,6 +194,7 @@ public class SelectionShapeTests
     {
         using var document = Doc();
         Assert.False(SelectionEdits.Invert(document));
+        Assert.Null(document.Selection.Path);
     }
 
     [Fact]
