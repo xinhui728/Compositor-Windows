@@ -26,7 +26,7 @@ internal sealed class UpdateDialog : DialogWindow
         SizeToContent = SizeToContent.Height;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var close = new Button { Content = "Close", IsCancel = true, IsDefault = true };
+        var close = new Button { Content = L.Get("Common.Close"), IsCancel = true, IsDefault = true };
         close.Click += (_, _) => Close();
         var buttons = new StackPanel
         {
@@ -36,7 +36,7 @@ internal sealed class UpdateDialog : DialogWindow
         };
         if (page is not null)
         {
-            var open = new Button { Content = "What changed…" };
+            var open = new Button { Content = L.Get("Update.WhatChanged") };
             open.Click += (_, _) => Open(page);
             buttons.Children.Add(open);
         }

@@ -35,15 +35,20 @@ internal sealed class TextDialog : DialogWindow
         _colour.Text = $"{style.Red * 255:0},{style.Green * 255:0},{style.Blue * 255:0}";
         _tracking.Text = $"{style.Tracking:0.##}";
         _leading.Text = $"{style.Leading:0.##}";
-        _alignment.ItemsSource = new[] { "Left", "Centre", "Right" };
+        _alignment.ItemsSource = new[]
+        {
+            L.Get("TextDialog.Alignment.Left"),
+            L.Get("TextDialog.Alignment.Center"),
+            L.Get("TextDialog.Alignment.Right"),
+        };
         _alignment.SelectedIndex = style.Alignment switch
         {
             TextAlignment.Center => 1,
             TextAlignment.Right => 2,
             _ => 0,
         };
-        var ok = new Button { Content = "OK", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("Common.OK"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) => Accept(style);
         cancel.Click += (_, _) => Close();
         var rows = new StackPanel
@@ -51,14 +56,14 @@ internal sealed class TextDialog : DialogWindow
             Spacing = 6,
             Children =
             {
-                new TextBlock { Text = "Text" },
+                new TextBlock { Text = L.Get("TextDialog.Text") },
                 _content,
-                Row("Font", _font),
-                Row("Size in pixels", _size),
-                Row("Color, red green blue 0-255", _colour),
-                Row("Tracking, pixels between letters", _tracking),
-                Row("Leading, line to line 0 for auto", _leading),
-                new TextBlock { Text = "Alignment" },
+                Row(L.Get("TextDialog.Font"), _font),
+                Row(L.Get("TextDialog.SizePixels"), _size),
+                Row(L.Get("TextDialog.ColorRgb"), _colour),
+                Row(L.Get("TextDialog.Tracking"), _tracking),
+                Row(L.Get("TextDialog.Leading"), _leading),
+                new TextBlock { Text = L.Get("TextDialog.Alignment") },
                 _alignment,
                 new StackPanel
                 {

@@ -33,7 +33,7 @@ internal sealed class AdjustmentDialog : DialogWindow
     {
         _start = start;
         var kind = start.Kind;
-        Title = $"{LayerPlacement.Name(kind)} Adjustment";
+        Title = L.Get("Adjustment.Title", TitleFor(kind));
         Width = 460;
         Height = 580;
         CanResize = true;
@@ -47,14 +47,14 @@ internal sealed class AdjustmentDialog : DialogWindow
                 var hsv = start.ResolvedHSV;
                 _range = new ComboBox
                 {
-                    ItemsSource = HueBand.Ranges.Select(range => range.ToString()).ToList(),
+                    ItemsSource = HueBand.Ranges.Select(RangeName).ToList(),
                     SelectedIndex = HueBand.Ranges.IndexOf(hsv.Range),
                 };
-                group.Children.Add(Row("Range", _range));
-                Add(group, "Hue", -180, 180, hsv.Current.Hue, 0, (s, v) => s.HsvSettings = Hsv(s, hue: v));
-                Add(group, "Saturation", -100, 100, hsv.Current.Saturation, 0, (s, v) => s.HsvSettings = Hsv(s, saturation: v));
-                Add(group, "Lightness", -100, 100, hsv.Current.Lightness, 0, (s, v) => s.HsvSettings = Hsv(s, lightness: v));
-                Check(group, "Colorize", hsv.Colorize, (s, v) => s.HsvSettings = Hsv(s, colorize: v));
+                group.Children.Add(Row(L.Get("Adjustment.Range"), _range));
+                Add(group, L.Get("Adjustment.Hue"), -180, 180, hsv.Current.Hue, 0, (s, v) => s.HsvSettings = Hsv(s, hue: v));
+                Add(group, L.Get("Adjustment.Saturation"), -100, 100, hsv.Current.Saturation, 0, (s, v) => s.HsvSettings = Hsv(s, saturation: v));
+                Add(group, L.Get("Adjustment.Lightness"), -100, 100, hsv.Current.Lightness, 0, (s, v) => s.HsvSettings = Hsv(s, lightness: v));
+                Check(group, L.Get("Adjustment.Colorize"), hsv.Colorize, (s, v) => s.HsvSettings = Hsv(s, colorize: v));
                 break;
             }
             case AdjustmentKind.Levels:
@@ -62,36 +62,36 @@ internal sealed class AdjustmentDialog : DialogWindow
                 var range = start.Levels.Ranges[(int)start.Levels.Channel];
                 _levelsChannel = new ComboBox
                 {
-                    ItemsSource = new[] { "RGB", "Red", "Green", "Blue" },
+                    ItemsSource = ChannelNames(),
                     SelectedIndex = (int)start.Levels.Channel,
                 };
-                group.Children.Add(Row("Channel", _levelsChannel));
-                Add(group, "Black point", 0, 254, range.Black, 0, SetLevels);
-                Add(group, "Gamma", 0.1, 9.99, range.Gamma, 1, SetLevels, "0.00");
-                Add(group, "White point", 1, 255, range.White, 255, SetLevels);
-                Add(group, "Output black", 0, 255, range.OutputBlack, 0, SetLevels);
-                Add(group, "Output white", 0, 255, range.OutputWhite, 255, SetLevels);
+                group.Children.Add(Row(L.Get("Adjustment.Channel"), _levelsChannel));
+                Add(group, L.Get("Adjustment.BlackPoint"), 0, 254, range.Black, 0, SetLevels);
+                Add(group, L.Get("Adjustment.Gamma"), 0.1, 9.99, range.Gamma, 1, SetLevels, "0.00");
+                Add(group, L.Get("Adjustment.WhitePoint"), 1, 255, range.White, 255, SetLevels);
+                Add(group, L.Get("Adjustment.OutputBlack"), 0, 255, range.OutputBlack, 0, SetLevels);
+                Add(group, L.Get("Adjustment.OutputWhite"), 0, 255, range.OutputWhite, 255, SetLevels);
                 break;
             }
             case AdjustmentKind.Exposure:
-                Add(group, "Exposure, stops", -20, 20, start.Exposure.Exposure, 0, (s, v) => s.ExposureSettings = Exposure(s, exposure: v), "0.00");
-                Add(group, "Offset", -0.5, 0.5, start.Exposure.Offset, 0, (s, v) => s.ExposureSettings = Exposure(s, offset: v), "0.000");
-                Add(group, "Gamma", 0.01, 9.99, start.Exposure.Gamma, 1, (s, v) => s.ExposureSettings = Exposure(s, gamma: v), "0.00");
+                Add(group, L.Get("Adjustment.ExposureStops"), -20, 20, start.Exposure.Exposure, 0, (s, v) => s.ExposureSettings = Exposure(s, exposure: v), "0.00");
+                Add(group, L.Get("Adjustment.Offset"), -0.5, 0.5, start.Exposure.Offset, 0, (s, v) => s.ExposureSettings = Exposure(s, offset: v), "0.000");
+                Add(group, L.Get("Adjustment.Gamma"), 0.01, 9.99, start.Exposure.Gamma, 1, (s, v) => s.ExposureSettings = Exposure(s, gamma: v), "0.00");
                 break;
             case AdjustmentKind.Grain:
-                Add(group, "Amount", 0, 100, start.Grain.Amount, 25, (s, v) => s.GrainSettings = Grain(s, amount: v));
-                Add(group, "Size", 0.5, 20, start.Grain.Size, 1.5, (s, v) => s.GrainSettings = Grain(s, size: v), "0.0");
-                Add(group, "Roughness", 0, 100, start.Grain.Roughness, 50, (s, v) => s.GrainSettings = Grain(s, roughness: v));
+                Add(group, L.Get("Adjustment.Amount"), 0, 100, start.Grain.Amount, 25, (s, v) => s.GrainSettings = Grain(s, amount: v));
+                Add(group, L.Get("Adjustment.Size"), 0.5, 20, start.Grain.Size, 1.5, (s, v) => s.GrainSettings = Grain(s, size: v), "0.0");
+                Add(group, L.Get("Adjustment.Roughness"), 0, 100, start.Grain.Roughness, 50, (s, v) => s.GrainSettings = Grain(s, roughness: v));
                 break;
             case AdjustmentKind.Curves:
             {
                 var channel = new ComboBox
                 {
-                    ItemsSource = new[] { "RGB", "Red", "Green", "Blue" },
+                    ItemsSource = ChannelNames(),
                     SelectedIndex = Math.Clamp((int)start.Curves.Channel, 0, 3),
                     Width = 120,
                 };
-                group.Children.Add(Row("Channel", channel));
+                group.Children.Add(Row(L.Get("Adjustment.Channel"), channel));
                 _curve = new CurveEditor { Curves = Clone(start.Curves), Channel = channel.SelectedIndex, Height = 260 };
                 channel.SelectionChanged += (_, _) => _curve.Channel = Math.Max(0, channel.SelectedIndex);
                 _curve.Changed += () => Preview?.Invoke(Built(_start));
@@ -112,58 +112,58 @@ internal sealed class AdjustmentDialog : DialogWindow
                 group.Children.Add(strip);
                 // What Reset goes back to, which is what a layer of this kind is made with.
                 var fresh = new LayerAdjustment { Kind = kind }.GradientMap;
-                Swatch(group, "Shadows", End(start.GradientMap.Shadows), End(fresh.Shadows),
-                    "Color Picker (Gradient Map Shadows)", "Choose the shadows color", strip, atStart: true,
+                Swatch(group, L.Get("Adjustment.Shadows"), End(start.GradientMap.Shadows), End(fresh.Shadows),
+                    L.Get("Adjustment.GradientMapShadowsPickerTitle"), L.Get("Adjustment.ChooseShadowsColor"), strip, atStart: true,
                     (s, colour) => s.GradientMapSettings = Map(s, shadowRed: colour.Red, shadowGreen: colour.Green, shadowBlue: colour.Blue));
-                Swatch(group, "Highlights", End(start.GradientMap.Highlights), End(fresh.Highlights),
-                    "Color Picker (Gradient Map Highlights)", "Choose the highlights color", strip, atStart: false,
+                Swatch(group, L.Get("Adjustment.Highlights"), End(start.GradientMap.Highlights), End(fresh.Highlights),
+                    L.Get("Adjustment.GradientMapHighlightsPickerTitle"), L.Get("Adjustment.ChooseHighlightsColor"), strip, atStart: false,
                     (s, colour) => s.GradientMapSettings = Map(s, highlightRed: colour.Red, highlightGreen: colour.Green, highlightBlue: colour.Blue));
-                Check(group, "Reverse", start.GradientMap.Reversed, (s, v) => s.GradientMapSettings = Map(s, reversed: v));
+                Check(group, L.Get("Adjustment.Reverse"), start.GradientMap.Reversed, (s, v) => s.GradientMapSettings = Map(s, reversed: v));
                 break;
             }
             case AdjustmentKind.AddNoise:
-                Add(group, "Amount, %", 0.1, 400, start.ResolvedNoiseAmount, 10, (s, v) => s.NoiseAmount = v);
-                Check(group, "Gaussian", start.ResolvedNoiseGaussian, (s, v) => s.NoiseGaussian = v);
-                Check(group, "Monochromatic", start.ResolvedNoiseMonochromatic, (s, v) => s.NoiseMonochromatic = v);
+                Add(group, L.Get("Adjustment.AmountPercent"), 0.1, 400, start.ResolvedNoiseAmount, 10, (s, v) => s.NoiseAmount = v);
+                Check(group, L.Get("Adjustment.Gaussian"), start.ResolvedNoiseGaussian, (s, v) => s.NoiseGaussian = v);
+                Check(group, L.Get("Adjustment.Monochromatic"), start.ResolvedNoiseMonochromatic, (s, v) => s.NoiseMonochromatic = v);
                 break;
             case AdjustmentKind.GaussianBlur:
-                Add(group, "Radius, pixels", 0.1, 250, start.GaussianRadius, 10, (s, v) => s.BlurRadius = v);
+                Add(group, L.Get("Adjustment.RadiusPixels"), 0.1, 250, start.GaussianRadius, 10, (s, v) => s.BlurRadius = v);
                 break;
             case AdjustmentKind.MotionBlur:
-                Add(group, "Angle, degrees", -90, 90, start.ResolvedMotionAngle, 0, (s, v) => s.MotionAngle = v);
-                Add(group, "Distance, pixels", 1, 2000, start.ResolvedMotionDistance, 10, (s, v) => s.MotionDistance = v, "0");
+                Add(group, L.Get("Adjustment.AngleDegrees"), -90, 90, start.ResolvedMotionAngle, 0, (s, v) => s.MotionAngle = v);
+                Add(group, L.Get("Adjustment.DistancePixels"), 1, 2000, start.ResolvedMotionDistance, 10, (s, v) => s.MotionDistance = v, "0");
                 break;
             case AdjustmentKind.Invert:
-                group.Children.Add(new TextBlock { Text = "Invert has no settings: it turns every pixel over." });
+                group.Children.Add(new TextBlock { Text = L.Get("Adjustment.InvertNoSettings") });
                 break;
             case AdjustmentKind.BlackWhite:
-                Add(group, "Reds", -200, 300, start.BlackWhite.Reds, 40, (s, v) => s.BlackWhiteSettings = Mix(s, reds: v));
-                Add(group, "Yellows", -200, 300, start.BlackWhite.Yellows, 60, (s, v) => s.BlackWhiteSettings = Mix(s, yellows: v));
-                Add(group, "Greens", -200, 300, start.BlackWhite.Greens, 40, (s, v) => s.BlackWhiteSettings = Mix(s, greens: v));
-                Add(group, "Cyans", -200, 300, start.BlackWhite.Cyans, 60, (s, v) => s.BlackWhiteSettings = Mix(s, cyans: v));
-                Add(group, "Blues", -200, 300, start.BlackWhite.Blues, 20, (s, v) => s.BlackWhiteSettings = Mix(s, blues: v));
-                Add(group, "Magentas", -200, 300, start.BlackWhite.Magentas, 80, (s, v) => s.BlackWhiteSettings = Mix(s, magentas: v));
-                Check(group, "Tint", start.BlackWhite.Tint, (s, v) => s.BlackWhiteSettings = Mix(s, tint: v));
-                Add(group, "Tint hue", 0, 360, start.BlackWhite.TintHue, 40, (s, v) => s.BlackWhiteSettings = Mix(s, tintHue: v));
-                Add(group, "Tint saturation", 0, 100, start.BlackWhite.TintSaturation, 20, (s, v) => s.BlackWhiteSettings = Mix(s, tintSaturation: v));
+                Add(group, L.Get("Adjustment.Reds"), -200, 300, start.BlackWhite.Reds, 40, (s, v) => s.BlackWhiteSettings = Mix(s, reds: v));
+                Add(group, L.Get("Adjustment.Yellows"), -200, 300, start.BlackWhite.Yellows, 60, (s, v) => s.BlackWhiteSettings = Mix(s, yellows: v));
+                Add(group, L.Get("Adjustment.Greens"), -200, 300, start.BlackWhite.Greens, 40, (s, v) => s.BlackWhiteSettings = Mix(s, greens: v));
+                Add(group, L.Get("Adjustment.Cyans"), -200, 300, start.BlackWhite.Cyans, 60, (s, v) => s.BlackWhiteSettings = Mix(s, cyans: v));
+                Add(group, L.Get("Adjustment.Blues"), -200, 300, start.BlackWhite.Blues, 20, (s, v) => s.BlackWhiteSettings = Mix(s, blues: v));
+                Add(group, L.Get("Adjustment.Magentas"), -200, 300, start.BlackWhite.Magentas, 80, (s, v) => s.BlackWhiteSettings = Mix(s, magentas: v));
+                Check(group, L.Get("Adjustment.Tint"), start.BlackWhite.Tint, (s, v) => s.BlackWhiteSettings = Mix(s, tint: v));
+                Add(group, L.Get("Adjustment.TintHue"), 0, 360, start.BlackWhite.TintHue, 40, (s, v) => s.BlackWhiteSettings = Mix(s, tintHue: v));
+                Add(group, L.Get("Adjustment.TintSaturation"), 0, 100, start.BlackWhite.TintSaturation, 20, (s, v) => s.BlackWhiteSettings = Mix(s, tintSaturation: v));
                 break;
             default:
-                Add(group, "Shadows: cyan to red", -100, 100, start.ColorBalance.ShadowCyanRed, 0, (s, v) => s.ColorBalanceSettings = Balance(s, shadowCyanRed: v));
-                Add(group, "Shadows: magenta to green", -100, 100, start.ColorBalance.ShadowMagentaGreen, 0, (s, v) => s.ColorBalanceSettings = Balance(s, shadowMagentaGreen: v));
-                Add(group, "Shadows: yellow to blue", -100, 100, start.ColorBalance.ShadowYellowBlue, 0, (s, v) => s.ColorBalanceSettings = Balance(s, shadowYellowBlue: v));
-                Add(group, "Midtones: cyan to red", -100, 100, start.ColorBalance.MidCyanRed, 0, (s, v) => s.ColorBalanceSettings = Balance(s, midCyanRed: v));
-                Add(group, "Midtones: magenta to green", -100, 100, start.ColorBalance.MidMagentaGreen, 0, (s, v) => s.ColorBalanceSettings = Balance(s, midMagentaGreen: v));
-                Add(group, "Midtones: yellow to blue", -100, 100, start.ColorBalance.MidYellowBlue, 0, (s, v) => s.ColorBalanceSettings = Balance(s, midYellowBlue: v));
-                Add(group, "Highlights: cyan to red", -100, 100, start.ColorBalance.HighlightCyanRed, 0, (s, v) => s.ColorBalanceSettings = Balance(s, highlightCyanRed: v));
-                Add(group, "Highlights: magenta to green", -100, 100, start.ColorBalance.HighlightMagentaGreen, 0, (s, v) => s.ColorBalanceSettings = Balance(s, highlightMagentaGreen: v));
-                Add(group, "Highlights: yellow to blue", -100, 100, start.ColorBalance.HighlightYellowBlue, 0, (s, v) => s.ColorBalanceSettings = Balance(s, highlightYellowBlue: v));
-                Check(group, "Preserve luminosity", start.ColorBalance.PreserveLuminosity, (s, v) => s.ColorBalanceSettings = Balance(s, preserve: v));
+                Add(group, ColorBalanceRow("Adjustment.Shadows", "Adjustment.CyanToRed"), -100, 100, start.ColorBalance.ShadowCyanRed, 0, (s, v) => s.ColorBalanceSettings = Balance(s, shadowCyanRed: v));
+                Add(group, ColorBalanceRow("Adjustment.Shadows", "Adjustment.MagentaToGreen"), -100, 100, start.ColorBalance.ShadowMagentaGreen, 0, (s, v) => s.ColorBalanceSettings = Balance(s, shadowMagentaGreen: v));
+                Add(group, ColorBalanceRow("Adjustment.Shadows", "Adjustment.YellowToBlue"), -100, 100, start.ColorBalance.ShadowYellowBlue, 0, (s, v) => s.ColorBalanceSettings = Balance(s, shadowYellowBlue: v));
+                Add(group, ColorBalanceRow("Adjustment.Midtones", "Adjustment.CyanToRed"), -100, 100, start.ColorBalance.MidCyanRed, 0, (s, v) => s.ColorBalanceSettings = Balance(s, midCyanRed: v));
+                Add(group, ColorBalanceRow("Adjustment.Midtones", "Adjustment.MagentaToGreen"), -100, 100, start.ColorBalance.MidMagentaGreen, 0, (s, v) => s.ColorBalanceSettings = Balance(s, midMagentaGreen: v));
+                Add(group, ColorBalanceRow("Adjustment.Midtones", "Adjustment.YellowToBlue"), -100, 100, start.ColorBalance.MidYellowBlue, 0, (s, v) => s.ColorBalanceSettings = Balance(s, midYellowBlue: v));
+                Add(group, ColorBalanceRow("Adjustment.Highlights", "Adjustment.CyanToRed"), -100, 100, start.ColorBalance.HighlightCyanRed, 0, (s, v) => s.ColorBalanceSettings = Balance(s, highlightCyanRed: v));
+                Add(group, ColorBalanceRow("Adjustment.Highlights", "Adjustment.MagentaToGreen"), -100, 100, start.ColorBalance.HighlightMagentaGreen, 0, (s, v) => s.ColorBalanceSettings = Balance(s, highlightMagentaGreen: v));
+                Add(group, ColorBalanceRow("Adjustment.Highlights", "Adjustment.YellowToBlue"), -100, 100, start.ColorBalance.HighlightYellowBlue, 0, (s, v) => s.ColorBalanceSettings = Balance(s, highlightYellowBlue: v));
+                Check(group, L.Get("Adjustment.PreserveLuminosity"), start.ColorBalance.PreserveLuminosity, (s, v) => s.ColorBalanceSettings = Balance(s, preserve: v));
                 break;
         }
 
-        var ok = new Button { Content = "Apply", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
-        var reset = new Button { Content = "Reset" };
+        var ok = new Button { Content = L.Get("Common.Apply"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
+        var reset = new Button { Content = L.Get("Common.Reset") };
         ok.Click += (_, _) => Accept(start);
         cancel.Click += (_, _) => Close();
         reset.Click += (_, _) => Restore(new LayerAdjustment { Kind = kind });
@@ -177,6 +177,22 @@ internal sealed class AdjustmentDialog : DialogWindow
         });
         Content = new ScrollViewer { Content = group };
     }
+
+    /// <summary>Display text only; <see cref="AdjustmentKind"/> keeps the serialized adjustment identity.</summary>
+    internal static string TitleFor(AdjustmentKind kind) => LocalizedNames.Adjustment(kind);
+
+    private static string[] ChannelNames() =>
+    [
+        LocalizedNames.LevelsChannel(LevelsChannel.Rgb),
+        LocalizedNames.LevelsChannel(LevelsChannel.Red),
+        LocalizedNames.LevelsChannel(LevelsChannel.Green),
+        LocalizedNames.LevelsChannel(LevelsChannel.Blue),
+    ];
+
+    private static string RangeName(ColorRange range) => LocalizedNames.ColorRange(range);
+
+    private static string ColorBalanceRow(string toneKey, string axisKey) =>
+        L.Get("Adjustment.ColorBalanceRow", L.Get(toneKey), L.Get(axisKey));
 
     private LevelsChannelRange LevelsRange(LayerAdjustment settings) =>
         settings.Levels.Ranges[(int)(_levelsChannel is { SelectedIndex: >= 0 } box ? (LevelsChannel)box.SelectedIndex : settings.Levels.Channel)];

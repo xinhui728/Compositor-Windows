@@ -97,7 +97,7 @@ public sealed class MainWindow : Window
     /// <summary>The clipping, mask and visibility rows, whose names and availability follow the selection.</summary>
     private readonly MenuItem _visibility = new();
     private readonly MenuItem _showGrid = new();
-    private readonly MenuItem _recentMenu = new() { Header = "Open _Recent" };
+    private readonly MenuItem _recentMenu = new() { Header = L.Get("Menu.OpenRecent") };
     private readonly RecentProjects _recent = new(RecentProjects.DefaultPath);
     private readonly MenuItem _snapToCanvas = new();
     private readonly MenuItem _snapToGuides = new();
@@ -146,12 +146,12 @@ public sealed class MainWindow : Window
 
     /// <summary>The blend modes in the order the menu lists them, which is the order the enum declares.</summary>
     private static readonly LayerBlendMode[] BlendModes = Enum.GetValues<LayerBlendMode>();
-    private readonly MenuItem _adjustmentMenu = new() { Header = "New _Adjustment Layer" };
-    private readonly MenuItem _effectsMenu = new() { Header = "Layer _Effects" };
+    private readonly MenuItem _adjustmentMenu = new() { Header = L.Get("Menu.NewAdjustmentLayer") };
+    private readonly MenuItem _effectsMenu = new() { Header = L.Get("Menu.LayerEffects") };
     private MenuItem _adjustmentSettings = new();
     private MenuItem _clearEffects = new();
     private readonly MenuItem _clipping = new();
-    private readonly MenuItem _addMask = new() { Header = "Add _Mask" };
+    private readonly MenuItem _addMask = new() { Header = L.Get("Menu.AddMask") };
     private readonly MenuItem _maskToggle = new();
     private readonly MenuItem _maskLink = new();
 
@@ -165,13 +165,13 @@ public sealed class MainWindow : Window
     private TextSession? _text;
 
     /// <summary>The Gradient tool's own rows in the Tools menu, which the options bar also shows.</summary>
-    private readonly MenuItem _gradientMenu = new() { Header = "Gradient _options" };
+    private readonly MenuItem _gradientMenu = new() { Header = L.Get("Menu.GradientOptions") };
 
     /// <summary>The Shape tool's own rows in the Tools menu, which the options bar also shows.</summary>
-    private readonly MenuItem _shapeKinds = new() { Header = "Shape _kind" };
+    private readonly MenuItem _shapeKinds = new() { Header = L.Get("Menu.ShapeKind") };
 
     /// <summary>The crop frame's shape: the canvas's own, or one of the fixed ratios.</summary>
-    private readonly MenuItem _cropRatios = new() { Header = "Crop _ratio" };
+    private readonly MenuItem _cropRatios = new() { Header = L.Get("Menu.CropRatio") };
 
     /// <summary>The crop frame while the Crop tool is in hand; null is the whole canvas.</summary>
     private SKRectI? _cropFrame;
@@ -183,14 +183,14 @@ public sealed class MainWindow : Window
     /// <summary>Whether a brush stroke goes on the active layer's mask instead of its pixels.</summary>
     private readonly MenuItem _paintOnMask = new()
     {
-        Header = "Paint on the layer _mask",
+        Header = L.Get("Menu.PaintOnLayerMask"),
         ToggleType = MenuItemToggleType.CheckBox,
     };
 
     /// <summary>Whether the brush paints or erases; on a mask, that is white or black.</summary>
     private readonly MenuItem _eraseToggle = new()
     {
-        Header = "Brush _erases",
+        Header = L.Get("Menu.BrushErases"),
         ToggleType = MenuItemToggleType.CheckBox,
     };
 
@@ -222,7 +222,7 @@ public sealed class MainWindow : Window
         public int SelectedRow { get; set; }
 
         /// <summary>What the tab is called: the project's name, or what it is until it is saved.</summary>
-        public string Name => Path is { } path ? System.IO.Path.GetFileName(path) : "Untitled";
+        public string Name => Path is { } path ? System.IO.Path.GetFileName(path) : L.Get("Document.Untitled");
     }
 
     private readonly List<Tab> _tabs = [];
@@ -289,7 +289,7 @@ public sealed class MainWindow : Window
 
     public MainWindow()
     {
-        Title = "Compositor";
+        Title = L.Get("App.Name");
         Width = 1280;
         Height = 820;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -372,7 +372,7 @@ public sealed class MainWindow : Window
         // through SetTool and the menu, the rail and the canvas all follow.
         _optionsBar.MarqueeShapeChosen += ellipse => SetTool(ellipse ? Tool.Ellipse : Tool.Marquee);
         _optionsBar.LassoKindChosen += polygonal => SetTool(polygonal ? Tool.Polygon : Tool.Lasso);
-        _optionsBar.ShowCropRatios([.. CropRatios.Select(entry => entry.Label)]);
+        _optionsBar.ShowCropRatios([.. CropRatios.Select(entry => L.Get(entry.LabelKey))]);
         _merge.Click += (_, _) => MergeLayers();
         _visibility.Click += (_, _) => ToggleVisibility();
         // The View switches open where they were left last time, as the Mac build's tool defaults keep them.
@@ -380,10 +380,10 @@ public sealed class MainWindow : Window
         _grid = _tools.Grid();
         _gridVisible = _tools.ShowGrid;
         _canvas.Grid = _gridVisible ? _grid : null;
-        _showGrid.Header = _gridVisible ? "_Hide Grid" : "Show _Grid";
+        _showGrid.Header = _gridVisible ? L.Get("Menu.HideGrid") : L.Get("Menu.ShowGrid");
         _showGrid.Click += (_, _) => ShowGrid();
         _rulersVisible = _tools.ShowRulers;
-        _showRulers.Header = "R_ulers";
+        _showRulers.Header = L.Get("Menu.Rulers");
         _showRulers.ToggleType = MenuItemToggleType.CheckBox;
         _showRulers.IsChecked = _rulersVisible;
         _showRulers.Click += (_, _) => ShowRulers();
@@ -392,11 +392,11 @@ public sealed class MainWindow : Window
         _transformShown = _tools.ShowTransformControls;
         _pixelGridShown = _tools.PixelGrid;
         _snappingOn = _tools.Snapping;
-        Toggle("_Guides", _showGuides, _guidesVisible, () => ShowGuides());
-        Toggle("_Lock Guides", _lockGuides, _guidesLocked, () => LockGuides());
-        Toggle("Show _Transform Controls", _showTransform, _transformShown, () => ShowTransformControls());
-        Toggle("_Pixel Grid (800% and above)", _pixelGrid, _pixelGridShown, () => ShowPixelGrid());
-        Toggle("S_nap", _snapping, _snappingOn, () => ShowSnapping());
+        Toggle(L.Get("Menu.Guides"), _showGuides, _guidesVisible, () => ShowGuides());
+        Toggle(L.Get("Menu.LockGuides"), _lockGuides, _guidesLocked, () => LockGuides());
+        Toggle(L.Get("Menu.ShowTransformControls"), _showTransform, _transformShown, () => ShowTransformControls());
+        Toggle(L.Get("Menu.PixelGrid"), _pixelGrid, _pixelGridShown, () => ShowPixelGrid());
+        Toggle(L.Get("Menu.Snap"), _snapping, _snappingOn, () => ShowSnapping());
         PushViewSwitches();
         _canvas.ViewportChanged = UpdateRulers;
         foreach (var (item, flag, label) in SnapRows())
@@ -411,8 +411,8 @@ public sealed class MainWindow : Window
         _clipping.Click += (_, _) => ToggleClipping();
         _maskToggle.Click += (_, _) => ToggleMask();
         _maskLink.Click += (_, _) => ToggleMaskLink();
-        _addMask.Items.Add(Command("_Reveal All (White)", () => AddMask(revealing: true)));
-        _addMask.Items.Add(Command("_Hide All (Black)", () => AddMask(revealing: false)));
+        _addMask.Items.Add(Command(L.Get("Menu.RevealAllWhite"), () => AddMask(revealing: true)));
+        _addMask.Items.Add(Command(L.Get("Menu.HideAllBlack"), () => AddMask(revealing: false)));
         _layers.SelectionChanged += (_, _) => UpdateLayerMenu();
         _tabs.Add(_open);
         Content = Layout();
@@ -430,7 +430,7 @@ public sealed class MainWindow : Window
         // it would either fire twice or fire on a key the table no longer holds. One handler, one table.
         AddHandler(KeyDownEvent, KeyPressed, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, KeyLetGo, RoutingStrategies.Tunnel);
-        Say("File ▸ New Project… for a blank canvas, or File ▸ Open project folder… to load a .comp");
+        Say(L.Get("Status.Welcome"));
     }
 
     private Control Layout()
@@ -441,78 +441,80 @@ public sealed class MainWindow : Window
             {
                 new MenuItem
                 {
-                    Header = "_File",
+                    Header = L.Get("Menu.File"),
                     Items =
                     {
-                        Command("_New Project…", () => _ = NewProject(), "New Project"),
-                        Command("_Open project folder…", OpenProject, "Open Project"),
+                        Command(L.Get("Menu.NewProject"), () => _ = NewProject(), "New Project"),
+                        Command(L.Get("Menu.OpenProject"), OpenProject, "Open Project"),
                         _recentMenu,
-                        Command("_Import image…", () => _ = ImportImage()),
-                        Command("_Save", Save, "Save"),
-                        Command("Save _As…", SaveAs, "Save As"),
+                        Command(L.Get("Menu.ImportImage"), () => _ = ImportImage()),
+                        Command(L.Get("Menu.Save"), Save, "Save"),
+                        Command(L.Get("Menu.SaveAs"), SaveAs, "Save As"),
                         new Separator(),
-                        Command("_Export PNG…", ExportPng, "Export PNG"),
-                        Command("Export _JPEG…", () => _ = ExportJpeg(), "Export JPEG"),
+                        Command(L.Get("Menu.ExportPng"), ExportPng, "Export PNG"),
+                        Command(L.Get("Menu.ExportJpeg"), () => _ = ExportJpeg(), "Export JPEG"),
                         new Separator(),
-                        Command("_Close Tab", () => _ = CloseTab(_open), "Close Tab"),
-                        Command("E_xit", Close),
+                        Command(L.Get("Menu.CloseTab"), () => _ = CloseTab(_open), "Close Tab"),
+                        Command(L.Get("Menu.Exit"), Close),
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_Edit",
+                    Header = L.Get("Menu.Edit"),
                     Items =
                     {
-                        Command("_Undo", Undo, "Undo"),
-                        Command("_Redo", Redo, "Redo"),
+                        Command(L.Get("Menu.Undo"), Undo, "Undo"),
+                        Command(L.Get("Menu.Redo"), Redo, "Redo"),
                         new Separator(),
-                        Command("Cu_t", Cut, "Cut"),
-                        Command("_Copy", Copy, "Copy"),
-                        Command("Copy _Merged", CopyMerged, "Copy Merged"),
-                        Command("_Paste", Paste, "Paste"),
-                        Command("Layer via Cop_y", LayerViaCopy, "Layer via Copy"),
+                        Command(L.Get("Menu.Cut"), Cut, "Cut"),
+                        Command(L.Get("Menu.Copy"), Copy, "Copy"),
+                        Command(L.Get("Menu.CopyMerged"), CopyMerged, "Copy Merged"),
+                        Command(L.Get("Menu.Paste"), Paste, "Paste"),
+                        Command(L.Get("Menu.LayerViaCopy"), LayerViaCopy, "Layer via Copy"),
                         new Separator(),
-                        Command("Fill with _Foreground Color", () => FillPixels(BrushColour(), "Fill"),
+                        Command(L.Get("Menu.FillForegroundColor"), () => FillPixels(BrushColour(), "Fill"),
                             "Fill with Foreground Color"),
-                        Command("Fill with _Background Color", () => FillPixels(BackgroundColour(), "Fill"),
+                        Command(L.Get("Menu.FillBackgroundColor"), () => FillPixels(BackgroundColour(), "Fill"),
                             "Fill with Background Color"),
-                        Command("_Clear Selection Pixels", ClearPixels),
+                        Command(L.Get("Menu.ClearSelectionPixels"), ClearPixels),
                         new Separator(),
-                        Command("Flip Layer _Horizontal", () => Flip(horizontal: true, canvas: false)),
-                        Command("Flip Layer _Vertical", () => Flip(horizontal: false, canvas: false)),
-                        Command("Flip _Canvas Horizontal", () => Flip(horizontal: true, canvas: true)),
-                        Command("Flip Canvas _Vertical", () => Flip(horizontal: false, canvas: true)),
+                        Command(L.Get("Menu.FlipLayerHorizontal"), () => Flip(horizontal: true, canvas: false)),
+                        Command(L.Get("Menu.FlipLayerVertical"), () => Flip(horizontal: false, canvas: false)),
+                        Command(L.Get("Menu.FlipCanvasHorizontal"), () => Flip(horizontal: true, canvas: true)),
+                        Command(L.Get("Menu.FlipCanvasVertical"), () => Flip(horizontal: false, canvas: true)),
                         new Separator(),
-                        Command("_Keyboard Shortcuts…", () => _ = KeyboardShortcuts()),
+                        Command(L.Get("Menu.KeyboardShortcuts"), () => _ = KeyboardShortcuts()),
+                        new Separator(),
+                        Command(L.Get("Menu.Preferences"), () => _ = Preferences()),
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_Layer",
+                    Header = L.Get("Menu.Layer"),
                     Items =
                     {
-                        LayerCommand("_Duplicate Layer", DuplicateLayer, "Duplicate Layer"),
-                        LayerCommand("_Rename Layer…", () => _ = RenameLayer(), "Rename Layer"),
-                        LayerCommand("_Delete Layer", DeleteLayer, "Delete Layer"),
+                        LayerCommand(L.Get("Menu.DuplicateLayer"), DuplicateLayer, "Duplicate Layer"),
+                        LayerCommand(L.Get("Menu.RenameLayer"), () => _ = RenameLayer(), "Rename Layer"),
+                        LayerCommand(L.Get("Menu.DeleteLayer"), DeleteLayer, "Delete Layer"),
                         new Separator(),
-                        LayerCommand("Move Layer _Up", () => MoveLayer(1), "Move Layer Up"),
-                        LayerCommand("Move Layer _Down", () => MoveLayer(-1), "Move Layer Down"),
+                        LayerCommand(L.Get("Menu.MoveLayerUp"), () => MoveLayer(1), "Move Layer Up"),
+                        LayerCommand(L.Get("Menu.MoveLayerDown"), () => MoveLayer(-1), "Move Layer Down"),
                         new Separator(),
                         _clipping,
-                        LayerCommand("_Group Selected Layers", GroupSelected, "Group Layers",
+                        LayerCommand(L.Get("Menu.GroupSelectedLayers"), GroupSelected, "Group Layers",
                             (document, layer) => document.Layers.Count < LayerPlacement.MaxLayers),
-                        LayerCommand("Move _Out of Folder", MoveOutOfFolder, null,
+                        LayerCommand(L.Get("Menu.MoveOutOfFolder"), MoveOutOfFolder, null,
                             (_, layer) => layer.ParentID is not null),
                         _merge,
                         new Separator(),
                         _addMask,
                         _maskToggle,
-                        LayerCommand("_Delete Mask", DeleteMask, null, (_, layer) => layer.Mask is not null),
-                        LayerCommand("Edit _Text…", () => _ = EditText(), null, (_, layer) => layer.Text is not null),
+                        LayerCommand(L.Get("Menu.DeleteMask"), DeleteMask, null, (_, layer) => layer.Mask is not null),
+                        LayerCommand(L.Get("Menu.EditText"), () => _ = EditText(), null, (_, layer) => layer.Text is not null),
                         _maskLink,
                         new Separator(),
-                        LayerCommand("New Blank Layer", NewBlankLayer, "New Blank Layer"),
-                        LayerCommand("New F_older", NewFolder, null,
+                        LayerCommand(L.Get("Menu.NewBlankLayer"), NewBlankLayer, "New Blank Layer"),
+                        LayerCommand(L.Get("Menu.NewFolder"), NewFolder, null,
                             (document, _) => document.Layers.Count < LayerPlacement.MaxLayers),
                         _adjustmentMenu,
                         _adjustmentSettings,
@@ -523,80 +525,80 @@ public sealed class MainWindow : Window
                 },
                 new MenuItem
                 {
-                    Header = "_Image",
+                    Header = L.Get("Menu.Image"),
                     Items =
                     {
-                        Command("_Hue/Saturation…", () => _ = ImageAdjustment(AdjustmentKind.HueSaturation),
+                        Command(L.Get("Menu.HueSaturation"), () => _ = ImageAdjustment(AdjustmentKind.HueSaturation),
                             "Hue/Saturation"),
-                        Command("_Levels…", () => _ = ImageAdjustment(AdjustmentKind.Levels), "Levels"),
+                        Command(L.Get("Menu.Levels"), () => _ = ImageAdjustment(AdjustmentKind.Levels), "Levels"),
                         new MenuItem
                         {
-                            Header = "_Auto Levels",
+                            Header = L.Get("Menu.AutoLevels"),
                             Items =
                             {
-                                Command("Auto _Contrast", () => AutoLevels(LevelsAuto.Contrast)),
-                                Command("Auto C_olour", () => AutoLevels(LevelsAuto.Color)),
-                                Command("Auto Color + Neutral _Midtones", () => AutoLevels(LevelsAuto.Neutral)),
+                                Command(L.Get("Menu.AutoContrast"), () => AutoLevels(LevelsAuto.Contrast)),
+                                Command(L.Get("Menu.AutoColor"), () => AutoLevels(LevelsAuto.Color)),
+                                Command(L.Get("Menu.AutoColorNeutralMidtones"), () => AutoLevels(LevelsAuto.Neutral)),
                             },
                         },
-                        Command("C_urves…", () => _ = ImageAdjustment(AdjustmentKind.Curves), "Curves"),
-                        Command("_Exposure…", () => _ = ImageAdjustment(AdjustmentKind.Exposure)),
-                        Command("Black & _White…", () => _ = ImageAdjustment(AdjustmentKind.BlackWhite)),
-                        Command("_Gradient Map…", () => _ = ImageAdjustment(AdjustmentKind.GradientMap)),
-                        Command("C_olor Balance…", () => _ = ImageAdjustment(AdjustmentKind.ColorBalance)),
+                        Command(L.Get("Menu.Curves"), () => _ = ImageAdjustment(AdjustmentKind.Curves), "Curves"),
+                        Command(L.Get("Menu.Exposure"), () => _ = ImageAdjustment(AdjustmentKind.Exposure)),
+                        Command(L.Get("Menu.BlackWhite"), () => _ = ImageAdjustment(AdjustmentKind.BlackWhite)),
+                        Command(L.Get("Menu.GradientMap"), () => _ = ImageAdjustment(AdjustmentKind.GradientMap)),
+                        Command(L.Get("Menu.ColorBalance"), () => _ = ImageAdjustment(AdjustmentKind.ColorBalance)),
                         new Separator(),
-                        Command("_Grain…", () => _ = ImageAdjustment(AdjustmentKind.Grain)),
-                        Command("_Invert", () => _ = ImageAdjustment(AdjustmentKind.Invert), "Invert"),
+                        Command(L.Get("Menu.Grain"), () => _ = ImageAdjustment(AdjustmentKind.Grain)),
+                        Command(L.Get("Menu.Invert"), () => _ = ImageAdjustment(AdjustmentKind.Invert), "Invert"),
                         new Separator(),
-                        Command("_Canvas Size…", () => _ = CanvasSize(), "Canvas Size"),
-                        Command("_Image Size…", () => _ = ImageSize(), "Image Size"),
-                        Command("_Trim…", () => _ = Trim()),
+                        Command(L.Get("Menu.CanvasSize"), () => _ = CanvasSize(), "Canvas Size"),
+                        Command(L.Get("Menu.ImageSize"), () => _ = ImageSize(), "Image Size"),
+                        Command(L.Get("Menu.Trim"), () => _ = Trim()),
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_Filter",
+                    Header = L.Get("Menu.Filter"),
                     Items =
                     {
-                        Command("_Camera Raw Filter…", CameraRawFilter),
+                        Command(L.Get("Menu.CameraRawFilter"), CameraRawFilter),
                         new Separator(),
-                        Command("_Gaussian Blur…", () => _ = ApplyFilter(FilterKind.GaussianBlur)),
-                        Command("_Motion Blur…", () => _ = ApplyFilter(FilterKind.MotionBlur)),
-                        Command("Add _Noise…", () => _ = ApplyFilter(FilterKind.AddNoise)),
-                        Command("_Bloom / Glow…", () => _ = ApplyFilter(FilterKind.BloomGlow)),
-                        Command("_Dither…", () => _ = DitherFilter()),
+                        Command(L.Get("Menu.GaussianBlur"), () => _ = ApplyFilter(FilterKind.GaussianBlur)),
+                        Command(L.Get("Menu.MotionBlur"), () => _ = ApplyFilter(FilterKind.MotionBlur)),
+                        Command(L.Get("Menu.AddNoise"), () => _ = ApplyFilter(FilterKind.AddNoise)),
+                        Command(L.Get("Menu.BloomGlow"), () => _ = ApplyFilter(FilterKind.BloomGlow)),
+                        Command(L.Get("Menu.Dither"), () => _ = DitherFilter()),
                         new Separator(),
-                        Command("_Content-Aware Fill", ContentAwareFill, "Content-Aware Fill"),
+                        Command(L.Get("Menu.ContentAwareFill"), ContentAwareFill, "Content-Aware Fill"),
                         new Separator(),
-                        Command("_Vignette…", () => _ = ApplyFilter(FilterKind.Vignette)),
-                        Command("_Tonal Contrast…", () => _ = ApplyFilter(FilterKind.TonalContrast)),
-                        Command("Lens _Correction…", () => _ = ApplyFilter(FilterKind.LensCorrection)),
+                        Command(L.Get("Menu.Vignette"), () => _ = ApplyFilter(FilterKind.Vignette)),
+                        Command(L.Get("Menu.TonalContrast"), () => _ = ApplyFilter(FilterKind.TonalContrast)),
+                        Command(L.Get("Menu.LensCorrection"), () => _ = ApplyFilter(FilterKind.LensCorrection)),
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_Tools",
+                    Header = L.Get("Menu.Tools"),
                     Items =
                     {
-                        ToolItem("_Pan (drag to scroll)", Tool.Pan, "Hand tool"),
-                        ToolItem("_Move (drag the layer; Ctrl-drag a corner to distort it)", Tool.Move,
+                        ToolItem(L.Get("Menu.ToolPan"), Tool.Pan, "Hand tool"),
+                        ToolItem(L.Get("Menu.ToolMove"), Tool.Move,
                             "Move / Transform tool"),
-                        ToolItem("Marquee (_rectangular selection)", Tool.Marquee, "Marquee tool"),
-                        ToolItem("_Elliptical marquee", Tool.Ellipse),
-                        ToolItem("_Lasso (freehand)", Tool.Lasso, "Lasso tool"),
-                        ToolItem("_Polygonal lasso (click each corner)", Tool.Polygon),
-                        ToolItem("Magic _wand (click a color)", Tool.Wand, "Magic wand"),
-                        ToolItem("_Brush", Tool.Brush, "Brush tool"),
-                        ToolItem("_Clone stamp (Alt-click a source first)", Tool.Clone, "Clone Stamp"),
-                        ToolItem("Blur brush", Tool.Blur, "Blur / Smudge / Liquify"),
-                        ToolItem("_Liquify brush (push the pixels around)", Tool.Liquify),
-                        ToolItem("S_mudge brush (drag the color along)", Tool.Smudge),
-                        ToolItem("Spot _healing", Tool.Heal, "Spot Healing"),
-                        ToolItem("_Eyedropper (click the canvas)", Tool.Eyedropper, "Eyedropper tool"),
-                        ToolItem("_Type (click where the text goes)", Tool.Type, "Type tool"),
-                        ToolItem("_Crop (drag a frame, then apply it)", Tool.Crop, "Crop tool"),
-                        ToolItem("_Shape (drag out a rectangle, ellipse or line)", Tool.Shape, "Shape tool"),
-                        ToolItem("_Gradient (drag the line it runs along)", Tool.Gradient, "Gradient tool"),
+                        ToolItem(L.Get("Menu.ToolMarquee"), Tool.Marquee, "Marquee tool"),
+                        ToolItem(L.Get("Menu.ToolEllipse"), Tool.Ellipse),
+                        ToolItem(L.Get("Menu.ToolLasso"), Tool.Lasso, "Lasso tool"),
+                        ToolItem(L.Get("Menu.ToolPolygon"), Tool.Polygon),
+                        ToolItem(L.Get("Menu.ToolWand"), Tool.Wand, "Magic wand"),
+                        ToolItem(L.Get("Menu.ToolBrush"), Tool.Brush, "Brush tool"),
+                        ToolItem(L.Get("Menu.ToolClone"), Tool.Clone, "Clone Stamp"),
+                        ToolItem(L.Get("Menu.ToolBlur"), Tool.Blur, "Blur / Smudge / Liquify"),
+                        ToolItem(L.Get("Menu.ToolLiquify"), Tool.Liquify),
+                        ToolItem(L.Get("Menu.ToolSmudge"), Tool.Smudge),
+                        ToolItem(L.Get("Menu.ToolHeal"), Tool.Heal, "Spot Healing"),
+                        ToolItem(L.Get("Menu.ToolEyedropper"), Tool.Eyedropper, "Eyedropper tool"),
+                        ToolItem(L.Get("Menu.ToolType"), Tool.Type, "Type tool"),
+                        ToolItem(L.Get("Menu.ToolCrop"), Tool.Crop, "Crop tool"),
+                        ToolItem(L.Get("Menu.ToolShape"), Tool.Shape, "Shape tool"),
+                        ToolItem(L.Get("Menu.ToolGradient"), Tool.Gradient, "Gradient tool"),
                         new Separator(),
                         _gradientMenu,
                         new Separator(),
@@ -609,49 +611,49 @@ public sealed class MainWindow : Window
                         new Separator(),
                         new MenuItem
                         {
-                            Header = "_Brush settings",
+                            Header = L.Get("Menu.BrushSettings"),
                             Items =
                             {
-                                Command("_Size…", () => _ = SetBrush(BrushSetting.Size)),
-                                Command("_Hardness…", () => _ = SetBrush(BrushSetting.Hardness)),
-                                Command("_Opacity…", () => _ = SetBrush(BrushSetting.Opacity)),
-                                Command("_Color…", () => _ = SetBrush(BrushSetting.Colour)),
+                                Command(L.Get("Menu.Size"), () => _ = SetBrush(BrushSetting.Size)),
+                                Command(L.Get("Menu.Hardness"), () => _ = SetBrush(BrushSetting.Hardness)),
+                                Command(L.Get("Menu.Opacity"), () => _ = SetBrush(BrushSetting.Opacity)),
+                                Command(L.Get("Menu.Color"), () => _ = SetBrush(BrushSetting.Colour)),
                                 new Separator(),
-                                Command("Spot healing: _Content-Aware", () => Heal(HealingMode.ContentAware)),
-                                Command("Spot healing: Create _Texture", () => Heal(HealingMode.CreateTexture)),
-                                Command("Spot healing: Proximity _Match", () => Heal(HealingMode.ProximityMatch)),
+                                Command(L.Get("Menu.SpotHealingContentAware"), () => Heal(HealingMode.ContentAware)),
+                                Command(L.Get("Menu.SpotHealingCreateTexture"), () => Heal(HealingMode.CreateTexture)),
+                                Command(L.Get("Menu.SpotHealingProximityMatch"), () => Heal(HealingMode.ProximityMatch)),
                             },
                         },
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_Select",
+                    Header = L.Get("Menu.Select"),
                     Items =
                     {
-                        Command("Select _All", () => Change("Select All", SelectionEdits.SelectAll), "Select All"),
-                        Command("_Deselect", Deselect, "Deselect"),
-                        Command("_Inverse", () => Change("Inverse", SelectionEdits.Invert), "Inverse Selection"),
+                        Command(L.Get("Menu.SelectAll"), () => Change("Select All", SelectionEdits.SelectAll), "Select All"),
+                        Command(L.Get("Menu.Deselect"), Deselect, "Deselect"),
+                        Command(L.Get("Menu.Inverse"), () => Change("Inverse", SelectionEdits.Invert), "Inverse Selection"),
                         new Separator(),
-                        Command("_Expand…", () => _ = ModifySelection(SelectionAmount.Expand)),
-                        Command("_Contract…", () => _ = ModifySelection(SelectionAmount.Contract)),
-                        Command("_Feather…", () => _ = ModifySelection(SelectionAmount.Feather)),
+                        Command(L.Get("Menu.Expand"), () => _ = ModifySelection(SelectionAmount.Expand)),
+                        Command(L.Get("Menu.Contract"), () => _ = ModifySelection(SelectionAmount.Contract)),
+                        Command(L.Get("Menu.Feather"), () => _ = ModifySelection(SelectionAmount.Feather)),
                         new Separator(),
-                        Command("Layer's _Pixels", SelectLayerPixels),
-                        Command("_Mask's Black Areas", SelectMaskBlack),
+                        Command(L.Get("Menu.LayerPixels"), SelectLayerPixels),
+                        Command(L.Get("Menu.MaskBlackAreas"), SelectMaskBlack),
                         new Separator(),
-                        Command("Color _Range…", ColorRange),
+                        Command(L.Get("Menu.ColorRange"), ColorRange),
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_View",
+                    Header = L.Get("Menu.View"),
                     Items =
                     {
-                        Command("Zoom _in", () => { _canvas.ZoomBy(1.25); Say(); }, "Zoom In"),
-                        Command("Zoom _out", () => { _canvas.ZoomBy(1 / 1.25); Say(); }, "Zoom Out"),
-                        Command("_Fit on screen", () => { _canvas.Fit(); Say(); }, "Fit Canvas"),
-                        Command("Actual _pixels", () => { _canvas.ActualSize(); Say(); }, "Actual Pixels"),
+                        Command(L.Get("Menu.ZoomIn"), () => { _canvas.ZoomBy(1.25); Say(); }, "Zoom In"),
+                        Command(L.Get("Menu.ZoomOut"), () => { _canvas.ZoomBy(1 / 1.25); Say(); }, "Zoom Out"),
+                        Command(L.Get("Menu.FitOnScreen"), () => { _canvas.Fit(); Say(); }, "Fit Canvas"),
+                        Command(L.Get("Menu.ActualPixels"), () => { _canvas.ActualSize(); Say(); }, "Actual Pixels"),
                         new Separator(),
                         _showGrid,
                         _showRulers,
@@ -660,22 +662,22 @@ public sealed class MainWindow : Window
                         _showTransform,
                         _pixelGrid,
                         _snapping,
-                        Command("_Grid Settings…", () => _ = GridSettings()),
+                        Command(L.Get("Menu.GridSettings"), () => _ = GridSettings()),
                         _snapToCanvas,
                         _snapToGuides,
                         _snapToLayers,
                         _snapToGrid,
                         new Separator(),
-                        Command("New _Guide…", () => _ = NewGuide(), "New Guide"),
-                        Command("_Clear Guides", ClearGuides),
+                        Command(L.Get("Menu.NewGuide"), () => _ = NewGuide(), "New Guide"),
+                        Command(L.Get("Menu.ClearGuides"), ClearGuides),
                     },
                 },
                 new MenuItem
                 {
-                    Header = "_Help",
+                    Header = L.Get("Menu.Help"),
                     Items =
                     {
-                        Command("_Check for Updates…", () => _ = CheckForUpdates()),
+                        Command(L.Get("Menu.CheckForUpdates"), () => _ = CheckForUpdates()),
                     },
                 },
             },
@@ -684,7 +686,7 @@ public sealed class MainWindow : Window
         var layers = new DockPanel();
         layers.Children.Add(new TextBlock
         {
-            Text = "Layers",
+            Text = L.Get("Layers.Title"),
             Margin = new Thickness(10, 8, 10, 6),
             Foreground = Ink,
             FontWeight = FontWeight.SemiBold,
@@ -745,7 +747,7 @@ public sealed class MainWindow : Window
     private Control Toolbar()
     {
         var add = new Button { Content = "＋", Padding = new Thickness(8, 0, 8, 0) };
-        ToolTip.SetTip(add, "New canvas");
+        ToolTip.SetTip(add, L.Get("Toolbar.NewCanvasTooltip"));
         add.Click += (_, _) => _ = NewProject();
         var zooms = new StackPanel
         {
@@ -753,10 +755,10 @@ public sealed class MainWindow : Window
             Spacing = 4,
             Children =
             {
-                ViewButton("Fit", "Fit the canvas in the window", () => _canvas.Fit()),
-                ViewButton("100%", "Show the canvas at actual pixels", () => _canvas.ActualSize()),
-                ViewButton("−", "Zoom out", () => _canvas.ZoomBy(1 / 1.25)),
-                ViewButton("＋", "Zoom in", () => _canvas.ZoomBy(1.25)),
+                ViewButton(L.Get("Toolbar.Fit"), L.Get("Toolbar.FitTooltip"), () => _canvas.Fit()),
+                ViewButton("100%", L.Get("Toolbar.ActualPixelsTooltip"), () => _canvas.ActualSize()),
+                ViewButton("−", L.Get("Toolbar.ZoomOutTooltip"), () => _canvas.ZoomBy(1 / 1.25)),
+                ViewButton("＋", L.Get("Toolbar.ZoomInTooltip"), () => _canvas.ZoomBy(1.25)),
             },
         };
         var bar = new DockPanel();
@@ -923,7 +925,7 @@ public sealed class MainWindow : Window
         }
         if (unknown > 0)
         {
-            Say($"{unknown} shortcut rows name a key this build does not know, so they are not in force");
+            Say(L.Get("Status.UnknownShortcutRows", unknown));
         }
     }
 
@@ -1132,14 +1134,14 @@ public sealed class MainWindow : Window
         if (document.Selection.Path is not { } path || !path.Contains(at.X, at.Y)) return false;
         if (SelectionEdits.LiftPixels(document, id) is not { } floating)
         {
-            Say("There is nothing inside the selection to move");
+            Say(L.Get("Status.NoSelectionPixelsToMove"));
             return false;
         }
         _moving = floating;
         _movedBy = (0, 0);
         _history.Begin("Move Pixels", document, id);
         _canvas.Floating = (floating, 0, 0);
-        Say("Dragging the pixels inside the selection");
+        Say(L.Get("Status.DraggingSelectionPixels"));
         return true;
     }
 
@@ -1152,7 +1154,7 @@ public sealed class MainWindow : Window
         // The outline goes with them, so what is selected is what is being carried.
         document.Selection = moving.Origin.Translated(dx, dy);
         _canvas.InvalidateVisual();
-        Say($"Moving the pixels {dx}, {dy}");
+        Say(L.Get("Status.MovingPixels", dx, dy));
     }
 
     /// <summary>
@@ -1176,7 +1178,7 @@ public sealed class MainWindow : Window
         _movedBy = (0, 0);
         _history.End(document, Selected);
         Refresh();
-        if (moved is not (0, 0)) Say($"Pixels moved {moved.Dx}, {moved.Dy}");
+        if (moved is not (0, 0)) Say(L.Get("Status.PixelsMoved", moved.Dx, moved.Dy));
     }
 
     /// <summary>
@@ -1198,7 +1200,7 @@ public sealed class MainWindow : Window
         var at = Array.IndexOf(BlendModes, layer.BlendMode);
         var next = BlendModes[((at + step) % BlendModes.Length + BlendModes.Length) % BlendModes.Length];
         Edit("Blend Mode", () => LayerEdits.SetBlendMode(document, id, next));
-        Say($"Blend mode: {Spell(next)}");
+        Say(L.Get("Status.BlendMode", LocalizedNames.BlendMode(next)));
         return true;
     }
 
@@ -1208,7 +1210,7 @@ public sealed class MainWindow : Window
         var kinds = Enum.GetValues<ShapeKind>();
         var at = Array.IndexOf(kinds, _options.Shape);
         SetShapeKind(kinds[(at + 1) % kinds.Length]);
-        Say($"Shape: {_options.Shape}");
+        Say(L.Get("Status.Shape", LocalizedNames.Shape(_options.Shape)));
         return true;
     }
 
@@ -1225,7 +1227,7 @@ public sealed class MainWindow : Window
             : Math.Min(current - 1, Math.Round(current / 1.2));
         _options.Brush = _options.Brush with { Diameter = Math.Clamp(stepped, 1, 2000) };
         OptionsChanged();
-        Say($"Brush: {_options.Brush.Diameter:0} pixels");
+        Say(L.Get("Status.BrushSize", _options.Brush.Diameter));
         return true;
     }
 
@@ -1237,7 +1239,7 @@ public sealed class MainWindow : Window
         var step = increase ? Math.Floor(quarter + 0.001) + 1 : Math.Ceiling(quarter - 0.001) - 1;
         _options.Brush = _options.Brush with { Hardness = Math.Clamp(step, 0, 4) / 4 };
         OptionsChanged();
-        Say($"Brush: {_options.Brush.Hardness * 100:0}% hard");
+        Say(L.Get("Status.BrushHardness", _options.Brush.Hardness * 100));
         return true;
     }
 
@@ -1252,7 +1254,7 @@ public sealed class MainWindow : Window
         if (_opacityTyped.Length == 2) percent = int.Parse(_opacityTyped);
         _options.Brush = _options.Brush with { Opacity = percent / 100.0 };
         OptionsChanged();
-        Say($"Brush opacity {_options.Brush.Opacity * 100:0}%");
+        Say(L.Get("Status.BrushOpacity", _options.Brush.Opacity * 100));
     }
 
     /// <summary>
@@ -1278,8 +1280,16 @@ public sealed class MainWindow : Window
         _shortcutSettings.Save(ShortcutDefaults.DefaultPath);
         ShowKeys();
         Say(chosen.Count == 0
-            ? "Keyboard shortcuts back to their defaults"
-            : $"{chosen.Count} keyboard shortcut{(chosen.Count == 1 ? "" : "s")} changed");
+            ? L.Get("Status.ShortcutsReset")
+            : L.Get("Status.ShortcutsChanged", chosen.Count));
+    }
+
+    /// <summary>Edits application preferences that are intentionally kept outside every .comp project.</summary>
+    private async Task Preferences()
+    {
+        if (await PreferencesDialog.Ask(this) is not { } language) return;
+        L.Current.SetLanguage(language);
+        Say(L.Get("Preferences.RestartRequired"));
     }
 
     private async void OpenProject()
@@ -1288,7 +1298,7 @@ public sealed class MainWindow : Window
         {
             var picked = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = "Open a Compositor project folder",
+                Title = L.Get("Dialog.OpenProjectFolderTitle"),
                 AllowMultiple = false,
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
@@ -1296,7 +1306,7 @@ public sealed class MainWindow : Window
         }
         catch (Exception error)
         {
-            Say($"Could not open: {error.Message}");
+            Say(L.Get("Status.OpenFailed", error.Message));
         }
     }
 
@@ -1314,8 +1324,8 @@ public sealed class MainWindow : Window
         _history.Reset();
         NoteRecent(path);
         Show(_open);
-        Say($"{System.IO.Path.GetFileName(path)} — {_document.Width} by {_document.Height}, " +
-            $"{_document.Layers.Count} layers, {_document.Resolution:0} pixels per inch");
+        Say(L.Get("Status.ProjectOpened", System.IO.Path.GetFileName(path), _document.Width, _document.Height,
+            _document.Layers.Count, _document.Resolution));
     }
 
     /// <summary>
@@ -2773,7 +2783,7 @@ public sealed class MainWindow : Window
         {
             RefreshTabs();
         }
-        Say($"{tab.Name} closed");
+        Say(L.Get("Status.TabClosed", tab.Name));
     }
 
     /// <summary>The tab strip: a button a tab, the one in front marked, and a way to start another.</summary>
@@ -2822,7 +2832,7 @@ public sealed class MainWindow : Window
         var made = LayerPlacement.NewDocument(asked.Width, asked.Height, asked.Resolution);
         if (made is null)
         {
-            Say("That size is too large for a canvas");
+            Say(L.Get("Status.CanvasSizeTooLarge"));
             return;
         }
         _open = TabForNew();
@@ -2831,7 +2841,7 @@ public sealed class MainWindow : Window
         _history.Reset();
         Show(_open);
         if (_document.Layers.Count > 0) Reselect(_document.Layers[^1].ID);
-        Say($"New {_document.Width} by {_document.Height} canvas at {_document.Resolution:0.##} per inch, not saved yet");
+        Say(L.Get("Status.NewCanvas", _document.Width, _document.Height, _document.Resolution));
     }
 
     /// <summary>
@@ -2843,10 +2853,10 @@ public sealed class MainWindow : Window
         var which = tab ?? _open;
         if (which.Document is null || !which.History.IsModified) return true;
         var named = which.Path is { } path
-            ? $"{System.IO.Path.GetFileName(path)} has been changed since it was last saved."
-            : "This project has not been saved.";
-        return await ConfirmDialog.Ask(this, "Discard unsaved changes?",
-            $"{named} Anything not saved is lost.", "Discard", "Keep");
+            ? L.Get("Confirm.UnsavedNamed", System.IO.Path.GetFileName(path))
+            : L.Get("Confirm.UnsavedUntitled");
+        return await ConfirmDialog.Ask(this, L.Get("Confirm.DiscardUnsavedTitle"),
+            L.Get("Confirm.DiscardUnsavedMessage", named), L.Get("Common.Discard"), L.Get("Common.Keep"));
     }
 
     /// <summary>The layer the panel has selected, or the top one when nothing is: what an edit acts on.</summary>
@@ -2911,7 +2921,7 @@ public sealed class MainWindow : Window
         // The list is grouped as the Mac's pop-up is, with a rule between the groups, so an item is not the
         // mode at its index: _blendRows says what each one is.
         _blendRows.Clear();
-        _blendRows.AddRange(GroupedChoice.Fill(_blend, LayerEdits.BlendGroups, mode => Spell(mode)));
+        _blendRows.AddRange(GroupedChoice.Fill(_blend, LayerEdits.BlendGroups, LocalizedNames.BlendMode));
         _blend.Width = 150;
         _blend.SelectionChanged += (_, _) =>
         {
@@ -2964,7 +2974,7 @@ public sealed class MainWindow : Window
                     Spacing = 6,
                     Children =
                     {
-                        new TextBlock { Text = "Opacity", Width = 52, VerticalAlignment = VerticalAlignment.Center },
+                        new TextBlock { Text = L.Get("Layer.Opacity"), Width = 52, VerticalAlignment = VerticalAlignment.Center },
                         _opacity,
                         _opacityReadout,
                     },
@@ -3010,19 +3020,30 @@ public sealed class MainWindow : Window
         }
 
         var plan = document is not null && layer is not null ? LayerMerge.Plan(document, SelectedLayers, layer.ID) : null;
-        _merge.Header = "_" + (plan?.Action ?? "Merge Down");
+        _merge.Header = DisplayMergeAction(plan?.Action ?? "Merge Down");
         _merge.IsEnabled = plan is not null;
-        _visibility.Header = layer?.IsVisible == false ? "_Show Layer" : "_Hide Layer";
+        _visibility.Header = layer?.IsVisible == false ? L.Get("Menu.ShowLayer") : L.Get("Menu.HideLayer");
         _visibility.IsEnabled = layer is not null;
         ShowAppearance(layer);
-        _clipping.Header = layer?.MaskSourceID is not null ? "Release _Clipping Mask" : "Create _Clipping Mask";
+        _clipping.Header = layer?.MaskSourceID is not null
+            ? L.Get("Menu.ReleaseClippingMask")
+            : L.Get("Menu.CreateClippingMask");
         _clipping.IsEnabled = document is not null && layer is not null && LayerMaskEdits.CanToggle(document, layer.ID);
         _addMask.IsEnabled = layer is { Mask: null };
-        _maskToggle.Header = layer?.Mask?.IsEnabled == false ? "_Enable Mask" : "_Disable Mask";
+        _maskToggle.Header = layer?.Mask?.IsEnabled == false ? L.Get("Menu.EnableMask") : L.Get("Menu.DisableMask");
         _maskToggle.IsEnabled = layer?.Mask is not null;
-        _maskLink.Header = layer?.Mask?.IsLinked == false ? "Li_nk Mask" : "Un_ink Mask";
+        _maskLink.Header = layer?.Mask?.IsLinked == false ? L.Get("Menu.LinkMask") : L.Get("Menu.UnlinkMask");
         _maskLink.IsEnabled = layer is { IsGroup: false, Mask: not null };
     }
+
+    /// <summary>Turns LayerMerge's stable history action into display text without changing the action itself.</summary>
+    private static string DisplayMergeAction(string action) => action switch
+    {
+        "Merge Layers" => L.Get("Menu.MergeLayers"),
+        "Merge Group" => L.Get("Menu.MergeGroup"),
+        "Merge Down" => L.Get("Menu.MergeDown"),
+        _ => action,
+    };
 
     /// <summary>Rebuilds the panel and puts the selection back on a given layer.</summary>
     private void Reselect(Guid? layer)
@@ -3043,7 +3064,7 @@ public sealed class MainWindow : Window
         _history.End(document, id);
         if (copy is null)
         {
-            Say("That layer could not be copied: there is no room for another 10,000 layers.");
+            Say(L.Get("Status.LayerCopyLimit"));
             return;
         }
         Reselect(copy);
@@ -3068,7 +3089,7 @@ public sealed class MainWindow : Window
         _history.End(document, anchor);
         if (refused > 0)
         {
-            Say("A layer that stayed is clipped to one that went; macOS offers to bake or unlink it and this build cannot yet");
+            Say(L.Get("Status.ClippedLayerCannotDelete"));
         }
         if (refused == ids.Count) return;
         var left = document.Layers;
@@ -3079,14 +3100,14 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer) return;
-        if (await TextPrompt.Ask(this, "Rename Layer", "Layer name", layer.Name) is not { } name) return;
+        if (await TextPrompt.Ask(this, L.Get("Dialog.RenameLayerTitle"), L.Get("Dialog.LayerName"), layer.Name) is not { } name) return;
         if (_document is not { } current) return;
         _history.Begin("Rename Layer", current, id);
         var renamed = LayerEdits.Rename(current, id, name);
         _history.End(current, id);
         if (!renamed)
         {
-            Say("That name was blank, or was already the layer's name");
+            Say(L.Get("Status.InvalidLayerName"));
             return;
         }
         Reselect(id);
@@ -3116,7 +3137,7 @@ public sealed class MainWindow : Window
         _history.Begin("New Blank Layer", document, Selected);
         var made = LayerPlacement.AddBlank(document, Selected);
         _history.End(document, Selected);
-        if (made is null) { Say("This document already holds as many layers as it may."); return; }
+        if (made is null) { Say(L.Get("Status.LayerLimit")); return; }
         Reselect(made);
     }
 
@@ -3126,7 +3147,7 @@ public sealed class MainWindow : Window
         _history.Begin("New Folder", document, Selected);
         var made = LayerPlacement.AddFolder(document, Selected);
         _history.End(document, Selected);
-        if (made is null) { Say("This document already holds as many layers as it may."); return; }
+        if (made is null) { Say(L.Get("Status.LayerLimit")); return; }
         Reselect(made);
     }
 
@@ -3139,7 +3160,7 @@ public sealed class MainWindow : Window
         _history.Begin("Group Layers", document, Selected);
         var folder = LayerPlacement.GroupSelected(document, ids);
         _history.End(document, Selected);
-        if (folder is null) { Say("Those layers could not be wrapped in a folder."); return; }
+        if (folder is null) { Say(L.Get("Status.GroupLayersFailed")); return; }
         Reselect(folder);
     }
 
@@ -3207,7 +3228,7 @@ public sealed class MainWindow : Window
         _history.End(document, id);
         if (made is not { } merged)
         {
-            Say("Nothing to merge");
+            Say(L.Get("Status.NothingToMerge"));
             return;
         }
         Reselect(merged);
@@ -3290,41 +3311,46 @@ public sealed class MainWindow : Window
         RefreshOptionsBar();
         Say(tool switch
         {
-            Tool.Brush => $"Brush: {_options.Brush.Diameter:0} pixels, {Spell(_options.Brush)} — drag on the canvas",
+            Tool.Brush => L.Get("Status.ToolBrush", _options.Brush.Diameter, Spell(_options.Brush)),
             Tool.Clone => _cloneSource is null
-                ? "Clone stamp — Alt-click where it should copy from first"
-                : $"Clone stamp copying from {_cloneSource.Value.X:0},{_cloneSource.Value.Y:0} — drag on the canvas",
-            Tool.Blur => $"Blur brush: {_options.Brush.Diameter:0} pixels — drag over what should soften",
-            Tool.Liquify => $"Liquify brush: {_options.Brush.Diameter:0} pixels — drag the pixels where they should go",
-            Tool.Smudge => $"Smudge brush: {_options.Brush.Diameter:0} pixels — drag the color along",
-            Tool.Heal => $"Spot healing ({_options.Brush.Healing}): {_options.Brush.Diameter:0} pixels — drag over what should go",
-            Tool.Eyedropper => "Eyedropper — click the canvas to take its color",
-            Tool.Type => "Type — click where the text goes, then type it",
-            Tool.Crop => "Crop — drag a frame, Alt to grow it from the middle, then Crop ▸ Apply",
-            Tool.Shape => $"Shape ({_options.Shape}) — drag it out; Shift squares it, Alt grows it from the middle",
-            Tool.Gradient => $"Gradient ({_options.Gradient}, {(_options.GradientToBackground ? "to the background colour" : "to nothing")}) — drag the line it runs along",
-            Tool.Move => "Move — drag the layer, or a handle to scale and turn it",
-            Tool.Marquee => "Marquee — drag a rectangle; Shift adds, Alt subtracts",
-            Tool.Ellipse => "Elliptical marquee — drag an oval; Shift adds, Alt subtracts",
-            Tool.Lasso => "Lasso — drag round a shape; Shift adds, Alt subtracts",
-            Tool.Polygon => "Polygonal lasso — click each corner, double-click to close",
-            Tool.Wand => "Magic wand — click a color to take everything like it",
-            _ => "Pan — drag to scroll",
+                ? L.Get("Status.ToolCloneNeedsSource")
+                : L.Get("Status.ToolCloneReady", _cloneSource.Value.X, _cloneSource.Value.Y),
+            Tool.Blur => L.Get("Status.ToolBlur", _options.Brush.Diameter),
+            Tool.Liquify => L.Get("Status.ToolLiquify", _options.Brush.Diameter),
+            Tool.Smudge => L.Get("Status.ToolSmudge", _options.Brush.Diameter),
+            Tool.Heal => L.Get("Status.ToolHeal", LocalizedNames.Healing(_options.Brush.Healing), _options.Brush.Diameter),
+            Tool.Eyedropper => L.Get("Status.ToolEyedropper"),
+            Tool.Type => L.Get("Status.ToolType"),
+            Tool.Crop => L.Get("Status.ToolCrop"),
+            Tool.Shape => L.Get("Status.ToolShape", LocalizedNames.Shape(_options.Shape)),
+            Tool.Gradient => L.Get("Status.ToolGradient", LocalizedNames.Gradient(_options.Gradient),
+                _options.GradientToBackground ? L.Get("Gradient.ToBackground") : L.Get("Gradient.ToNothing")),
+            Tool.Move => L.Get("Status.ToolMove"),
+            Tool.Marquee => L.Get("Status.ToolMarquee"),
+            Tool.Ellipse => L.Get("Status.ToolEllipse"),
+            Tool.Lasso => L.Get("Status.ToolLasso"),
+            Tool.Polygon => L.Get("Status.ToolPolygon"),
+            Tool.Wand => L.Get("Status.ToolWand"),
+            _ => L.Get("Status.ToolPan"),
         });
     }
 
     /// <summary>What the brush is set to, in words, for the status line.</summary>
-    private static string Spell(BrushSettings brush) =>
-        (brush.Hardness >= 1 ? "hard" : $"{brush.Hardness * 100:0}% hard") +
-        (brush.Opacity < 1 ? $", {brush.Opacity * 100:0}%" : "") +
-        $", color {brush.Red * 255:0},{brush.Green * 255:0},{brush.Blue * 255:0}";
+    private static string Spell(BrushSettings brush)
+    {
+        var hardness = brush.Hardness >= 1
+            ? L.Get("Brush.Hard")
+            : L.Get("Brush.HardPercent", brush.Hardness * 100);
+        var opacity = brush.Opacity < 1 ? L.Get("Brush.OpacitySuffix", brush.Opacity * 100) : string.Empty;
+        return L.Get("Status.BrushSettings", hardness, opacity, brush.Red * 255, brush.Green * 255, brush.Blue * 255);
+    }
 
     /// <summary>Asks for one of the magic wand's amounts, as the options bar's own buttons do.</summary>
     private async Task SetWand(WandSetting which)
     {
         if (which == WandSetting.Tolerance)
         {
-            if (await Ask("Wand tolerance", "How far off the color still counts, 0 to 255",
+            if (await Ask(L.Get("Dialog.WandToleranceTitle"), L.Get("Dialog.WandToleranceLabel"),
                     $"{_options.Wand.Tolerance}", 0, 255) is not { } tolerance)
             {
                 return;
@@ -3333,7 +3359,7 @@ public sealed class MainWindow : Window
         }
         else
         {
-            if (await Ask("Wand sample size", "How wide a patch is read around the click, 0 to 100",
+            if (await Ask(L.Get("Dialog.WandSampleSizeTitle"), L.Get("Dialog.WandSampleSizeLabel"),
                     $"{_options.Wand.Radius}", 0, 100) is not { } radius)
             {
                 return;
@@ -3341,7 +3367,7 @@ public sealed class MainWindow : Window
             _options.Wand = _options.Wand with { Radius = (int)Math.Round(radius) };
         }
         OptionsChanged();
-        Say($"Magic wand: tolerance {_options.Wand.Tolerance}, sampling {_options.Wand.Radius} pixels");
+        Say(L.Get("Status.WandSettings", _options.Wand.Tolerance, _options.Wand.Radius));
     }
 
     /// <summary>Asks for one of the Shape tool's amounts, as the options bar's own buttons do.</summary>
@@ -3349,7 +3375,7 @@ public sealed class MainWindow : Window
     {
         if (which == ShapeSetting.CornerRadius)
         {
-            if (await Ask("Corner radius", "Pixels, 0 for square corners", $"{_options.ShapeCornerRadius:0}", 0, 1000)
+            if (await Ask(L.Get("Dialog.CornerRadiusTitle"), L.Get("Dialog.CornerRadiusLabel"), $"{_options.ShapeCornerRadius:0}", 0, 1000)
                 is { } radius)
             {
                 _options.ShapeCornerRadius = radius;
@@ -3357,13 +3383,13 @@ public sealed class MainWindow : Window
         }
         else
         {
-            if (await Ask("Line width", "Pixels, 1 to 200", $"{_options.ShapeLineWidth:0}", 1, 200) is { } width)
+            if (await Ask(L.Get("Dialog.LineWidthTitle"), L.Get("Dialog.LineWidthLabel"), $"{_options.ShapeLineWidth:0}", 1, 200) is { } width)
             {
                 _options.ShapeLineWidth = width;
             }
         }
         OptionsChanged();
-        Say($"Shape: {_options.Shape}, radius {_options.ShapeCornerRadius:0}, width {_options.ShapeLineWidth:0}");
+        Say(L.Get("Status.ShapeSettings", LocalizedNames.Shape(_options.Shape), _options.ShapeCornerRadius, _options.ShapeLineWidth));
     }
 
     /// <summary>
@@ -3426,7 +3452,7 @@ public sealed class MainWindow : Window
         _options.GradientBackground = (_options.Brush.Red, _options.Brush.Green, _options.Brush.Blue);
         _options.Brush = _options.Brush with { Red = red, Green = green, Blue = blue };
         PushBrush();
-        Say("Swapped the foreground and background colors");
+        Say(L.Get("Status.SwappedColors"));
     }
 
     /// <summary>Puts the colours back to black and white, as the Mac's palette does with D.</summary>
@@ -3435,7 +3461,7 @@ public sealed class MainWindow : Window
         _options.Brush = _options.Brush with { Red = 0, Green = 0, Blue = 0 };
         _options.GradientBackground = (1, 1, 1);
         PushBrush();
-        Say("Foreground black and background white");
+        Say(L.Get("Status.ResetColors"));
     }
 
     /// <summary>
@@ -3462,16 +3488,16 @@ public sealed class MainWindow : Window
             ? (_options.Brush.Red, _options.Brush.Green, _options.Brush.Blue)
             : _options.GradientBackground;
         var picker = new ColorPickerDialog(
-            foreground ? "Color Picker (Foreground Color)" : "Color Picker (Background Color)", start);
+            foreground ? L.Get("Dialog.ForegroundColorPickerTitle") : L.Get("Dialog.BackgroundColorPickerTitle"), start);
         picker.Applied += colour => TakeColour(foreground, toBackground, colour);
         picker.Cancelled += () =>
         {
             _picker = null;
-            Say($"The {(foreground ? "foreground" : "background")} color was left as it was");
+            Say(L.Get("Status.ColorUnchanged", foreground ? L.Get("Term.ForegroundColor") : L.Get("Term.BackgroundColor")));
         };
         _picker = picker;
         picker.Show(this);
-        Say($"Picking the {(foreground ? "foreground" : "background")} color — click the canvas to sample one");
+        Say(L.Get("Status.PickingColor", foreground ? L.Get("Term.ForegroundColor") : L.Get("Term.BackgroundColor")));
     }
 
     /// <summary>Takes the colour the picker ended on: the brush's, or the background's and the gradient's.</summary>
@@ -3488,8 +3514,8 @@ public sealed class MainWindow : Window
             if (toBackground) _options.GradientToBackground = true;
         }
         PushBrush();
-        Say($"{(foreground ? "Foreground" : "Background")} color: "
-            + $"{colour.Red * 255:0},{colour.Green * 255:0},{colour.Blue * 255:0}");
+        Say(L.Get("Status.ColorValue", foreground ? L.Get("Term.ForegroundColor") : L.Get("Term.BackgroundColor"),
+            colour.Red * 255, colour.Green * 255, colour.Blue * 255));
     }
 
     /// <summary>The Gradient tool's options, as the Mac build's gradient bar has them.</summary>
@@ -3497,14 +3523,14 @@ public sealed class MainWindow : Window
     {
         foreach (var shape in Enum.GetValues<GradientShape>())
         {
-            _gradientMenu.Items.Add(Command($"_{shape}", () => SetGradient(shape, null, null)));
+            _gradientMenu.Items.Add(Command(LocalizedNames.Gradient(shape), () => SetGradient(shape, null, null)));
         }
         _gradientMenu.Items.Add(new Separator());
-        _gradientMenu.Items.Add(Command("_To the background color", () => SetGradient(null, true, null)));
-        _gradientMenu.Items.Add(Command("To _nothing", () => SetGradient(null, false, null)));
+        _gradientMenu.Items.Add(Command(L.Get("Menu.GradientToBackground"), () => SetGradient(null, true, null)));
+        _gradientMenu.Items.Add(Command(L.Get("Menu.GradientToNothing"), () => SetGradient(null, false, null)));
         _gradientMenu.Items.Add(new Separator());
-        _gradientMenu.Items.Add(Command("_Reversed", () => SetGradient(null, null, !_options.GradientReversed)));
-        _gradientMenu.Items.Add(Command("_Background color…", SetGradientBackground));
+        _gradientMenu.Items.Add(Command(L.Get("Menu.GradientReversed"), () => SetGradient(null, null, !_options.GradientReversed)));
+        _gradientMenu.Items.Add(Command(L.Get("Menu.GradientBackgroundColor"), SetGradientBackground));
     }
 
     private void SetGradient(GradientShape? shape, bool? toBackground, bool? reversed)
@@ -3512,8 +3538,9 @@ public sealed class MainWindow : Window
         if (shape is { } wanted) _options.Gradient = wanted;
         if (toBackground is { } fade) _options.GradientToBackground = fade;
         if (reversed is { } turn) _options.GradientReversed = turn;
-        Say($"Gradient: {_options.Gradient}, {(_options.GradientToBackground ? "to the background colour" : "to nothing")}" +
-            (_options.GradientReversed ? ", reversed" : "") + ", opacity as the brush's");
+        Say(L.Get("Status.GradientSettings", LocalizedNames.Gradient(_options.Gradient),
+            _options.GradientToBackground ? L.Get("Gradient.ToBackground") : L.Get("Gradient.ToNothing"),
+            _options.GradientReversed ? L.Get("Gradient.ReversedSuffix") : string.Empty));
         SetTool(_tool);
     }
 
@@ -3570,14 +3597,14 @@ public sealed class MainWindow : Window
         StopPreview();
         if (!GradientEdits.HasLine(start, end))
         {
-            Say("Drag the line the gradient should run along");
+            Say(L.Get("Status.GradientNeedsLine"));
             return;
         }
         var (mask, from, to, opacity, shape) = GradientPlan(document, id);
         Edit(mask ? "Gradient Mask" : "Gradient",
             () => GradientEdits.Fill(document, id, mask, start, end, from, to, opacity, shape));
         Reselect(id);
-        Say($"Gradient over {Math.Sqrt(Math.Pow(end.X - start.X, 2) + Math.Pow(end.Y - start.Y, 2)):0} pixels");
+        Say(L.Get("Status.GradientApplied", Math.Sqrt(Math.Pow(end.X - start.X, 2) + Math.Pow(end.Y - start.Y, 2))));
     }
 
     /// <summary>The shapes the Shape tool draws, and the two numbers that shape them.</summary>
@@ -3585,13 +3612,13 @@ public sealed class MainWindow : Window
     {
         foreach (var kind in Enum.GetValues<ShapeKind>())
         {
-            var item = Command($"_{kind}", () => SetShapeKind(kind));
+            var item = Command(LocalizedNames.Shape(kind), () => SetShapeKind(kind));
             _shapeKinds.Items.Add(item);
             _shapeKindItems[kind] = item;
         }
         _shapeKinds.Items.Add(new Separator());
-        _shapeKinds.Items.Add(Command("Corner _radius…", () => _ = SetShapeNumber(ShapeNumber.CornerRadius)));
-        _shapeKinds.Items.Add(Command("_Line width…", () => _ = SetShapeNumber(ShapeNumber.LineWidth)));
+        _shapeKinds.Items.Add(Command(L.Get("Menu.CornerRadius"), () => _ = SetShapeNumber(ShapeNumber.CornerRadius)));
+        _shapeKinds.Items.Add(Command(L.Get("Menu.LineWidth"), () => _ = SetShapeNumber(ShapeNumber.LineWidth)));
         SetShapeKind(ShapeKind.Rectangle);
     }
 
@@ -3608,14 +3635,16 @@ public sealed class MainWindow : Window
     {
         var corner = which == ShapeNumber.CornerRadius;
         var current = corner ? _options.ShapeCornerRadius : _options.ShapeLineWidth;
-        if (await Ask(corner ? "Corner radius" : "Line width", "Document pixels, 0 to 1000",
+        if (await Ask(corner ? L.Get("Dialog.CornerRadiusTitle") : L.Get("Dialog.LineWidthTitle"),
+                L.Get("Dialog.ShapeNumberLabel"),
                 $"{current:0.##}", 0, 1000) is not { } value)
         {
             return;
         }
         if (corner) _options.ShapeCornerRadius = value;
         else _options.ShapeLineWidth = Math.Max(1, value);
-        Say($"Shape: {_options.Shape}, {(corner ? "corner radius" : "line width")} {value:0.##} pixels");
+        Say(L.Get("Status.ShapeNumber", LocalizedNames.Shape(_options.Shape),
+            corner ? L.Get("Term.CornerRadius") : L.Get("Term.LineWidth"), value));
     }
 
     private enum ShapeNumber
@@ -3652,7 +3681,7 @@ public sealed class MainWindow : Window
         }
         if (ShapeEdits.TooLarge(target.Width, target.Height))
         {
-            Say("That shape is too large to draw as one layer");
+            Say(L.Get("Status.ShapeTooLarge"));
             return;
         }
         _history.Begin(_options.Shape.ToString(), document, Selected);
@@ -3660,11 +3689,11 @@ public sealed class MainWindow : Window
         _history.End(document, Selected);
         if (made is null)
         {
-            Say("That shape could not be drawn");
+            Say(L.Get("Status.ShapeFailed"));
             return;
         }
         Reselect(made);
-        Say($"{_options.Shape}: {target.Width}x{target.Height} at {target.Left},{target.Top}");
+        Say(L.Get("Status.ShapeCreated", LocalizedNames.Shape(_options.Shape), target.Width, target.Height, target.Left, target.Top));
     }
 
     /// <summary>Where a document point sits in a box, as a fraction of its sides.</summary>
@@ -3683,7 +3712,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Asset: not null, IsGroup: false })
         {
-            Say("Camera Raw needs a layer with pixels of its own");
+            Say(L.Get("Status.CameraRawNeedsPixels"));
             return;
         }
         CloseCameraRaw();
@@ -3707,7 +3736,7 @@ public sealed class MainWindow : Window
         panel.CanvasChanged += UprightCanvasChanged;
         _canvas.UprightDrawn = UprightDrawn;
         panel.Show();
-        Say("Camera Raw: the panel is docked on the right and the canvas shows what it is doing");
+        Say(L.Get("Status.CameraRawOpened"));
     }
 
     /// <summary>
@@ -3764,11 +3793,11 @@ public sealed class MainWindow : Window
         }
         if (Fraction(layer, start) is not { } from || Fraction(layer, end) is not { } to)
         {
-            Say("A guide has to be drawn inside the layer it straightens");
+            Say(L.Get("Status.UprightGuideOutsideLayer"));
             return;
         }
         panel.AddGuide(new CameraRawGeometryGuide(from.X, from.Y, to.X, to.Y));
-        Say($"Upright: {panel.Guides.Count} line(s) drawn; the picture is turned by what they ask for");
+        Say(L.Get("Status.UprightGuidesDrawn", panel.Guides.Count));
     }
 
     /// <summary>The lines the panel has, in document pixels, for the canvas to draw over the picture.</summary>
@@ -3806,8 +3835,7 @@ public sealed class MainWindow : Window
         if (_document is not { } current || id is not { } layer || settings.IsIdentity) return;
         Edit("Camera Raw Filter", () => CameraRawEdits.Apply(current, layer, settings));
         Reselect(layer);
-        Say($"Camera Raw: exposure {settings.Exposure:0.##}, contrast {settings.Contrast:0}, " +
-            $"saturation {settings.Saturation:0}");
+        Say(L.Get("Status.CameraRawApplied", settings.Exposure, settings.Contrast, settings.Saturation));
     }
 
     /// <summary>
@@ -3840,7 +3868,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Asset: not null, IsGroup: false })
         {
-            Say($"{kind} needs a layer with pixels of its own");
+            Say(L.Get("Status.FilterNeedsPixels", LocalizedNames.Filter(kind)));
             return;
         }
         StartPreview(document, id);
@@ -3861,7 +3889,7 @@ public sealed class MainWindow : Window
         if (_document is not { } current) return;
         Edit($"{kind} Filter", () => FilterEdits.Apply(current, id, kind, settings));
         Reselect(id);
-        Say($"{kind} applied");
+        Say(L.Get("Status.FilterApplied", LocalizedNames.Filter(kind)));
     }
 
     /// <summary>
@@ -3873,7 +3901,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Asset: not null, IsGroup: false })
         {
-            Say("Dither needs a layer with pixels of its own");
+            Say(L.Get("Status.DitherNeedsPixels"));
             return;
         }
         StartPreview(document, id);
@@ -3887,7 +3915,7 @@ public sealed class MainWindow : Window
         if (_document is not { } current) return;
         Edit("Dither", () => DitherEdits.Apply(current, id, chosen.Style, chosen.Settings));
         Reselect(id);
-        Say($"Dither: {chosen.Style}, {chosen.Settings.Levels:0} tones");
+        Say(L.Get("Status.DitherApplied", LocalizedNames.Dither(chosen.Style), chosen.Settings.Levels));
     }
 
     /// <summary>
@@ -3899,21 +3927,21 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Selection.Path is null)
         {
-            Say("Content-Aware Fill needs a selection to fill");
+            Say(L.Get("Status.ContentAwareFillNeedsSelection"));
             return;
         }
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Asset: not null, IsGroup: false })
         {
-            Say("Content-Aware Fill needs a layer with pixels of its own");
+            Say(L.Get("Status.ContentAwareFillNeedsPixels"));
             return;
         }
         if (!Edit("Content-Aware Fill", () => ContentFillEdits.Apply(document, id)))
         {
-            Say("Content-Aware Fill found nothing to fill from: make the selection smaller");
+            Say(L.Get("Status.ContentAwareFillNoSource"));
             return;
         }
         Reselect(id);
-        Say("Content-Aware Fill applied");
+        Say(L.Get("Status.ContentAwareFillApplied"));
     }
 
     /// <summary>
@@ -3921,25 +3949,11 @@ public sealed class MainWindow : Window
     /// </summary>
     private void BuildAdjustmentMenu()
     {
-        foreach (var (label, kind) in new (string Label, AdjustmentKind Kind)[]
-                 {
-                     ("_Hue/Saturation", AdjustmentKind.HueSaturation),
-                     ("_Levels", AdjustmentKind.Levels),
-                     ("C_urves", AdjustmentKind.Curves),
-                     ("_Exposure", AdjustmentKind.Exposure),
-                     ("_Black & White", AdjustmentKind.BlackWhite),
-                     ("_Gradient Map", AdjustmentKind.GradientMap),
-                     ("_Grain", AdjustmentKind.Grain),
-                     ("_Add Noise", AdjustmentKind.AddNoise),
-                     ("_Gaussian Blur", AdjustmentKind.GaussianBlur),
-                     ("_Motion Blur", AdjustmentKind.MotionBlur),
-                     ("C_olor Balance", AdjustmentKind.ColorBalance),
-                     ("_Invert", AdjustmentKind.Invert),
-                 })
+        foreach (var kind in Enum.GetValues<AdjustmentKind>())
         {
-            _adjustmentMenu.Items.Add(Command(label, () => _ = NewAdjustment(kind)));
+            _adjustmentMenu.Items.Add(Command(LocalizedNames.Adjustment(kind), () => _ = NewAdjustment(kind)));
         }
-        _adjustmentSettings = LayerCommand("Adjustment _Settings…", () => _ = EditAdjustment(), null,
+        _adjustmentSettings = LayerCommand(L.Get("Menu.AdjustmentSettings"), () => _ = EditAdjustment(), null,
             (_, layer) => layer.Adjustment is not null);
         BuildEffectsMenu();
     }
@@ -3953,11 +3967,11 @@ public sealed class MainWindow : Window
         foreach (var kind in Enum.GetValues<EffectKind>())
         {
             var wanted = kind;
-            _effectsMenu.Items.Add(LayerCommand(EffectDialog.TitleFor(kind) + "…", () => _ = EditEffect(wanted), null,
+            _effectsMenu.Items.Add(LayerCommand(L.Get("Menu.EffectWithEllipsis", LocalizedNames.Effect(kind)), () => _ = EditEffect(wanted), null,
                 (_, layer) => layer.IsGroup == false));
         }
         _effectsMenu.Items.Add(new Separator());
-        _clearEffects = LayerCommand("_Clear Effects", ClearEffects, null, (_, layer) => layer.Effects is not null);
+        _clearEffects = LayerCommand(L.Get("Menu.ClearEffects"), ClearEffects, null, (_, layer) => layer.Effects is not null);
         _effectsMenu.Items.Add(_clearEffects);
     }
 
@@ -3978,11 +3992,11 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id)?.Effects is null)
         {
-            Say("This layer has no effects");
+            Say(L.Get("Status.NoEffects"));
             return;
         }
         Edit("Clear Effects", () => LayerEdits.SetEffects(document, id, null));
-        Say("Effects cleared");
+        Say(L.Get("Status.EffectsCleared"));
     }
 
     /// <summary>A new adjustment layer over the selected one, with its settings asked for straight away.</summary>
@@ -3994,7 +4008,7 @@ public sealed class MainWindow : Window
         _history.End(document, Selected);
         if (made is null)
         {
-            Say("This document already holds as many layers as it may.");
+            Say(L.Get("Status.LayerLimit"));
             return;
         }
         Reselect(made);
@@ -4014,7 +4028,7 @@ public sealed class MainWindow : Window
         if (_document is not { } current) return;
         Edit($"{LayerPlacement.Name(changed.Kind)} Adjustment", () => LayerAdjustmentEdits.Set(current, id, changed));
         Reselect(id);
-        Say($"{LayerPlacement.Name(changed.Kind)} adjustment set");
+        Say(L.Get("Status.AdjustmentSet", LocalizedNames.Adjustment(changed.Kind)));
     }
 
     /// <summary>
@@ -4027,7 +4041,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Asset: not null, IsGroup: false, Adjustment: null })
         {
-            Say($"{LayerPlacement.Name(kind)} needs a layer with pixels of its own");
+            Say(L.Get("Status.AdjustmentNeedsPixels", LocalizedNames.Adjustment(kind)));
             return;
         }
         StartPreview(document, id);
@@ -4038,7 +4052,7 @@ public sealed class MainWindow : Window
         if (_document is not { } current) return;
         Edit(LayerPlacement.Name(kind), () => FilterEdits.ApplyAdjustment(current, id, settings));
         Reselect(id);
-        Say($"{LayerPlacement.Name(kind)} applied");
+        Say(L.Get("Status.AdjustmentApplied", LocalizedNames.Adjustment(kind)));
     }
 
     /// <summary>Edit ▸ Copy: the selected pixels of the active layer, held for a paste.</summary>
@@ -4048,11 +4062,11 @@ public sealed class MainWindow : Window
         var copied = SelectionClipboard.Copy(document, id);
         if (copied is null)
         {
-            Say("Select something on a layer with pixels of its own first");
+            Say(L.Get("Status.SelectPixelsFirst"));
             return;
         }
         Adopt(copied);
-        Say($"Copied {copied.Region.Width} x {copied.Region.Height}");
+        Say(L.Get("Status.Copied", copied.Region.Width, copied.Region.Height));
     }
 
     /// <summary>Edit ▸ Copy Merged: the selected pixels of everything that is drawn.</summary>
@@ -4062,11 +4076,11 @@ public sealed class MainWindow : Window
         var copied = SelectionClipboard.CopyMerged(document);
         if (copied is null)
         {
-            Say("Select something to copy first");
+            Say(L.Get("Status.SelectSomethingToCopy"));
             return;
         }
         Adopt(copied);
-        Say($"Copied {copied.Region.Width} x {copied.Region.Height} from the flattened picture");
+        Say(L.Get("Status.CopiedMerged", copied.Region.Width, copied.Region.Height));
     }
 
     /// <summary>Edit ▸ Cut: the selected pixels taken off, and held for a paste.</summary>
@@ -4079,7 +4093,7 @@ public sealed class MainWindow : Window
         {
             if (!SelectionClipboard.Cut(document, id, out copied) || copied is null)
             {
-                Say("Select something on a layer with pixels of its own first");
+                Say(L.Get("Status.SelectPixelsFirst"));
                 return;
             }
         }
@@ -4089,7 +4103,7 @@ public sealed class MainWindow : Window
         }
         Adopt(copied);
         Reselect(id);
-        Say($"Cut {copied.Region.Width} x {copied.Region.Height}");
+        Say(L.Get("Status.Cut", copied.Region.Width, copied.Region.Height));
     }
 
     /// <summary>Edit ▸ Paste: the clipboard as a layer, where on the document it came from.</summary>
@@ -4098,7 +4112,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (_clipboard is not { } clipboard)
         {
-            Say("There is nothing to paste");
+            Say(L.Get("Status.NothingToPaste"));
             return;
         }
         Guid? made = null;
@@ -4113,11 +4127,11 @@ public sealed class MainWindow : Window
         }
         if (made is null)
         {
-            Say("This document already holds as many layers as it may.");
+            Say(L.Get("Status.LayerLimit"));
             return;
         }
         Reselect(made);
-        Say($"Pasted {clipboard.Region.Width} x {clipboard.Region.Height}");
+        Say(L.Get("Status.Pasted", clipboard.Region.Width, clipboard.Region.Height));
     }
 
     /// <summary>Edit ▸ Layer via Copy: the selected pixels of the active layer as a layer of their own.</summary>
@@ -4136,11 +4150,11 @@ public sealed class MainWindow : Window
         }
         if (made is null)
         {
-            Say("Select something on a layer with pixels of its own first");
+            Say(L.Get("Status.SelectPixelsFirst"));
             return;
         }
         Reselect(made);
-        Say("Layer made from the selection");
+        Say(L.Get("Status.LayerMadeFromSelection"));
     }
 
     /// <summary>The clipboard the window holds: one piece of the canvas at a time, as the Mac build keeps it.</summary>
@@ -4164,11 +4178,11 @@ public sealed class MainWindow : Window
         if (_document is not { } current) return;
         if (!Edit("Image Size", () => ImageEdits.Resize(current, asked.Width, asked.Height, asked.Resolution, asked.Sampling)))
         {
-            Say("That size is too large to resample to.");
+            Say(L.Get("Status.ImageSizeTooLarge"));
             return;
         }
         _canvas.Fit();
-        Say($"Image is now {asked.Width} x {asked.Height} at {asked.Resolution:0.##} per inch");
+        Say(L.Get("Status.ImageResized", asked.Width, asked.Height, asked.Resolution));
     }
 
     /// <summary>A distortion has been taken hold of: one undo step for the whole drag, as a slider drag gets.</summary>
@@ -4213,7 +4227,7 @@ public sealed class MainWindow : Window
         var distorted = ids.Count > 1 && box is { } group
             ? DistortEdits.Distort(document, ids, group, corners)
             : DistortEdits.Distort(document, id, corners);
-        if (!distorted) Say("That shape cannot be made");
+        if (!distorted) Say(L.Get("Status.CannotMakeShape"));
         _history.End(document, Selected);
         Reselect(id);
     }
@@ -4231,7 +4245,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (!GuideEdits.Move(document, id, position)) return;
         _canvas.InvalidateVisual();
-        Say($"Guide at {position:0.#}");
+        Say(L.Get("Status.GuideAt", position));
     }
 
     /// <summary>
@@ -4244,7 +4258,7 @@ public sealed class MainWindow : Window
         if (document.Guides.FirstOrDefault(guide => !GuideEdits.OnCanvas(document, guide)) is { } away)
         {
             GuideEdits.Remove(document, away.ID);
-            Say("Guide taken away");
+            Say(L.Get("Status.GuideRemoved"));
         }
         _history.End(document, Selected);
         Refresh();
@@ -4261,14 +4275,14 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (_guidesLocked)
         {
-            Say("The guides are locked, so none can be pulled off the ruler");
+            Say(L.Get("Status.GuidesLocked"));
             return;
         }
         var at = Where(axis, ruler, onRuler);
         _history.Begin("New Guide", document, Selected);
         _pulledGuide = GuideEdits.Add(document, axis, at);
         _canvas.InvalidateVisual();
-        Say($"Guide at {at:0.#}");
+        Say(L.Get("Status.GuideAt", at));
     }
 
     /// <summary>The guide being pulled off a ruler follows the pointer; the history step began when it was made.</summary>
@@ -4278,7 +4292,7 @@ public sealed class MainWindow : Window
         var at = Where(ruler.Axis, ruler, onRuler);
         if (!GuideEdits.Move(document, id, at)) return;
         _canvas.InvalidateVisual();
-        Say($"Guide at {at:0.#}");
+        Say(L.Get("Status.GuideAt", at));
     }
 
     /// <summary>
@@ -4304,10 +4318,10 @@ public sealed class MainWindow : Window
     /// <summary>The three things a drag can line up with, as the View menu lists them.</summary>
     private (MenuItem Item, SnapTo Flag, string Label)[] SnapRows() =>
     [
-        (_snapToCanvas, SnapTo.Canvas, "Snap to Canvas"),
-        (_snapToGuides, SnapTo.Guides, "Snap to Guides"),
-        (_snapToLayers, SnapTo.Layers, "Snap to Layers"),
-        (_snapToGrid, SnapTo.Grid, "Snap to Grid"),
+        (_snapToCanvas, SnapTo.Canvas, L.Get("Menu.SnapToCanvas")),
+        (_snapToGuides, SnapTo.Guides, L.Get("Menu.SnapToGuides")),
+        (_snapToLayers, SnapTo.Layers, L.Get("Menu.SnapToLayers")),
+        (_snapToGrid, SnapTo.Grid, L.Get("Menu.SnapToGrid")),
     ];
 
     /// <summary>View ▸ Snap to …: one kind of thing a drag lines up with, on or off.</summary>
@@ -4320,7 +4334,7 @@ public sealed class MainWindow : Window
             if (at == flag) item.IsChecked = on;
         }
         KeepSwitches();
-        Say($"{label} {(on ? "on" : "off")}");
+        Say(L.Get("Status.SnapToggled", label, on ? L.Get("Term.On") : L.Get("Term.Off")));
     }
 
     /// <summary>The view's switches written down, so the next launch opens the way this one was left.</summary>
@@ -4344,10 +4358,10 @@ public sealed class MainWindow : Window
     {
         _gridVisible = !_gridVisible;
         _canvas.Grid = _gridVisible ? _grid : null;
-        _showGrid.Header = _gridVisible ? "_Hide Grid" : "Show _Grid";
+        _showGrid.Header = _gridVisible ? L.Get("Menu.HideGrid") : L.Get("Menu.ShowGrid");
         KeepSwitches();
         _canvas.InvalidateVisual();
-        Say(_gridVisible ? $"Grid every {_grid.Spacing} pixels" : "Grid hidden");
+        Say(_gridVisible ? L.Get("Status.GridShown", _grid.Spacing) : L.Get("Status.GridHidden"));
     }
 
     /// <summary>A View menu row that is a switch: it opens where it was left and turns over when clicked.</summary>
@@ -4366,7 +4380,7 @@ public sealed class MainWindow : Window
         _showGuides.IsChecked = _guidesVisible;
         PushViewSwitches();
         KeepSwitches();
-        Say(_guidesVisible ? "Guides shown" : "Guides hidden");
+        Say(_guidesVisible ? L.Get("Status.GuidesShown") : L.Get("Status.GuidesHidden"));
     }
 
     /// <summary>View ▸ Lock Guides: whether a guide may be dragged. Locked, a click on one passes by it.</summary>
@@ -4376,7 +4390,7 @@ public sealed class MainWindow : Window
         _lockGuides.IsChecked = _guidesLocked;
         PushViewSwitches();
         KeepSwitches();
-        Say(_guidesLocked ? "Guides locked" : "Guides unlocked");
+        Say(_guidesLocked ? L.Get("Status.GuidesLockedShort") : L.Get("Status.GuidesUnlocked"));
     }
 
     /// <summary>View ▸ Show Transform Controls: whether the Move tool draws its handles.</summary>
@@ -4386,7 +4400,7 @@ public sealed class MainWindow : Window
         _showTransform.IsChecked = _transformShown;
         PushViewSwitches();
         KeepSwitches();
-        Say(_transformShown ? "Transform controls shown" : "Transform controls hidden");
+        Say(_transformShown ? L.Get("Status.TransformControlsShown") : L.Get("Status.TransformControlsHidden"));
     }
 
     /// <summary>View ▸ Pixel Grid: a line around each document pixel when the view is in far enough.</summary>
@@ -4396,7 +4410,7 @@ public sealed class MainWindow : Window
         _pixelGrid.IsChecked = _pixelGridShown;
         PushViewSwitches();
         KeepSwitches();
-        Say(_pixelGridShown ? "Pixel grid shown from 800% up" : "Pixel grid hidden");
+        Say(_pixelGridShown ? L.Get("Status.PixelGridShown") : L.Get("Status.PixelGridHidden"));
     }
 
     /// <summary>View ▸ Snap: whether a drag lines up with anything at all.</summary>
@@ -4405,7 +4419,7 @@ public sealed class MainWindow : Window
         _snappingOn = !_snappingOn;
         _snapping.IsChecked = _snappingOn;
         KeepSwitches();
-        Say(_snappingOn ? "Snapping on" : "Snapping off");
+        Say(_snappingOn ? L.Get("Status.SnappingOn") : L.Get("Status.SnappingOff"));
     }
 
     /// <summary>The canvas told where each view switch stands, so what is drawn and what is caught agree.</summary>
@@ -4428,7 +4442,7 @@ public sealed class MainWindow : Window
         _rulerCorner.IsVisible = _rulersVisible;
         KeepSwitches();
         UpdateRulers();
-        Say(_rulersVisible ? "Rulers shown" : "Rulers hidden");
+        Say(_rulersVisible ? L.Get("Status.RulersShown") : L.Get("Status.RulersHidden"));
     }
 
     /// <summary>
@@ -4462,7 +4476,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document || _projectPath is not { } path) return;
         if (_history.IsModified)
         {
-            Say("The project has been written by something else — save or reopen to take the change up");
+            Say(L.Get("Status.ProjectChangedExternally"));
             return;
         }
         ProjectSnapshot snapshot;
@@ -4472,7 +4486,7 @@ public sealed class MainWindow : Window
         }
         catch (ProjectException)
         {
-            Say("The project has been written by something else, and what is there now cannot be read");
+            Say(L.Get("Status.ProjectChangedExternallyInvalid"));
             return;
         }
         var viewport = _canvas.Viewport;
@@ -4488,7 +4502,7 @@ public sealed class MainWindow : Window
         var again = selected.FirstOrDefault(id => _document.Layers.Any(layer => layer.ID == id));
         if (again != Guid.Empty) Reselect(again);
         Refresh();
-        Say($"{Path.GetFileName(path)} — taken up again, {_document.Layers.Count} layers");
+        Say(L.Get("Status.ProjectReloaded", Path.GetFileName(path), _document.Layers.Count));
     }
 
     /// <summary>
@@ -4513,7 +4527,7 @@ public sealed class MainWindow : Window
         if (_gridVisible) _canvas.Grid = _grid;
         KeepSwitches();
         _canvas.InvalidateVisual();
-        Say($"Grid every {_grid.Spacing} pixels, split {_grid.Subdivisions} ways");
+        Say(L.Get("Status.GridSettingsSaved", _grid.Spacing, _grid.Subdivisions));
     }
 
     /// <summary>View ▸ New Guide: a line across the canvas to line things up against.</summary>
@@ -4527,11 +4541,11 @@ public sealed class MainWindow : Window
         _history.End(current, Selected);
         if (made is null)
         {
-            Say("This document already holds as many guides as it may.");
+            Say(L.Get("Status.GuideLimit"));
             return;
         }
         Refresh();
-        Say($"{asked.Axis} guide at {asked.Position:0.#}");
+        Say(L.Get("Status.GuideCreated", L.Get($"GuideAxis.{asked.Axis}"), asked.Position));
     }
 
     /// <summary>View ▸ Clear Guides: every guide taken away, as one undo step.</summary>
@@ -4540,11 +4554,11 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (document.Guides.Count == 0)
         {
-            Say("There are no guides to clear");
+            Say(L.Get("Status.NoGuides"));
             return;
         }
         Edit("Clear Guides", () => GuideEdits.Clear(document) > 0);
-        Say("Guides cleared");
+        Say(L.Get("Status.GuidesCleared"));
     }
 
     /// <summary>
@@ -4557,11 +4571,11 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Asset: not null, IsGroup: false, Adjustment: null })
         {
-            Say("Auto Levels needs a layer with pixels of its own");
+            Say(L.Get("Status.AutoLevelsNeedsPixels"));
             return;
         }
-        if (!Edit("Auto Levels", () => LevelsEdits.Auto(document, id, mode))) Say("There is nothing in that layer to stretch");
-        else Say($"Auto Levels: {mode}");
+        if (!Edit("Auto Levels", () => LevelsEdits.Auto(document, id, mode))) Say(L.Get("Status.AutoLevelsNoPixels"));
+        else Say(L.Get("Status.AutoLevelsApplied", L.Get($"LevelsAuto.{mode}")));
         Reselect(id);
     }
 
@@ -4700,7 +4714,7 @@ public sealed class MainWindow : Window
         }
         if (ColorRangeSession.Begin(document) is not { } session)
         {
-            Say("There is no picture to pick a color from");
+            Say(L.Get("Status.NoPictureToSample"));
             return;
         }
         _colorRange = session;
@@ -4717,7 +4731,7 @@ public sealed class MainWindow : Window
             if (_document is { } current) _history.End(current, Selected);
             CloseColorRange();
             Refresh();
-            Say($"Selected what is near {session.Include.Count} color(s) within {session.Fuzziness:0}");
+            Say(L.Get("Status.ColorRangeSelected", session.Include.Count, session.Fuzziness));
         };
         panel.Cancelled += () =>
         {
@@ -4735,7 +4749,7 @@ public sealed class MainWindow : Window
         _canvas.EyedropperOnClick = true;
         panel.Show(this);
         ShowColorRange(document, false);
-        Say("Color Range: click the picture to pick the color to select");
+        Say(L.Get("Status.ColorRangeInstructions"));
     }
 
     /// <summary>Shows the panel the selection as it now stands, and lets the canvas draw it.</summary>
@@ -4745,7 +4759,9 @@ public sealed class MainWindow : Window
         _colorRangePanel?.Showing(_colorRange?.Mask(document), _colorRange?.Include.Count ?? 0,
             _colorRange?.Exclude.Count ?? 0);
         if (!changed) return;
-        Say(_colorRange?.Problem ?? $"{_colorRange?.Include.Count ?? 0} color(s) picked");
+        Say(_colorRange?.Problem is { } problem
+            ? ColorRangePanel.ProblemText(problem)
+            : L.Get("Status.ColorRangePicked", _colorRange?.Include.Count ?? 0));
     }
 
     /// <summary>Puts the panel away and lets the session and its sample go.</summary>
@@ -4765,7 +4781,7 @@ public sealed class MainWindow : Window
         if (await CanvasSizeDialog.Ask(this, document.Width, document.Height, CanvasEdits.CentreAnchor) is not { } asked) return;
         if (_document is not { } current) return;
         Edit("Canvas Size", () => CanvasEdits.Resize(current, asked.Width, asked.Height, asked.Anchor));
-        Say($"Canvas is now {asked.Width} x {asked.Height}");
+        Say(L.Get("Status.CanvasResized", asked.Width, asked.Height));
     }
 
     /// <summary>Image ▸ Trim: the canvas cut back to what is actually drawn on it.</summary>
@@ -4774,8 +4790,8 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (await TrimDialog.Ask(this, new TrimOptions()) is not { } options) return;
         if (_document is not { } current) return;
-        if (!Edit("Trim", () => TrimEdits.Trim(current, options))) Say("There was nothing to trim");
-        else Say($"Trimmed to {current.Width} x {current.Height}");
+        if (!Edit("Trim", () => TrimEdits.Trim(current, options))) Say(L.Get("Status.NothingToTrim"));
+        else Say(L.Get("Status.Trimmed", current.Width, current.Height));
     }
 
     /// <summary>
@@ -4793,10 +4809,10 @@ public sealed class MainWindow : Window
         }
         if (projects.Count == 0)
         {
-            _recentMenu.Items.Add(new MenuItem { Header = "Nothing yet", IsEnabled = false });
+            _recentMenu.Items.Add(new MenuItem { Header = L.Get("Menu.NothingYet"), IsEnabled = false });
         }
         _recentMenu.Items.Add(new Separator());
-        var clear = Command("_Clear Menu", () =>
+        var clear = Command(L.Get("Menu.ClearRecent"), () =>
         {
             _recent.Forgot();
             RefreshRecent();
@@ -4821,7 +4837,7 @@ public sealed class MainWindow : Window
         }
         catch (Exception error)
         {
-            Say($"Could not open {Path.GetFileName(path)}: {error.Message}");
+            Say(L.Get("Status.OpenRecentFailed", Path.GetFileName(path), error.Message));
             RefreshRecent();
         }
     }
@@ -4830,23 +4846,25 @@ public sealed class MainWindow : Window
     /// The ratios the Crop tool offers, in one list because both the Tools menu and the options bar offer them.
     /// The menu marks a letter of each as its key; the bar is a pop-up, which shows the text as written.
     /// </summary>
-    private static readonly (string Label, double? Ratio)[] CropRatios =
+    private static readonly (string LabelKey, double? Ratio)[] CropRatios =
     [
-        ("Free", null), ("Original", -1), ("1:1", 1), ("4:3", 4.0 / 3), ("3:4", 3.0 / 4),
-        ("16:9", 16.0 / 9), ("9:16", 9.0 / 16),
+        ("CropRatio.Free", null), ("CropRatio.Original", -1), ("CropRatio.OneToOne", 1),
+        ("CropRatio.FourToThree", 4.0 / 3), ("CropRatio.ThreeToFour", 3.0 / 4),
+        ("CropRatio.SixteenToNine", 16.0 / 9), ("CropRatio.NineToSixteen", 9.0 / 16),
     ];
 
     /// <summary>The ratios the Crop tool offers, as the Mac build's ratio menu does.</summary>
     private void BuildCropRatios()
     {
-        foreach (var (label, ratio) in CropRatios)
+        foreach (var (labelKey, ratio) in CropRatios)
         {
+            var label = L.Get(labelKey);
             _cropRatios.Items.Add(Command(label.Replace(":", ":_", StringComparison.Ordinal), () => SetCropRatio(ratio)));
         }
         _cropRatios.Items.Add(new Separator());
         // The same two rows the canvas answers to, so they show the key that really applies the frame.
-        var apply = Command("_Apply", ApplyCrop);
-        var cancel = Command("_Cancel", CancelCrop);
+        var apply = Command(L.Get("Menu.ApplyCrop"), ApplyCrop);
+        var cancel = Command(L.Get("Menu.CancelCrop"), CancelCrop);
         ShowKey(apply, "Apply Canvas Operation", Shortcuts.Canvas);
         ShowKey(cancel, "Cancel Canvas Operation", Shortcuts.Canvas);
         _cropRatios.Items.Add(apply);
@@ -4860,7 +4878,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (ratio is null)
         {
-            Say("Crop: any shape");
+            Say(L.Get("Status.CropAnyRatio"));
             return;
         }
         var wanted = ratio == -1 ? CropEdits.OriginalRatio(document) : ratio.Value;
@@ -4868,7 +4886,7 @@ public sealed class MainWindow : Window
         _cropFrame = CropEdits.ApplyRatio(frame, wanted);
         ShowCropBox();
         Refresh();
-        Say($"Crop: {wanted:0.##} to 1");
+        Say(L.Get("Status.CropRatio", wanted));
     }
 
     /// <summary>The crop frame follows the tool: the whole canvas until it is dragged.</summary>
@@ -4907,10 +4925,10 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if (_cropFrame is not { } frame)
         {
-            Say("Drag a frame first");
+            Say(L.Get("Status.CropNeedsFrame"));
             return;
         }
-        if (!CropEdits.Valid(frame)) { Say("That frame is not one the canvas can be cropped to"); return; }
+        if (!CropEdits.Valid(frame)) { Say(L.Get("Status.CropInvalidFrame")); return; }
         _canvas.SnapLines = (null, null);
         Edit("Crop", () => CanvasEdits.Crop(document, frame));
         _cropFrame = null;
@@ -4924,7 +4942,7 @@ public sealed class MainWindow : Window
         _canvas.SnapLines = (null, null);
         ShowCropBox();
         Refresh();
-        Say("Crop: let go");
+        Say(L.Get("Status.CropCancelled"));
     }
 
     /// <summary>
@@ -4969,7 +4987,7 @@ public sealed class MainWindow : Window
         _canvas.BeginText();
         ShowTextCaret();
         Refresh();
-        Say("Typing — Escape lets it go, Ctrl+Enter keeps it");
+        Say(L.Get("Status.TextTyping"));
     }
 
     /// <summary>Keys that were typed, put into the text and drawn as they go.</summary>
@@ -4981,7 +4999,7 @@ public sealed class MainWindow : Window
         if (typed.Length == 0) return;
         if (!session.Type(document, typed))
         {
-            Say("That text could not be drawn: its box is too big for one surface");
+            Say(L.Get("Status.TextTooLarge"));
             return;
         }
         ShowText();
@@ -5037,7 +5055,7 @@ public sealed class MainWindow : Window
         _history.End(document, kept);
         if (kept is { } layer) Reselect(layer);
         else Refresh();
-        if (kept is not null) Say($"Text: {typed.Replace('\n', ' ').Trim().Length} characters");
+        if (kept is not null) Say(L.Get("Status.TextCharacters", typed.Replace('\n', ' ').Trim().Length));
     }
 
     /// <summary>Escape: the words go back to what they were, and the history drops the step.</summary>
@@ -5050,7 +5068,7 @@ public sealed class MainWindow : Window
         session.Cancel(document);
         _history.End(document, session.LayerID);
         Refresh();
-        Say("Text let go");
+        Say(L.Get("Status.TextCancelled"));
     }
 
     /// <summary>Changes the selected text layer's face, size or colour and draws it again.</summary>
@@ -5060,18 +5078,18 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { Text: { } text } layer)
         {
-            Say("That layer is not text");
+            Say(L.Get("Status.LayerNotText"));
             return;
         }
         var origin = new SKPoint((float)layer.Transform.X, (float)layer.Transform.Y);
-        if (await TextDialog.Ask(this, "Edit text", text.Style) is not { } wanted) return;
+        if (await TextDialog.Ask(this, L.Get("Dialog.EditTextTitle"), text.Style) is not { } wanted) return;
         if (_document is not { } current) return;
         _history.Begin("Edit Text", current, id);
         var changed = TextEdits.SetStyle(current, id, wanted);
         _history.End(current, id);
-        if (!changed) { Say("That text could not be drawn"); return; }
+        if (!changed) { Say(L.Get("Status.TextDrawFailed")); return; }
         Reselect(id);
-        Say($"Text: {wanted.Content.Length} characters at {origin.X:0},{origin.Y:0}");
+        Say(L.Get("Status.TextCreated", wanted.Content.Length, origin.X, origin.Y));
     }
 
     /// <summary>Where a brush stroke goes: the layer's pixels, or its mask.</summary>
@@ -5079,9 +5097,7 @@ public sealed class MainWindow : Window
     {
         _options.PaintOnMask = mask;
         _paintOnMask.IsChecked = mask;
-        Say(mask
-            ? "The brush paints on the layer's mask — white reveals, and Erase paints black"
-            : "The brush paints on the layer's pixels");
+        Say(mask ? L.Get("Status.BrushPaintsMask") : L.Get("Status.BrushPaintsPixels"));
     }
 
     /// <summary>The brush erases rather than paints: on a mask, that is black rather than white.</summary>
@@ -5090,7 +5106,7 @@ public sealed class MainWindow : Window
         _options.Erase = erasing;
         _eraseToggle.IsChecked = erasing;
         PushBrush();
-        Say(erasing ? "The brush erases" : "The brush paints");
+        Say(erasing ? L.Get("Status.BrushErases") : L.Get("Status.BrushPaints"));
     }
 
     /// <summary>
@@ -5102,7 +5118,7 @@ public sealed class MainWindow : Window
         if (_document is not { } document) return;
         if ((long)document.Width * document.Height > DocumentLimits.MaxSurfacePixels)
         {
-            Say("This canvas is too big to read a color from in one piece");
+            Say(L.Get("Status.CanvasTooLargeToSample"));
             return;
         }
         var x = (int)Math.Floor(point.X);
@@ -5112,7 +5128,7 @@ public sealed class MainWindow : Window
         var colour = rendered.GetPixel(x, y);
         if (colour.Alpha == 0)
         {
-            Say("Nothing is drawn there");
+            Say(L.Get("Status.NothingDrawnThere"));
             return;
         }
         // Colour Range is up: the colour is one of the ones being looked for, and Shift or Alt says whether it
@@ -5130,7 +5146,7 @@ public sealed class MainWindow : Window
         if (_picker is { } picking)
         {
             picking.Sample((colour.Red / 255.0, colour.Green / 255.0, colour.Blue / 255.0));
-            Say($"Sampled {colour.Red},{colour.Green},{colour.Blue} into the picker");
+            Say(L.Get("Status.PickerSampled", colour.Red, colour.Green, colour.Blue));
             return;
         }
         // A transparent pixel has no colour to take; a part-transparent one is read as it looks on white.
@@ -5141,7 +5157,7 @@ public sealed class MainWindow : Window
             Blue = colour.Blue / 255.0,
         };
         PushBrush();
-        Say($"Brush color {colour.Red},{colour.Green},{colour.Blue}");
+        Say(L.Get("Status.BrushColor", colour.Red, colour.Green, colour.Blue));
     }
 
     /// <summary>How Spot Healing works out what to put in the painted area.</summary>
@@ -5149,7 +5165,7 @@ public sealed class MainWindow : Window
     {
         _options.Brush = _options.Brush with { Healing = mode };
         PushBrush();
-        Say($"Spot healing: {mode}");
+        Say(L.Get("Status.HealingMode", LocalizedNames.Healing(mode)));
     }
 
     /// <summary>Asks for one of the brush's settings and takes it, as an options bar would.</summary>
@@ -5158,27 +5174,27 @@ public sealed class MainWindow : Window
         switch (which)
         {
             case BrushSetting.Size:
-                if (await Ask("Brush size", "Diameter in pixels, 1 to 2000",
+                if (await Ask(L.Get("Dialog.BrushSizeTitle"), L.Get("Dialog.BrushSizeLabel"),
                         $"{_options.Brush.Diameter:0}", 1, 2000) is { } size)
                 {
                     _options.Brush = _options.Brush with { Diameter = size };
                 }
                 break;
             case BrushSetting.Hardness:
-                if (await Ask("Brush hardness", "Percent, 0 for a soft tip and 100 for a hard one",
+                if (await Ask(L.Get("Dialog.BrushHardnessTitle"), L.Get("Dialog.BrushHardnessLabel"),
                         $"{_options.Brush.Hardness * 100:0}", 0, 100) is { } hardness)
                 {
                     _options.Brush = _options.Brush with { Hardness = hardness / 100.0 };
                 }
                 break;
             case BrushSetting.Opacity:
-                if (await Ask("Brush opacity", "Percent, 1 to 100", $"{_options.Brush.Opacity * 100:0}", 1, 100) is { } opacity)
+                if (await Ask(L.Get("Dialog.BrushOpacityTitle"), L.Get("Dialog.BrushOpacityLabel"), $"{_options.Brush.Opacity * 100:0}", 1, 100) is { } opacity)
                 {
                     _options.Brush = _options.Brush with { Opacity = opacity / 100.0 };
                 }
                 break;
             case BrushSetting.Radius:
-                if (await Ask("Blur radius", "How far the blur reaches, in pixels, 0.5 to 50",
+                if (await Ask(L.Get("Dialog.BlurRadiusTitle"), L.Get("Dialog.BlurRadiusLabel"),
                         $"{_options.Brush.BlurRadius:0.#}", 0.5, 50) is { } radius)
                 {
                     _options.Brush = _options.Brush with { BlurRadius = radius };
@@ -5190,7 +5206,7 @@ public sealed class MainWindow : Window
                 return;
         }
         PushBrush();
-        Say($"Brush: {_options.Brush.Diameter:0} pixels, {Spell(_options.Brush)}");
+        Say(L.Get("Status.BrushSettingsChanged", _options.Brush.Diameter, Spell(_options.Brush)));
     }
 
     private async Task<double?> Ask(string title, string label, string initial, double least, double most)
@@ -5198,7 +5214,7 @@ public sealed class MainWindow : Window
         if (await TextPrompt.Ask(this, title, label, initial) is not { } typed) return null;
         if (!double.TryParse(typed.Trim(), out var value) || value < least || value > most)
         {
-            Say($"That has to be a number from {least:0} to {most:0}");
+            Say(L.Get("Status.InvalidNumberRange", least, most));
             return null;
         }
         return value;
@@ -5242,7 +5258,7 @@ public sealed class MainWindow : Window
         if (Selected is not { } id) return;
         if (!Change("Select Layer's Pixels", document => SelectionEdits.SelectLayerPixels(document, id)))
         {
-            Say("That layer shows no pixels to take a selection from");
+            Say(L.Get("Status.LayerHasNoPixelsForSelection"));
         }
     }
 
@@ -5252,7 +5268,7 @@ public sealed class MainWindow : Window
         if (Selected is not { } id) return;
         if (!Change("Select Mask's Black Areas", document => SelectionEdits.SelectMaskDark(document, id)))
         {
-            Say("That layer has no mask, or none of it is hidden");
+            Say(L.Get("Status.LayerHasNoHiddenMask"));
         }
     }
 
@@ -5276,24 +5292,23 @@ public sealed class MainWindow : Window
         }
         if (feed is null)
         {
-            await UpdateDialog.Ask(this, "Check for Updates",
-                $"The update feed could not be reached, so whether {running} is the latest is not known.");
+            await UpdateDialog.Ask(this, L.Get("Update.CheckTitle"),
+                L.Get("Update.FeedUnavailable", running));
             return;
         }
         if (UpdateFeed.Newest(feed) is not { } release)
         {
-            await UpdateDialog.Ask(this, "Check for Updates", "The update feed had no release to read.");
+            await UpdateDialog.Ask(this, L.Get("Update.CheckTitle"), L.Get("Update.NoRelease"));
             return;
         }
         if (!UpdateFeed.IsNewer(release, running))
         {
-            await UpdateDialog.Ask(this, "Check for Updates", $"Compositor {running} is the latest.");
+            await UpdateDialog.Ask(this, L.Get("Update.CheckTitle"), L.Get("Update.UpToDate", running));
             return;
         }
-        Say($"Compositor {release.Version} is out; this build is {running}");
-        await UpdateDialog.Ask(this, "Check for Updates",
-            $"Compositor {release.Version} is out{(release.Published is { } when ? $", published {when}" : "")} — " +
-            $"this build is {running}. The Windows build is made from this repository.",
+        Say(L.Get("Status.UpdateAvailable", release.Version, running));
+        await UpdateDialog.Ask(this, L.Get("Update.CheckTitle"),
+            L.Get("Update.Available", release.Version, release.Published is { } when ? L.Get("Update.Published", when) : "", running),
             release.Page);
     }
 
@@ -5316,7 +5331,7 @@ public sealed class MainWindow : Window
             : FillEdits.Fill(document, id, colour));
         if (!filled)
         {
-            Say("Nothing to fill: that layer holds no pixels, or the selection does not reach it");
+            Say(L.Get("Status.NothingToFill"));
         }
     }
 
@@ -5331,13 +5346,13 @@ public sealed class MainWindow : Window
         {
             if (!Edit("Clear Mask", () => FillEdits.FillMask(document, id, 0)))
             {
-                Say("Nothing to clear: the selection does not reach that mask");
+                Say(L.Get("Status.NothingToClearMask"));
             }
             return;
         }
         if (!Edit("Clear", () => FillEdits.Clear(document, id)))
         {
-            Say("Nothing to clear: that layer holds no pixels, or the selection does not reach it");
+            Say(L.Get("Status.NothingToClear"));
         }
     }
 
@@ -5376,15 +5391,15 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || document.Selection.Path is null)
         {
-            Say("Select something first");
+            Say(L.Get("Status.SelectSomethingFirst"));
             return;
         }
         var most = which == SelectionAmount.Feather ? SelectionEdits.MaxFeather : SelectionEdits.MaxAmount;
-        var label = which == SelectionAmount.Feather ? "Feather radius in pixels" : "Pixels";
-        if (await TextPrompt.Ask(this, $"Modify Selection — {which}", label, "4") is not { } typed) return;
+        var label = which == SelectionAmount.Feather ? L.Get("Dialog.FeatherRadiusPixels") : L.Get("Dialog.Pixels");
+        if (await TextPrompt.Ask(this, L.Get("Dialog.ModifySelectionTitle", L.Get($"SelectionAmount.{which}")), label, "4") is not { } typed) return;
         if (!int.TryParse(typed.Trim(), out var amount) || amount < 1 || amount > most)
         {
-            Say($"The amount has to be a whole number from 1 to {most}");
+            Say(L.Get("Status.AmountMustBeWholeNumber", most));
             return;
         }
         if (_document is not { } current) return;
@@ -5451,7 +5466,7 @@ public sealed class MainWindow : Window
         if (_tool != Tool.Clone) return _canvas.Brush;
         if (_cloneSource is not { } source)
         {
-            Say("Alt-click where the Clone Stamp should copy from first");
+            Say(L.Get("Status.CloneNeedsAltClick"));
             return null;
         }
         // A clone stroke that is not aligned takes the place it starts from as the new source, so the offset is
@@ -5467,7 +5482,7 @@ public sealed class MainWindow : Window
         _cloneSource = point;
         // A new source starts a new alignment, as the Mac build's does.
         _cloneOffset = null;
-        Say($"Clone stamp copying from {point.X:0},{point.Y:0} — drag on the canvas");
+        Say(L.Get("Status.CloneSourceSet", point.X, point.Y));
     }
 
     /// <summary>
@@ -5542,9 +5557,9 @@ public sealed class MainWindow : Window
         _canvas.InvalidateVisual();
         UpdateLayerMenu();
         if (_transforming is null) ShowTransformBox();
-        var undo = _history.CanUndo ? $"Undo {_history.UndoName}" : "";
-        var redo = _history.CanRedo ? $"Redo {_history.RedoName}" : "";
-        var edited = _history.IsModified ? "edited" : "";
+        var undo = _history.CanUndo ? L.Get("Status.HistoryUndo", LocalizedNames.HistoryOperation(_history.UndoName)) : "";
+        var redo = _history.CanRedo ? L.Get("Status.HistoryRedo", LocalizedNames.HistoryOperation(_history.RedoName)) : "";
+        var edited = _history.IsModified ? L.Get("Status.HistoryEdited") : "";
         Say(string.Join("    ", new[] { undo, redo, edited }.Where(part => part.Length > 0)));
     }
 
@@ -5557,11 +5572,11 @@ public sealed class MainWindow : Window
         {
             var record = entry.Layer;
             var notes = new List<string>();
-            if (!entry.Visible) notes.Add("hidden");
-            if (record.BlendMode is { } blend && blend != LayerBlendMode.Normal) notes.Add(Spell(blend));
+            if (!entry.Visible) notes.Add(L.Get("Layer.Hidden"));
+            if (record.BlendMode is { } blend && blend != LayerBlendMode.Normal) notes.Add(LocalizedNames.BlendMode(blend));
             if (record.Opacity is { } opacity and < 1) notes.Add($"{opacity:0.##}");
-            if (record.MaskFile is not null) notes.Add("mask");
-            if (record.MaskSourceID is not null) notes.Add("clipped");
+            if (record.MaskFile is not null) notes.Add(L.Get("Layer.Mask"));
+            if (record.MaskSourceID is not null) notes.Add(L.Get("Layer.Clipped"));
             rows.Add(new ListBoxItem
             {
                 // The row carries the layer it stands for, so a multi-selection can be read back.
@@ -5591,18 +5606,18 @@ public sealed class MainWindow : Window
         {
             var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Import an image",
+                Title = L.Get("Dialog.ImportImageTitle"),
                 AllowMultiple = false,
                 FileTypeFilter =
                 [
-                    new FilePickerFileType("Images") { Patterns = [.. ImageImporter.Extensions.Select(e => "*" + e)] },
+                    new FilePickerFileType(L.Get("Dialog.FileTypeImages")) { Patterns = [.. ImageImporter.Extensions.Select(e => "*" + e)] },
                     FilePickerFileTypes.All,
                 ],
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
             if (!ImageImporter.LooksImportable(path))
             {
-                Say($"{Path.GetExtension(path)} files are not read; {string.Join(", ", ImageImporter.Extensions)} are");
+                Say(L.Get("Status.UnsupportedImageFormat", Path.GetExtension(path), string.Join(", ", ImageImporter.Extensions)));
                 return;
             }
             // Decoded once: a camera RAW is minutes of work, so the picture the document gets is this one.
@@ -5616,8 +5631,8 @@ public sealed class MainWindow : Window
                 WatchProject();
                 _history.Reset();
                 ShowLayers(_document);
-                Say($"{Path.GetFileName(path)} — {_document.Width} by {_document.Height}, " +
-                    $"{_document.Layers.Count} layer, not saved yet");
+                Say(L.Get("Status.NewImportedDocument", Path.GetFileName(path), _document.Width, _document.Height,
+                    _document.Layers.Count));
                 Refresh();
                 return;
             }
@@ -5628,11 +5643,11 @@ public sealed class MainWindow : Window
                 new LayerTransform(origin.X, origin.Y, image.Width, image.Height), image.Name));
             _history.End(document, Selected);
             Reselect(document.Layers[^1].ID);
-            Say($"Imported {Path.GetFileName(path)} at {image.Width} by {image.Height}");
+            Say(L.Get("Status.ImportedImage", Path.GetFileName(path), image.Width, image.Height));
         }
         catch (Exception error)
         {
-            Say($"Could not import that image: {error.Message}");
+            Say(L.Get("Status.ImportFailed", error.Message));
         }
     }
 
@@ -5657,15 +5672,15 @@ public sealed class MainWindow : Window
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Title = "Save the project",
-                SuggestedFileName = _projectPath is { } known ? Path.GetFileName(known) : "Untitled.comp",
+                Title = L.Get("Dialog.SaveProjectTitle"),
+                SuggestedFileName = _projectPath is { } known ? Path.GetFileName(known) : L.Get("Dialog.SuggestedProjectFile"),
                 DefaultExtension = "comp",
             });
             if (file?.TryGetLocalPath() is not { } path) return;
             // A project is a folder on Windows, so a path that is already a file cannot be written as one.
             if (File.Exists(path))
             {
-                Say("A project is a folder, and that path is a file.");
+                Say(L.Get("Status.ProjectPathIsFile"));
                 return;
             }
             WriteTo(document, path);
@@ -5674,7 +5689,7 @@ public sealed class MainWindow : Window
         }
         catch (Exception error)
         {
-            Say($"Could not save: {error.Message}");
+            Say(L.Get("Status.SaveFailed", error.Message));
         }
     }
 
@@ -5691,11 +5706,11 @@ public sealed class MainWindow : Window
             WatchProject();
             NoteRecent(path);
             Refresh();
-            Say($"Saved {path}");
+            Say(L.Get("Status.Saved", path));
         }
         catch (Exception error)
         {
-            Say($"Could not save: {error.Message}");
+            Say(L.Get("Status.SaveFailed", error.Message));
         }
     }
 
@@ -5703,25 +5718,25 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document)
         {
-            Say("Nothing to export yet.");
+            Say(L.Get("Status.NothingToExport"));
             return;
         }
         try
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Title = "Export PNG",
-                SuggestedFileName = "Compositor export.png",
+                Title = L.Get("Dialog.ExportPngTitle"),
+                SuggestedFileName = L.Get("Dialog.SuggestedPngFile"),
                 DefaultExtension = "png",
             });
             if (file?.TryGetLocalPath() is not { } path) return;
             // A band of tiles at a time, so the canvas size does not have to fit in one buffer.
             TiledPngWriter.Write(document, path);
-            Say($"Exported {path}");
+            Say(L.Get("Status.Exported", path));
         }
         catch (Exception error)
         {
-            Say($"Could not export: {error.Message}");
+            Say(L.Get("Status.ExportFailed", error.Message));
         }
     }
 
@@ -5733,29 +5748,29 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document)
         {
-            Say("Nothing to export yet.");
+            Say(L.Get("Status.NothingToExport"));
             return;
         }
         try
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Title = "Export JPEG",
-                SuggestedFileName = "Compositor export.jpg",
+                Title = L.Get("Dialog.ExportJpegTitle"),
+                SuggestedFileName = L.Get("Dialog.SuggestedJpegFile"),
                 DefaultExtension = "jpg",
             });
             if (file?.TryGetLocalPath() is not { } path) return;
             if (await QualityDialog.Ask(this) is not { } quality) return;
             if (!ImageWriter.Write(document, path, quality))
             {
-                Say("That canvas is too large to write as one JPEG.");
+                Say(L.Get("Status.CanvasTooLargeForJpeg"));
                 return;
             }
-            Say($"Exported {path}");
+            Say(L.Get("Status.Exported", path));
         }
         catch (Exception error)
         {
-            Say($"Could not export: {error.Message}");
+            Say(L.Get("Status.ExportFailed", error.Message));
         }
     }
 
@@ -5772,9 +5787,9 @@ public sealed class MainWindow : Window
     {
         if (message.Length > 0) _message = message;
         _status.Text = _message;
-        var limit = _canvas.ZoomedOutAsFarAsItGoes ? "    as far out as one screenful can be drawn" : "";
+        var limit = _canvas.ZoomedOutAsFarAsItGoes ? L.Get("Status.ZoomedOutLimit") : "";
         _statusInfo.Text = _document is not { } document
-            ? "Ready when you are"
-            : $"{_canvas.Zoom * 100:0}%    {document.Width} × {document.Height} px    sRGB · Transparent{limit}";
+            ? L.Get("Status.Ready")
+            : L.Get("Status.DocumentInfo", _canvas.Zoom * 100, document.Width, document.Height, limit);
     }
 }

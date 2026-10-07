@@ -47,16 +47,10 @@ internal sealed class DitherDialog : DialogWindow
     /// <summary>Asks for the picture to be shown with this look and its amounts as they stand.</summary>
     public Action<DitherStyle, DitherSettings>? Preview { get; set; }
 
-    private static readonly string[] StyleNames =
-    [
-        "Atkinson (Classic Mac)", "Floyd–Steinberg", "Bayer 2 × 2", "Bayer 4 × 4", "Bayer 8 × 8",
-        "Halftone Dots", "Halftone Lines", "Halftone Diamonds", "Mac Patterns", "ASCII",
-    ];
-
     private DitherDialog(DitherStyle style, DitherSettings start)
     {
         _amounts = start.Copy();
-        Title = "Dither";
+        Title = L.Get("Dither.Title");
         Width = 460;
         Height = 660;
         CanResize = true;
@@ -67,7 +61,7 @@ internal sealed class DitherDialog : DialogWindow
 
         // The looks are grouped as the Mac's panel groups them, with a rule between the groups, so the list is
         // filled here rather than by Choice and _styleRows says which look an item is.
-        _styleRows.AddRange(GroupedChoice.Fill(_style, DitherSettings.Groups, look => StyleNames[(int)look]));
+        _styleRows.AddRange(GroupedChoice.Fill(_style, DitherSettings.Groups, StyleName));
         _style.SelectedIndex = Math.Max(0, _styleRows.IndexOf(style));
         Row(group, new StackPanel
         {
@@ -75,51 +69,53 @@ internal sealed class DitherDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = "Look", Width = 130, VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = L.Get("Dither.Look"), Width = 130, VerticalAlignment = VerticalAlignment.Center },
                 _style,
             },
         }, () => true);
 
-        Heading(group, "Pixels");
-        _pixelSize = Add(group, "Pixel size", 1, 32, start.PixelSize, defaults.PixelSize,
+        Heading(group, L.Get("Dither.Pixels"));
+        _pixelSize = Add(group, L.Get("Dither.PixelSize"), 1, 32, start.PixelSize, defaults.PixelSize,
             (s, v) => s.PixelSize = v, "0", () => Style() != DitherStyle.Ascii);
-        Choice(group, "Pixel shape", _shape, ["Square", "Dot"], (int)start.PixelShape,
+        Choice(group, L.Get("Dither.PixelShape"), _shape, [L.Get("Dither.Square"), L.Get("Dither.Dot")], (int)start.PixelShape,
             () => _pixelSize.Value > 1 && Style() != DitherStyle.Ascii);
 
-        Heading(group, "Tones");
-        Add(group, "Tones", 2, 8, start.Levels, defaults.Levels, (s, v) => s.Levels = v, "0",
+        Heading(group, L.Get("Dither.Tones"));
+        Add(group, L.Get("Dither.Tones"), 2, 8, start.Levels, defaults.Levels, (s, v) => s.Levels = v, "0",
             () => DitherSettings.HasTones(Style()));
-        Add(group, "Diffusion, %", 0, 100, start.Diffusion, defaults.Diffusion, (s, v) => s.Diffusion = v, "0",
+        Add(group, L.Get("Dither.DiffusionPercent"), 0, 100, start.Diffusion, defaults.Diffusion, (s, v) => s.Diffusion = v, "0",
             () => DitherSettings.Diffuses(Style()));
-        Add(group, "Density", -100, 100, start.Density, defaults.Density, (s, v) => s.Density = v, "0.#", () => true);
-        Add(group, "Contrast", -100, 100, start.Contrast, defaults.Contrast, (s, v) => s.Contrast = v, "0.#", () => true);
+        Add(group, L.Get("Dither.Density"), -100, 100, start.Density, defaults.Density, (s, v) => s.Density = v, "0.#", () => true);
+        Add(group, L.Get("Dither.Contrast"), -100, 100, start.Contrast, defaults.Contrast, (s, v) => s.Contrast = v, "0.#", () => true);
 
-        Heading(group, "Halftone and characters");
-        Add(group, "Cell size", 4, 64, start.CellSize, defaults.CellSize, (s, v) => s.CellSize = v, "0",
+        Heading(group, L.Get("Dither.HalftoneAndCharacters"));
+        Add(group, L.Get("Dither.CellSize"), 4, 64, start.CellSize, defaults.CellSize, (s, v) => s.CellSize = v, "0",
             () => DitherSettings.IsHalftone(Style()));
-        Add(group, "Angle, degrees", -90, 90, start.Angle, defaults.Angle, (s, v) => s.Angle = v, "0.#",
+        Add(group, L.Get("Dither.AngleDegrees"), -90, 90, start.Angle, defaults.Angle, (s, v) => s.Angle = v, "0.#",
             () => DitherSettings.IsHalftone(Style()));
-        Add(group, "Text size", 6, 64, start.TextSize, defaults.TextSize, (s, v) => s.TextSize = v, "0",
+        Add(group, L.Get("Dither.TextSize"), 6, 64, start.TextSize, defaults.TextSize, (s, v) => s.TextSize = v, "0",
             () => Style() == DitherStyle.Ascii);
         _characters.Text = start.Characters;
         _characters.Width = 240;
-        Text(group, "Characters", _characters, () => Style() == DitherStyle.Ascii);
-        Choice(group, "Marks", _lightOnDark, start.LightOnDark, () => DitherSettings.DrawsMarks(Style()));
+        Text(group, L.Get("Dither.Characters"), _characters, () => Style() == DitherStyle.Ascii);
+        Choice(group, L.Get("Dither.Marks"), _lightOnDark, start.LightOnDark, () => DitherSettings.DrawsMarks(Style()));
 
-        Heading(group, "Colors");
-        Choice(group, "Ink and paper", _colors, ["Black & White", "Two Colors", "Original"], (int)start.Colors, () => true);
+        Heading(group, L.Get("Dither.Colors"));
+        Choice(group, L.Get("Dither.InkAndPaper"), _colors,
+            [L.Get("Dither.BlackAndWhite"), L.Get("Dither.TwoColors"), L.Get("Dither.Original")],
+            (int)start.Colors, () => true);
         // The two colours are swatches that open the picker, as the Mac's panel has them, where this panel used
         // to offer three numbers for each of them.
-        var dark = Swatch("Dark", (start.DarkRed, start.DarkGreen, start.DarkBlue),
-            (defaults.DarkRed, defaults.DarkGreen, defaults.DarkBlue), "Color Picker (Dither Dark Color)", "Choose the dark color",
+        var dark = Swatch(L.Get("Dither.Dark"), (start.DarkRed, start.DarkGreen, start.DarkBlue),
+            (defaults.DarkRed, defaults.DarkGreen, defaults.DarkBlue), L.Get("Dither.DarkColorPickerTitle"), L.Get("Dither.ChooseDarkColor"),
             (s, colour) =>
             {
                 s.DarkRed = colour.Red;
                 s.DarkGreen = colour.Green;
                 s.DarkBlue = colour.Blue;
             });
-        var light = Swatch("Light", (start.LightRed, start.LightGreen, start.LightBlue),
-            (defaults.LightRed, defaults.LightGreen, defaults.LightBlue), "Color Picker (Dither Light Color)", "Choose the light color",
+        var light = Swatch(L.Get("Dither.Light"), (start.LightRed, start.LightGreen, start.LightBlue),
+            (defaults.LightRed, defaults.LightGreen, defaults.LightBlue), L.Get("Dither.LightColorPickerTitle"), L.Get("Dither.ChooseLightColor"),
             (s, colour) =>
             {
                 s.LightRed = colour.Red;
@@ -132,16 +128,16 @@ internal sealed class DitherDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = "Dark", VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = L.Get("Dither.Dark"), VerticalAlignment = VerticalAlignment.Center },
                 dark,
-                new TextBlock { Text = "Light", Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = L.Get("Dither.Light"), Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center },
                 light,
             },
         }, TwoColours);
 
-        var ok = new Button { Content = "Apply", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
-        var reset = new Button { Content = "Reset" };
+        var ok = new Button { Content = L.Get("Common.Apply"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
+        var reset = new Button { Content = L.Get("Common.Reset") };
         ok.Click += (_, _) => Accept();
         cancel.Click += (_, _) => Close();
         reset.Click += (_, _) => Restore(defaults);
@@ -166,6 +162,21 @@ internal sealed class DitherDialog : DialogWindow
 
         Content = new ScrollViewer { Content = group };
     }
+
+    /// <summary>Display text only; the enum remains the style's stable rendering value.</summary>
+    private static string StyleName(DitherStyle style) => style switch
+    {
+        DitherStyle.Atkinson => L.Get("Dither.Style.Atkinson"),
+        DitherStyle.FloydSteinberg => L.Get("Dither.Style.FloydSteinberg"),
+        DitherStyle.Bayer2 => L.Get("Dither.Style.Bayer2"),
+        DitherStyle.Bayer4 => L.Get("Dither.Style.Bayer4"),
+        DitherStyle.Bayer8 => L.Get("Dither.Style.Bayer8"),
+        DitherStyle.Dots => L.Get("Dither.Style.HalftoneDots"),
+        DitherStyle.Lines => L.Get("Dither.Style.HalftoneLines"),
+        DitherStyle.Diamonds => L.Get("Dither.Style.HalftoneDiamonds"),
+        DitherStyle.Patterns => L.Get("Dither.Style.MacPatterns"),
+        _ => L.Get("Dither.Style.Ascii"),
+    };
 
     /// <summary>Whether the two-colour swatches apply, which they do once the ink and paper are chosen.</summary>
     private bool TwoColours() => (DitherColors)Math.Max(0, _colors.SelectedIndex) == DitherColors.TwoColors;

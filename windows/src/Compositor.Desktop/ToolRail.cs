@@ -117,7 +117,7 @@ internal sealed class ToolRail : Grid
                 Background = tool == Tool.Pan ? Skin.TabFront : Brushes.Transparent,
                 BorderThickness = new Thickness(0),
             };
-            ToolTip.SetTip(button, Names[tool]);
+            ToolTip.SetTip(button, HintFor(tool));
             var picked = tool;
             button.Click += (_, _) => Chosen?.Invoke(picked);
             _buttons[tool] = button;
@@ -141,8 +141,8 @@ internal sealed class ToolRail : Grid
         Canvas.SetTop(front, 4);
         swatches.Children.Add(back);
         swatches.Children.Add(front);
-        var swap = Small("⇄", "Swap the foreground and background colors");
-        var reset = Small("↺", "Put them back to black and white");
+        var swap = Small("⇄", L.Get("ToolRail.SwapColors"));
+        var reset = Small("↺", L.Get("ToolRail.ResetColors"));
         swap.Click += (_, _) => ColoursSwapped?.Invoke();
         reset.Click += (_, _) => ColoursReset?.Invoke();
         var row = new StackPanel
@@ -173,7 +173,7 @@ internal sealed class ToolRail : Grid
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(Colors.White, 0.35),
         };
-        ToolTip.SetTip(button, foreground ? "Foreground color" : "Background color");
+        ToolTip.SetTip(button, foreground ? L.Get("ToolRail.ForegroundColor") : L.Get("ToolRail.BackgroundColor"));
         button.Click += (_, _) => ColourChosen?.Invoke(foreground);
         if (foreground) _front = button;
         else _back = button;
@@ -197,26 +197,26 @@ internal sealed class ToolRail : Grid
     }
 
     /// <summary>What each button says it is, which is also what the Tools menu calls the tool.</summary>
-    private static readonly Dictionary<Tool, string> Names = new()
+    private static string HintFor(Tool tool) => tool switch
     {
-        [Tool.Pan] = "Pan — drag to scroll",
-        [Tool.Move] = "Move — drag the layer, or a handle to scale and turn it",
-        [Tool.Marquee] = "Marquee — drag a rectangle",
-        [Tool.Ellipse] = "Elliptical marquee — drag an oval",
-        [Tool.Lasso] = "Lasso — drag round a shape",
-        [Tool.Polygon] = "Polygonal lasso — click each corner",
-        [Tool.Wand] = "Magic wand — click a color",
-        [Tool.Brush] = "Brush",
-        [Tool.Clone] = "Clone stamp — Alt-click a source first",
-        [Tool.Blur] = "Blur brush",
-        [Tool.Liquify] = "Liquify brush — push the pixels around",
-        [Tool.Smudge] = "Smudge brush — drag the color along",
-        [Tool.Heal] = "Spot healing",
-        [Tool.Eyedropper] = "Eyedropper — click the canvas",
-        [Tool.Type] = "Type — click where the text goes",
-        [Tool.Crop] = "Crop — drag a frame, then apply it",
-        [Tool.Shape] = "Shape — drag out a rectangle, ellipse or line",
-        [Tool.Gradient] = "Gradient — drag the line it runs along",
+        Tool.Pan => L.Get("ToolRail.Tooltip.Pan"),
+        Tool.Move => L.Get("ToolRail.Tooltip.Move"),
+        Tool.Marquee => L.Get("ToolRail.Tooltip.Marquee"),
+        Tool.Ellipse => L.Get("ToolRail.Tooltip.Ellipse"),
+        Tool.Lasso => L.Get("ToolRail.Tooltip.Lasso"),
+        Tool.Polygon => L.Get("ToolRail.Tooltip.Polygon"),
+        Tool.Wand => L.Get("ToolRail.Tooltip.Wand"),
+        Tool.Brush => L.Get("ToolRail.Tooltip.Brush"),
+        Tool.Clone => L.Get("ToolRail.Tooltip.Clone"),
+        Tool.Blur => L.Get("ToolRail.Tooltip.Blur"),
+        Tool.Liquify => L.Get("ToolRail.Tooltip.Liquify"),
+        Tool.Smudge => L.Get("ToolRail.Tooltip.Smudge"),
+        Tool.Heal => L.Get("ToolRail.Tooltip.Heal"),
+        Tool.Eyedropper => L.Get("ToolRail.Tooltip.Eyedropper"),
+        Tool.Type => L.Get("ToolRail.Tooltip.Type"),
+        Tool.Crop => L.Get("ToolRail.Tooltip.Crop"),
+        Tool.Shape => L.Get("ToolRail.Tooltip.Shape"),
+        _ => L.Get("ToolRail.Tooltip.Gradient"),
     };
 
     /// <summary>

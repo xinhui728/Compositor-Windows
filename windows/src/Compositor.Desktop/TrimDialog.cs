@@ -12,21 +12,24 @@ namespace Compositor.Desktop;
 internal sealed class TrimDialog : DialogWindow
 {
     private readonly ComboBox _basedOn = new();
-    private readonly CheckBox _top = new() { Content = "Top" };
-    private readonly CheckBox _bottom = new() { Content = "Bottom" };
-    private readonly CheckBox _left = new() { Content = "Left" };
-    private readonly CheckBox _right = new() { Content = "Right" };
+    private readonly CheckBox _top = new() { Content = L.Get("Trim.Top") };
+    private readonly CheckBox _bottom = new() { Content = L.Get("Trim.Bottom") };
+    private readonly CheckBox _left = new() { Content = L.Get("Trim.Left") };
+    private readonly CheckBox _right = new() { Content = L.Get("Trim.Right") };
     private readonly Slider _tolerance = new() { Minimum = 0, Maximum = 255, Width = 200 };
     private TrimOptions? _result;
 
     private TrimDialog(TrimOptions start)
     {
-        Title = "Trim";
+        Title = L.Get("Trim.Title");
         Width = 400;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        _basedOn.ItemsSource = new[] { "Transparent pixels", "Top-left pixel color", "Bottom-right pixel color" };
+        _basedOn.ItemsSource = new[]
+        {
+            L.Get("Trim.TransparentPixels"), L.Get("Trim.TopLeftPixelColor"), L.Get("Trim.BottomRightPixelColor"),
+        };
         _basedOn.SelectedIndex = (int)start.BasedOn;
         _basedOn.Width = 200;
         _top.IsChecked = start.Top;
@@ -40,8 +43,8 @@ internal sealed class TrimDialog : DialogWindow
             if (change.Property == Slider.ValueProperty) readout.Text = ((int)_tolerance.Value).ToString();
         };
 
-        var ok = new Button { Content = "OK", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("Common.OK"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) => Accept();
         cancel.Click += (_, _) => Close();
 
@@ -51,8 +54,8 @@ internal sealed class TrimDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                Row("Based on", _basedOn),
-                new TextBlock { Text = "Trim away" },
+                Row(L.Get("Trim.BasedOn"), _basedOn),
+                new TextBlock { Text = L.Get("Trim.TrimAway") },
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
@@ -65,7 +68,7 @@ internal sealed class TrimDialog : DialogWindow
                     Spacing = 8,
                     Children =
                     {
-                        new TextBlock { Text = "Tolerance", Width = 120, VerticalAlignment = VerticalAlignment.Center },
+                        new TextBlock { Text = L.Get("Trim.Tolerance"), Width = 120, VerticalAlignment = VerticalAlignment.Center },
                         _tolerance,
                         readout,
                     },

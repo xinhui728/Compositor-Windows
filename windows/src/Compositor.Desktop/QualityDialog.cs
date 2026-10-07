@@ -15,7 +15,7 @@ internal sealed class QualityDialog : DialogWindow
 
     private QualityDialog()
     {
-        Title = "JPEG Quality";
+        Title = L.Get("JpegQuality.Title");
         Width = 400;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
@@ -26,8 +26,8 @@ internal sealed class QualityDialog : DialogWindow
             if (change.Property == Slider.ValueProperty) readout.Text = ((int)_quality.Value).ToString();
         };
 
-        var ok = new Button { Content = "Export", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("JpegQuality.Export"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) =>
         {
             _result = (int)Math.Clamp(_quality.Value, 1, 100);
@@ -41,14 +41,14 @@ internal sealed class QualityDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                new TextBlock { Text = "Higher keeps more of the picture and makes a larger file." },
+                new TextBlock { Text = L.Get("JpegQuality.HigherLargerFile") },
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
                     Spacing = 8,
                     Children =
                     {
-                        new TextBlock { Text = "Quality", Width = 70, VerticalAlignment = VerticalAlignment.Center },
+                        new TextBlock { Text = L.Get("JpegQuality.Quality"), Width = 70, VerticalAlignment = VerticalAlignment.Center },
                         _quality,
                         readout,
                     },

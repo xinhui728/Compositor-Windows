@@ -19,7 +19,7 @@ internal sealed class FilterDialog : DialogWindow
     /// </summary>
     public Action<FilterSettings?>? Preview { get; set; }
 
-    private readonly CheckBox _preview = new() { Content = "Preview", IsChecked = true };
+    private readonly CheckBox _preview = new() { Content = L.Get("Common.Preview"), IsChecked = true };
 
     private readonly List<(Slider Slider, Action<FilterSettings, double> Set)> _rows = [];
     private readonly List<double> _fallbacks = [];
@@ -37,16 +37,7 @@ internal sealed class FilterDialog : DialogWindow
     private FilterDialog(FilterKind kind, FilterSettings start)
     {
         _amounts = start.Copy();
-        Title = kind switch
-        {
-            FilterKind.GaussianBlur => "Gaussian Blur",
-            FilterKind.MotionBlur => "Motion Blur",
-            FilterKind.BloomGlow => "Bloom / Glow",
-            FilterKind.AddNoise => "Add Noise",
-            FilterKind.Vignette => "Vignette",
-            FilterKind.TonalContrast => "Tonal Contrast",
-            _ => "Lens Correction",
-        };
+        Title = TitleFor(kind);
         Width = 420;
         Height = 360;
         CanResize = true;
@@ -57,53 +48,53 @@ internal sealed class FilterDialog : DialogWindow
         switch (kind)
         {
             case FilterKind.GaussianBlur:
-                Add(group, "Radius, pixels", 0.1, 250, start.BlurRadius, defaults.BlurRadius, (s, v) => s.BlurRadius = v);
+                Add(group, L.Get("Filter.RadiusPixels"), 0.1, 250, start.BlurRadius, defaults.BlurRadius, (s, v) => s.BlurRadius = v);
                 break;
             case FilterKind.BloomGlow:
-                Add(group, "Amount", 0, 100, start.BloomAmount, defaults.BloomAmount, (s, v) => s.BloomAmount = v);
-                Add(group, "Radius, pixels", 1, 150, start.BloomRadius, defaults.BloomRadius, (s, v) => s.BloomRadius = v, "0");
+                Add(group, L.Get("Filter.Amount"), 0, 100, start.BloomAmount, defaults.BloomAmount, (s, v) => s.BloomAmount = v);
+                Add(group, L.Get("Filter.RadiusPixels"), 1, 150, start.BloomRadius, defaults.BloomRadius, (s, v) => s.BloomRadius = v, "0");
                 break;
             case FilterKind.MotionBlur:
-                Add(group, "Angle, degrees", -90, 90, start.MotionAngle, defaults.MotionAngle, (s, v) => s.MotionAngle = v);
-                Add(group, "Distance, pixels", 1, 2000, start.MotionDistance, defaults.MotionDistance, (s, v) => s.MotionDistance = v, "0");
+                Add(group, L.Get("Filter.AngleDegrees"), -90, 90, start.MotionAngle, defaults.MotionAngle, (s, v) => s.MotionAngle = v);
+                Add(group, L.Get("Filter.DistancePixels"), 1, 2000, start.MotionDistance, defaults.MotionDistance, (s, v) => s.MotionDistance = v, "0");
                 break;
             case FilterKind.AddNoise:
-                Add(group, "Amount, %", 0.1, 400, start.NoiseAmount, defaults.NoiseAmount, (s, v) => s.NoiseAmount = v);
-                Check(group, "Gaussian", start.NoiseGaussian, (s, v) => s.NoiseGaussian = v);
-                Check(group, "Monochromatic", start.NoiseMonochromatic, (s, v) => s.NoiseMonochromatic = v);
+                Add(group, L.Get("Filter.AmountPercent"), 0.1, 400, start.NoiseAmount, defaults.NoiseAmount, (s, v) => s.NoiseAmount = v);
+                Check(group, L.Get("Filter.Gaussian"), start.NoiseGaussian, (s, v) => s.NoiseGaussian = v);
+                Check(group, L.Get("Filter.Monochromatic"), start.NoiseMonochromatic, (s, v) => s.NoiseMonochromatic = v);
                 break;
             case FilterKind.Vignette:
                 // The colour is a swatch that opens the picker, as the Mac's sheet has it, where this panel
                 // used to offer three numbers for it.
-                Swatch(group, "Color", (start.VignetteRed, start.VignetteGreen, start.VignetteBlue),
+                Swatch(group, L.Get("Filter.Color"), (start.VignetteRed, start.VignetteGreen, start.VignetteBlue),
                     (defaults.VignetteRed, defaults.VignetteGreen, defaults.VignetteBlue),
                     (s, colour) =>
                     {
                         s.VignetteRed = colour.Red;
                         s.VignetteGreen = colour.Green;
                         s.VignetteBlue = colour.Blue;
-                    }, "Color Picker (Vignette Color)", "Choose the vignette color");
-                Add(group, "Amount", 0, 100, start.VignetteAmount, defaults.VignetteAmount, (s, v) => s.VignetteAmount = v);
-                Add(group, "Midpoint", 0, 100, start.VignetteMidpoint, defaults.VignetteMidpoint, (s, v) => s.VignetteMidpoint = v);
-                Add(group, "Roundness", -100, 100, start.VignetteRoundness, defaults.VignetteRoundness, (s, v) => s.VignetteRoundness = v);
-                Add(group, "Feather", 0, 100, start.VignetteFeather, defaults.VignetteFeather, (s, v) => s.VignetteFeather = v);
-                Add(group, "Highlights", 0, 100, start.VignetteHighlights, defaults.VignetteHighlights, (s, v) => s.VignetteHighlights = v);
+                    }, L.Get("Filter.VignetteColorPickerTitle"), L.Get("Filter.ChooseVignetteColor"));
+                Add(group, L.Get("Filter.Amount"), 0, 100, start.VignetteAmount, defaults.VignetteAmount, (s, v) => s.VignetteAmount = v);
+                Add(group, L.Get("Filter.Midpoint"), 0, 100, start.VignetteMidpoint, defaults.VignetteMidpoint, (s, v) => s.VignetteMidpoint = v);
+                Add(group, L.Get("Filter.Roundness"), -100, 100, start.VignetteRoundness, defaults.VignetteRoundness, (s, v) => s.VignetteRoundness = v);
+                Add(group, L.Get("Filter.Feather"), 0, 100, start.VignetteFeather, defaults.VignetteFeather, (s, v) => s.VignetteFeather = v);
+                Add(group, L.Get("Filter.Highlights"), 0, 100, start.VignetteHighlights, defaults.VignetteHighlights, (s, v) => s.VignetteHighlights = v);
                 break;
             case FilterKind.TonalContrast:
-                Add(group, "Amount", 0, 100, start.TonalAmount, defaults.TonalAmount, (s, v) => s.TonalAmount = v);
-                Add(group, "Radius, pixels", 1, 100, start.TonalRadius, defaults.TonalRadius, (s, v) => s.TonalRadius = v, "0");
-                Add(group, "Shadows", -100, 100, start.TonalShadows, defaults.TonalShadows, (s, v) => s.TonalShadows = v);
-                Add(group, "Midtones", -100, 100, start.TonalMidtones, defaults.TonalMidtones, (s, v) => s.TonalMidtones = v);
-                Add(group, "Highlights", -100, 100, start.TonalHighlights, defaults.TonalHighlights, (s, v) => s.TonalHighlights = v);
+                Add(group, L.Get("Filter.Amount"), 0, 100, start.TonalAmount, defaults.TonalAmount, (s, v) => s.TonalAmount = v);
+                Add(group, L.Get("Filter.RadiusPixels"), 1, 100, start.TonalRadius, defaults.TonalRadius, (s, v) => s.TonalRadius = v, "0");
+                Add(group, L.Get("Filter.Shadows"), -100, 100, start.TonalShadows, defaults.TonalShadows, (s, v) => s.TonalShadows = v);
+                Add(group, L.Get("Filter.Midtones"), -100, 100, start.TonalMidtones, defaults.TonalMidtones, (s, v) => s.TonalMidtones = v);
+                Add(group, L.Get("Filter.Highlights"), -100, 100, start.TonalHighlights, defaults.TonalHighlights, (s, v) => s.TonalHighlights = v);
                 break;
             default:
-                Add(group, "Distortion", -100, 100, start.Distortion, defaults.Distortion, (s, v) => s.Distortion = v);
+                Add(group, L.Get("Filter.Distortion"), -100, 100, start.Distortion, defaults.Distortion, (s, v) => s.Distortion = v);
                 break;
         }
 
-        var ok = new Button { Content = "Apply", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
-        var reset = new Button { Content = "Reset" };
+        var ok = new Button { Content = L.Get("Common.Apply"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
+        var reset = new Button { Content = L.Get("Common.Reset") };
         ok.Click += (_, _) => Accept();
         cancel.Click += (_, _) => Close();
         reset.Click += (_, _) => Restore();
@@ -119,6 +110,18 @@ internal sealed class FilterDialog : DialogWindow
 
         Content = new ScrollViewer { Content = group };
     }
+
+    /// <summary>Display name only; <see cref="FilterKind"/> remains the filter's stable identity.</summary>
+    internal static string TitleFor(FilterKind kind) => kind switch
+    {
+        FilterKind.GaussianBlur => L.Get("Filter.GaussianBlur"),
+        FilterKind.MotionBlur => L.Get("Filter.MotionBlur"),
+        FilterKind.BloomGlow => L.Get("Filter.BloomGlow"),
+        FilterKind.AddNoise => L.Get("Filter.AddNoise"),
+        FilterKind.Vignette => L.Get("Filter.Vignette"),
+        FilterKind.TonalContrast => L.Get("Filter.TonalContrast"),
+        _ => L.Get("Filter.LensCorrection"),
+    };
 
     /// <summary>A box that follows the setting it belongs to, and what it started as for Reset.</summary>
     private void Check(StackPanel parent, string label, bool value, Action<FilterSettings, bool> set)

@@ -12,18 +12,18 @@ namespace Compositor.Desktop;
 internal sealed class NewDocumentDialog : DialogWindow
 {
     /// <summary>A size worth starting from, as the Mac build's presets menu lists them.</summary>
-    private static readonly (string Title, int Width, int Height)[] Presets =
+    private static (string Title, int Width, int Height)[] Presets =>
     [
-        ("Custom", 0, 0),
+        (L.Get("NewDocument.Preset.Custom"), 0, 0),
         ("4K", 3840, 2160),
         ("1440p", 2560, 1440),
         ("1080p", 1920, 1080),
-        ("Instagram square", 1080, 1080),
-        ("Instagram portrait", 1080, 1350),
-        ("Instagram story", 1080, 1920),
-        ("YouTube thumbnail", 1080, 608),
-        ("A4 at 300 per inch", 2480, 3508),
-        ("A3 at 300 per inch", 3508, 4961),
+        (L.Get("NewDocument.Preset.InstagramSquare"), 1080, 1080),
+        (L.Get("NewDocument.Preset.InstagramPortrait"), 1080, 1350),
+        (L.Get("NewDocument.Preset.InstagramStory"), 1080, 1920),
+        (L.Get("NewDocument.Preset.YouTubeThumbnail"), 1080, 608),
+        (L.Get("NewDocument.Preset.A4At300Ppi"), 2480, 3508),
+        (L.Get("NewDocument.Preset.A3At300Ppi"), 3508, 4961),
     ];
 
     private readonly TextBox _width = new() { Text = "1920", Width = 100 };
@@ -47,7 +47,7 @@ internal sealed class NewDocumentDialog : DialogWindow
 
     internal NewDocumentDialog()
     {
-        Title = "New Project";
+        Title = L.Get("NewDocument.Title");
         Width = 400;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
@@ -64,8 +64,8 @@ internal sealed class NewDocumentDialog : DialogWindow
             if (change.Property == TextBox.TextProperty) ShowSize();
         };
 
-        var ok = new Button { Content = "OK", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("Common.OK"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) => Accept();
         cancel.Click += (_, _) => Close();
         Content = new StackPanel
@@ -74,10 +74,10 @@ internal sealed class NewDocumentDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                Row("Preset", _preset),
-                Row("Width, pixels", _width),
-                Row("Height, pixels", _height),
-                Row("Resolution, per inch", _resolution),
+                Row(L.Get("NewDocument.Preset"), _preset),
+                Row(L.Get("NewDocument.WidthPixels"), _width),
+                Row(L.Get("NewDocument.HeightPixels"), _height),
+                Row(L.Get("NewDocument.ResolutionPerInch"), _resolution),
                 _size,
                 new StackPanel
                 {
@@ -133,20 +133,20 @@ internal sealed class NewDocumentDialog : DialogWindow
         if (!int.TryParse(_width.Text, out var width) || !int.TryParse(_height.Text, out var height)
             || width < 1 || height < 1)
         {
-            _size.Text = "A canvas is at least one pixel each way";
+            _size.Text = L.Get("NewDocument.CanvasAtLeastOnePixel");
             return;
         }
         if (width > DocumentLimits.MaxSide || height > DocumentLimits.MaxSide)
         {
-            _size.Text = $"A side is at most {DocumentLimits.MaxSide} pixels";
+            _size.Text = L.Get("NewDocument.SideAtMostPixels", DocumentLimits.MaxSide);
             return;
         }
         var megapixels = width * (double)height / 1_000_000;
         var megabytes = width * (long)height * 4 / 1024.0 / 1024.0;
-        _size.Text = $"{megapixels:0.#} megapixels, about {megabytes:0} MB while it is open";
+        _size.Text = L.Get("NewDocument.SizeEstimate", megapixels, megabytes);
         if ((long)width * height > DocumentLimits.MaxSurfacePixels)
         {
-            _size.Text += $" — too big to hold (the most is {DocumentLimits.MaxSurfaceMegapixels} megapixels)";
+            _size.Text += L.Get("NewDocument.TooLargeToHold", DocumentLimits.MaxSurfaceMegapixels);
         }
     }
 

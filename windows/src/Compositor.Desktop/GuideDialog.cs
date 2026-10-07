@@ -16,18 +16,18 @@ internal sealed class GuideDialog : DialogWindow
 
     private GuideDialog(int width, int height)
     {
-        Title = "New Guide";
+        Title = L.Get("Guide.Title");
         Width = 380;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        _axis.ItemsSource = new[] { "Horizontal (across)", "Vertical (up and down)" };
+        _axis.ItemsSource = new[] { L.Get("Guide.Horizontal"), L.Get("Guide.Vertical") };
         _axis.SelectedIndex = 0;
         _axis.Width = 180;
         _position = new TextBox { Text = (height / 2).ToString(), Width = 100 };
 
-        var ok = new Button { Content = "OK", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("Common.OK"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) => Accept(width, height);
         cancel.Click += (_, _) => Close();
 
@@ -37,11 +37,11 @@ internal sealed class GuideDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                Row("Direction", _axis),
-                Row("Position, pixels", _position),
+                Row(L.Get("Guide.Direction"), _axis),
+                Row(L.Get("Guide.PositionPixels"), _position),
                 new TextBlock
                 {
-                    Text = $"The canvas is {width} x {height}. A guide may sit outside it, out in the pasteboard.",
+                    Text = L.Get("Guide.CanvasNote", width, height),
                     TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 },
                 new StackPanel

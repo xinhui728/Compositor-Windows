@@ -24,7 +24,7 @@ internal sealed class ShortcutDialog : DialogWindow
     private readonly Dictionary<string, ShortcutChord> _draft;
     /// <summary>The table the sheet opened with, which Restore Defaults puts back.</summary>
     private readonly Dictionary<string, ShortcutChord> _opened;
-    private readonly TextBox _search = new() { PlaceholderText = "Search shortcuts", Width = 400 };
+    private readonly TextBox _search = new() { PlaceholderText = L.Get("Shortcut.SearchPlaceholder"), Width = 400 };
     private readonly StackPanel _list = new() { Spacing = 2 };
     /// <summary>What scrolls the list, kept so that the check can take the list out of it to be drawn.</summary>
     private readonly ScrollViewer _scroller = new() { Margin = new Thickness(0, 6, 0, 6) };
@@ -34,14 +34,14 @@ internal sealed class ShortcutDialog : DialogWindow
         TextWrapping = TextWrapping.Wrap,
         IsVisible = false,
     };
-    private readonly Button _save = new() { Content = "Save", IsDefault = true };
+    private readonly Button _save = new() { Content = L.Get("Common.Save"), IsDefault = true };
     /// <summary>The row being recorded, or null when the keys are the sheet's own again.</summary>
     private string? _recording;
     private Dictionary<string, ShortcutChord>? _result;
 
     internal ShortcutDialog(IReadOnlyDictionary<string, ShortcutChord> overrides)
     {
-        Title = "Keyboard Shortcuts";
+        Title = L.Get("Shortcut.Title");
         Width = 660;
         Height = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -49,8 +49,8 @@ internal sealed class ShortcutDialog : DialogWindow
         _opened = new Dictionary<string, ShortcutChord>(_draft);
         _search.TextChanged += (_, _) => ShowRows();
 
-        var restore = new Button { Content = "Restore Defaults", HorizontalAlignment = HorizontalAlignment.Left };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var restore = new Button { Content = L.Get("Shortcut.RestoreDefaults"), HorizontalAlignment = HorizontalAlignment.Left };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         restore.Click += (_, _) => RestoreDefaults();
         cancel.Click += (_, _) => Close();
         _save.Click += (_, _) => Keep();
@@ -73,8 +73,7 @@ internal sealed class ShortcutDialog : DialogWindow
             {
                 new TextBlock
                 {
-                    Text = "Click a key, then press the one you want. Backspace clears a row and Escape stops "
-                        + "recording; the changes apply when you save.",
+                    Text = L.Get("Shortcut.Instructions"),
                     TextWrapping = TextWrapping.Wrap,
                 },
                 _search,
@@ -106,12 +105,12 @@ internal sealed class ShortcutDialog : DialogWindow
         {
             var rows = Shortcuts.Definitions
                 .Where(row => row.Group == group)
-                .Where(row => search.Length == 0 || row.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
+                .Where(row => search.Length == 0 || DisplayTitle(row).Contains(search, StringComparison.OrdinalIgnoreCase))
                 .ToList();
             if (rows.Count == 0) continue;
             _list.Children.Add(new TextBlock
             {
-                Text = group,
+                Text = DisplayGroup(group),
                 FontWeight = FontWeight.SemiBold,
                 Margin = new Thickness(0, 10, 0, 4),
             });
@@ -126,7 +125,7 @@ internal sealed class ShortcutDialog : DialogWindow
         var chord = _draft[definition.ID];
         var button = new Button
         {
-            Content = _recording == definition.ID ? "Press keys…" : chord.IsBound ? chord.Label : "—",
+            Content = _recording == definition.ID ? L.Get("Shortcut.PressKeys") : chord.IsBound ? chord.Label : L.Get("Shortcut.Unbound"),
             Width = 150,
             HorizontalContentAlignment = HorizontalAlignment.Center,
         };
@@ -135,7 +134,7 @@ internal sealed class ShortcutDialog : DialogWindow
             _recording = definition.ID;
             ShowRows();
         };
-        var name = new TextBlock { Text = definition.Title, VerticalAlignment = VerticalAlignment.Center };
+        var name = new TextBlock { Text = DisplayTitle(definition), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(button, 1);
         return new Grid
         {
@@ -143,6 +142,50 @@ internal sealed class ShortcutDialog : DialogWindow
             Margin = new Thickness(0, 1, 0, 1),
             Children = { name, button },
         };
+    }
+
+    /// <summary>The display title for a stable shortcut definition. Its ID and stored override stay in Core.</summary>
+    private static string DisplayTitle(ShortcutDefinition definition)
+    {
+        var key = $"Shortcut.Command.{definition.ID}";
+        var localized = L.Get(key);
+        return localized == key ? definition.Title : localized;
+    }
+
+    /// <summary>The two persisted Core groups, called something people can read in the sheet.</summary>
+    private static string DisplayGroup(string group) => group switch
+    {
+        Shortcuts.Menus => L.Get("Shortcut.Group.Menus"),
+        Shortcuts.Canvas => L.Get("Shortcut.Group.CanvasLayers"),
+        _ => group,
+    };
+
+    /// <summary>
+    /// The shortcut model deliberately produces stable English validation text so saved tables work across
+    /// platforms. The dialog translates those three messages at its display boundary without changing that
+    /// data or its identifiers.
+    /// </summary>
+    private static string DisplayProblem(string? problem)
+    {
+        if (problem is null) return "";
+        const string malformed = " is not one key with modifiers Ctrl, Alt or Shift";
+        if (problem.EndsWith(malformed, StringComparison.Ordinal))
+        {
+            return L.Get("Shortcut.InvalidKey", problem[..^malformed.Length]);
+        }
+
+        const string reserved = " is reserved by Windows";
+        if (problem.EndsWith(reserved, StringComparison.Ordinal))
+        {
+            return L.Get("Shortcut.ReservedByWindows", problem[..^reserved.Length]);
+        }
+
+        const string duplicate = " is on both ";
+        var divider = problem.IndexOf(duplicate, StringComparison.Ordinal);
+        if (divider < 0) return problem;
+        var other = problem[(divider + duplicate.Length)..];
+        var definition = Shortcuts.Definitions.FirstOrDefault(row => row.Title == other);
+        return L.Get("Shortcut.Duplicate", problem[..divider], definition is null ? other : DisplayTitle(definition));
     }
 
     /// <summary>
@@ -168,7 +211,7 @@ internal sealed class ShortcutDialog : DialogWindow
         if (ShortcutKeys.Bare(e.Key)) return;
         if (e.KeyModifiers.HasFlag(KeyModifiers.Meta))
         {
-            _complaint.Text = "The Windows key is reserved by Windows";
+            _complaint.Text = L.Get("Shortcut.WindowsKeyReserved");
             _complaint.IsVisible = true;
             return;
         }
@@ -194,7 +237,7 @@ internal sealed class ShortcutDialog : DialogWindow
     private void Complaint()
     {
         var problem = Shortcuts.Problem(_draft);
-        _complaint.Text = problem ?? "";
+        _complaint.Text = DisplayProblem(problem);
         _complaint.IsVisible = problem is not null;
         _save.IsEnabled = _recording is null && problem is null;
     }

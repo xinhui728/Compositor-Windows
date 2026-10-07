@@ -24,7 +24,7 @@ internal sealed class ColorRangePanel : DialogWindow
     private readonly TextBlock _problem = new() { Foreground = Brushes.Orange, TextWrapping = TextWrapping.Wrap };
     private readonly Slider _fuzziness;
     private readonly TextBlock _readout = new() { Width = 44, VerticalAlignment = VerticalAlignment.Center };
-    private readonly CheckBox _invert = new() { Content = "Invert" };
+    private readonly CheckBox _invert = new() { Content = L.Get("ColorRange.Invert") };
     private bool _showing;
     private bool _done;
 
@@ -40,7 +40,7 @@ internal sealed class ColorRangePanel : DialogWindow
     public ColorRangePanel(ColorRangeSession session)
     {
         _session = session;
-        Title = "Color Range";
+        Title = L.Get("ColorRange.Title");
         Width = 340;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
@@ -49,19 +49,14 @@ internal sealed class ColorRangePanel : DialogWindow
         var modes = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         foreach (var mode in Enum.GetValues<ColorRangeSession.Picking>())
         {
-            var button = new Button { Content = mode.ToString() };
+            var button = new Button { Content = ModeText(mode) };
             var picked = mode;
             button.Click += (_, _) =>
             {
                 session.Mode = picked;
                 Lit();
             };
-            ToolTip.SetTip(button, mode switch
-            {
-                ColorRangeSession.Picking.Replace => "Click the picture to select that color",
-                ColorRangeSession.Picking.Add => "Click the picture to add that color to the selection",
-                _ => "Click the picture to take that color out of the selection",
-            });
+            ToolTip.SetTip(button, ModeHint(mode));
             _modes[mode] = button;
             modes.Children.Add(button);
         }
@@ -90,8 +85,8 @@ internal sealed class ColorRangePanel : DialogWindow
             Changed?.Invoke();
         };
 
-        var ok = new Button { Content = "OK", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("Common.OK"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) =>
         {
             _done = true;
@@ -122,7 +117,7 @@ internal sealed class ColorRangePanel : DialogWindow
                     Spacing = 8,
                     Children =
                     {
-                        new TextBlock { Text = "Fuzziness", Width = 70, VerticalAlignment = VerticalAlignment.Center },
+                        new TextBlock { Text = L.Get("ColorRange.Fuzziness"), Width = 70, VerticalAlignment = VerticalAlignment.Center },
                         _fuzziness,
                         _readout,
                     },
@@ -150,10 +145,9 @@ internal sealed class ColorRangePanel : DialogWindow
         ShowingMask = mask is not null;
         _mask.Show(mask);
         _hint.Text = picked == 0
-            ? "Click the picture to pick the color to select."
-            : "Shift-click adds a color, Option-click takes one away."
-                + $" {picked} color(s) picked, {taken} taken away.";
-        _problem.Text = _session.Problem ?? "";
+            ? L.Get("ColorRange.Hint.Pick")
+            : L.Get("ColorRange.Hint.Picked", picked, taken);
+        _problem.Text = ProblemText(_session.Problem);
         _showing = true;
         try
         {
@@ -176,6 +170,31 @@ internal sealed class ColorRangePanel : DialogWindow
             button.Background = mode == _session.Mode ? Skin.TabFront : Brushes.Transparent;
         }
     }
+
+    private static string ModeText(ColorRangeSession.Picking mode) => mode switch
+    {
+        ColorRangeSession.Picking.Replace => L.Get("ColorRange.Mode.Replace"),
+        ColorRangeSession.Picking.Add => L.Get("ColorRange.Mode.Add"),
+        _ => L.Get("ColorRange.Mode.Remove"),
+    };
+
+    private static string ModeHint(ColorRangeSession.Picking mode) => mode switch
+    {
+        ColorRangeSession.Picking.Replace => L.Get("ColorRange.Mode.ReplaceHint"),
+        ColorRangeSession.Picking.Add => L.Get("ColorRange.Mode.AddHint"),
+        _ => L.Get("ColorRange.Mode.RemoveHint"),
+    };
+
+    /// <summary>
+    /// The session belongs to Core, so known diagnostics are mapped here without changing the document or
+    /// selection model.
+    /// </summary>
+    internal static string ProblemText(string? problem) => problem switch
+    {
+        "Nothing in the picture is that color" => L.Get("ColorRange.Problem.NoMatchingColor"),
+        null => "",
+        _ => problem,
+    };
 
     /// <summary>The panel's own button for one of its eyedroppers, which the self check presses.</summary>
     internal Button ModeButton(ColorRangeSession.Picking mode) => _modes[mode];

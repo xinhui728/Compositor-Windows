@@ -112,7 +112,7 @@ internal sealed class ToolOptionsBar : Border
             On("transform", tool == Tool.Move && hasDocument);
             On("type", tool == Tool.Type);
             On("zoom", tool == Tool.Pan);
-            _title.Text = Names.TryGetValue(tool, out var name) ? name : "";
+            _title.Text = Name(tool);
             // The marquee's shape and the lasso's kind *are* the tool in hand, so the bar follows the tool
             // rather than the other way round: picking one here asks for the tool the window already has.
             _marqueeShape.SelectedIndex = tool == Tool.Ellipse ? 1 : 0;
@@ -126,7 +126,7 @@ internal sealed class ToolOptionsBar : Border
     }
 
     /// <summary>The zoom the window is showing, for the Pan and Zoom rows.</summary>
-    public void ShowZoom(double percent) => _zoom.Text = $"zoom {percent:0}%";
+    public void ShowZoom(double percent) => _zoom.Text = L.Get("ToolOptions.Zoom", percent);
 
     /// <summary>Whether a row is on show, which is what the self check reads to see the gating works.</summary>
     internal bool Shows(string name) => _named.TryGetValue(name, out var cells) && cells[0].IsVisible;
@@ -143,14 +143,14 @@ internal sealed class ToolOptionsBar : Border
     /// <summary>Every row's value read back off its own control, which is what the bar is showing.</summary>
     private void Refresh()
     {
-        _size.Content = $"Size {_options.Brush.Diameter:0}";
-        _hardness.Content = $"Hardness {_options.Brush.Hardness * 100:0}%";
-        _opacity.Content = $"Opacity {_options.Brush.Opacity * 100:0}%";
-        _blurRadius.Content = $"Radius {_options.Brush.BlurRadius:0.#}";
-        _tolerance.Content = $"Tolerance {_options.Wand.Tolerance}";
-        _sampleSize.Content = $"Sample {_options.Wand.Radius}";
-        _corner.Content = $"Radius {_options.ShapeCornerRadius:0}";
-        _lineWidth.Content = $"Width {_options.ShapeLineWidth:0}";
+        _size.Content = L.Get("ToolOptions.Value.Size", _options.Brush.Diameter);
+        _hardness.Content = L.Get("ToolOptions.Value.Hardness", _options.Brush.Hardness * 100);
+        _opacity.Content = L.Get("ToolOptions.Value.Opacity", _options.Brush.Opacity * 100);
+        _blurRadius.Content = L.Get("ToolOptions.Value.BlurRadius", _options.Brush.BlurRadius);
+        _tolerance.Content = L.Get("ToolOptions.Value.Tolerance", _options.Wand.Tolerance);
+        _sampleSize.Content = L.Get("ToolOptions.Value.Sample", _options.Wand.Radius);
+        _corner.Content = L.Get("ToolOptions.Value.CornerRadius", _options.ShapeCornerRadius);
+        _lineWidth.Content = L.Get("ToolOptions.Value.Width", _options.ShapeLineWidth);
         _fill.Show(_options.Brush.Red, _options.Brush.Green, _options.Brush.Blue);
         _gradientFill.Show(_options.GradientBackground.Red, _options.GradientBackground.Green,
             _options.GradientBackground.Blue);
@@ -207,46 +207,46 @@ internal sealed class ToolOptionsBar : Border
     private readonly ComboBox _brushMode = new();
     private readonly ComboBox _maskPaint = new();
     private readonly ComboBox _healMode = new();
-    private readonly CheckBox _aligned = new() { Content = "Aligned" };
+    private readonly CheckBox _aligned = new() { Content = L.Get("ToolOptions.Aligned") };
     private readonly ComboBox _cloneAll = new();
     private readonly ComboBox _marqueeShape = new();
     private readonly ComboBox _lassoKind = new();
-    private readonly CheckBox _contiguous = new() { Content = "Contiguous" };
-    private readonly CheckBox _antialias = new() { Content = "Anti-alias" };
-    private readonly CheckBox _sampleRing = new() { Content = "Sample Ring" };
+    private readonly CheckBox _contiguous = new() { Content = L.Get("ToolOptions.Contiguous") };
+    private readonly CheckBox _antialias = new() { Content = L.Get("ToolOptions.Antialias") };
+    private readonly CheckBox _sampleRing = new() { Content = L.Get("ToolOptions.SampleRing") };
     private readonly ComboBox _wandAll = new();
     private readonly ComboBox _shapeKind = new();
     private readonly ComboBox _gradientKind = new();
     private readonly ComboBox _gradientTo = new();
-    private readonly CheckBox _gradientReversed = new() { Content = "Reverse" };
+    private readonly CheckBox _gradientReversed = new() { Content = L.Get("ToolOptions.Reverse") };
     private readonly ComboBox _cropRatio = new() { Width = 150 };
-    private readonly Button _cropApply = new() { Content = "Apply Crop" };
-    private readonly Button _cropCancel = new() { Content = "Cancel" };
-    private readonly Button _flipH = new() { Content = "Flip H" };
-    private readonly Button _flipV = new() { Content = "Flip V" };
-    private readonly Button _editText = new() { Content = "Edit Text…" };
+    private readonly Button _cropApply = new() { Content = L.Get("ToolOptions.ApplyCrop") };
+    private readonly Button _cropCancel = new() { Content = L.Get("Common.Cancel") };
+    private readonly Button _flipH = new() { Content = L.Get("ToolOptions.FlipHorizontal") };
+    private readonly Button _flipV = new() { Content = L.Get("ToolOptions.FlipVertical") };
+    private readonly Button _editText = new() { Content = L.Get("ToolOptions.EditText") };
 
     /// <summary>What each tool's strip is called, which is the Mac's own title.</summary>
-    private static readonly Dictionary<Tool, string> Names = new()
+    private static string Name(Tool tool) => tool switch
     {
-        [Tool.Pan] = "Pan",
-        [Tool.Move] = "Transform",
-        [Tool.Marquee] = "Marquee",
-        [Tool.Ellipse] = "Elliptical marquee",
-        [Tool.Lasso] = "Lasso",
-        [Tool.Polygon] = "Polygonal lasso",
-        [Tool.Wand] = "Magic wand",
-        [Tool.Brush] = "Brush",
-        [Tool.Clone] = "Clone stamp",
-        [Tool.Blur] = "Blur brush",
-        [Tool.Liquify] = "Liquify brush",
-        [Tool.Smudge] = "Smudge brush",
-        [Tool.Heal] = "Spot healing",
-        [Tool.Eyedropper] = "Eyedropper",
-        [Tool.Type] = "Type",
-        [Tool.Crop] = "Crop",
-        [Tool.Shape] = "Shape",
-        [Tool.Gradient] = "Gradient",
+        Tool.Pan => L.Get("ToolOptions.Tool.Pan"),
+        Tool.Move => L.Get("ToolOptions.Tool.Transform"),
+        Tool.Marquee => L.Get("ToolOptions.Tool.Marquee"),
+        Tool.Ellipse => L.Get("ToolOptions.Tool.Ellipse"),
+        Tool.Lasso => L.Get("ToolOptions.Tool.Lasso"),
+        Tool.Polygon => L.Get("ToolOptions.Tool.Polygon"),
+        Tool.Wand => L.Get("ToolOptions.Tool.Wand"),
+        Tool.Brush => L.Get("ToolOptions.Tool.Brush"),
+        Tool.Clone => L.Get("ToolOptions.Tool.Clone"),
+        Tool.Blur => L.Get("ToolOptions.Tool.Blur"),
+        Tool.Liquify => L.Get("ToolOptions.Tool.Liquify"),
+        Tool.Smudge => L.Get("ToolOptions.Tool.Smudge"),
+        Tool.Heal => L.Get("ToolOptions.Tool.Heal"),
+        Tool.Eyedropper => L.Get("ToolOptions.Tool.Eyedropper"),
+        Tool.Type => L.Get("ToolOptions.Tool.Type"),
+        Tool.Crop => L.Get("ToolOptions.Tool.Crop"),
+        Tool.Shape => L.Get("ToolOptions.Tool.Shape"),
+        _ => L.Get("ToolOptions.Tool.Gradient"),
     };
 
     private void Build()
@@ -274,13 +274,22 @@ internal sealed class ToolOptionsBar : Border
         _fill.Click += (_, _) => ColourAsked?.Invoke(true);
         _gradientFill.Click += (_, _) => ColourAsked?.Invoke(false);
 
-        _brushMode.ItemsSource = new[] { "Paint", "Erase" };
+        _brushMode.ItemsSource = new[] { L.Get("ToolOptions.BrushMode.Paint"), L.Get("ToolOptions.BrushMode.Erase") };
         _brushMode.SelectedIndex = 0;
         _brushMode.SelectionChanged += (_, _) => Set(ref _options.Erase, _brushMode.SelectedIndex == 1);
-        _maskPaint.ItemsSource = new[] { "Paint Black · Hide", "Paint White · Reveal" };
+        _maskPaint.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.MaskPaint.Hide"),
+            L.Get("ToolOptions.MaskPaint.Reveal"),
+        };
         _maskPaint.SelectedIndex = 0;
         _maskPaint.SelectionChanged += (_, _) => Set(ref _options.PaintOnMask, _maskPaint.SelectedIndex == 1);
-        _healMode.ItemsSource = new[] { "Content-Aware", "Create Texture", "Proximity Match" };
+        _healMode.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.HealMode.ContentAware"),
+            L.Get("ToolOptions.HealMode.CreateTexture"),
+            L.Get("ToolOptions.HealMode.ProximityMatch"),
+        };
         _healMode.SelectedIndex = 0;
         _healMode.SelectionChanged += (_, _) =>
         {
@@ -298,7 +307,11 @@ internal sealed class ToolOptionsBar : Border
         _sampleRing.IsChecked = _options.ShowsSampleRing;
         _sampleRing.IsCheckedChanged += (_, _) =>
             Set(ref _options.ShowsSampleRing, _sampleRing.IsChecked == true);
-        _cloneAll.ItemsSource = new[] { "Sample: This Layer", "Sample: All Layers" };
+        _cloneAll.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.Sample.ThisLayer"),
+            L.Get("ToolOptions.Sample.AllLayers"),
+        };
         _cloneAll.SelectedIndex = 0;
         _cloneAll.SelectionChanged += (_, _) =>
         {
@@ -306,7 +319,11 @@ internal sealed class ToolOptionsBar : Border
             Set(ref _options.Brush, brush);
         };
 
-        _marqueeShape.ItemsSource = new[] { "Rectangle", "Ellipse" };
+        _marqueeShape.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.Shape.Rectangle"),
+            L.Get("ToolOptions.Shape.Ellipse"),
+        };
         _marqueeShape.SelectedIndex = 0;
         _marqueeShape.SelectionChanged += (_, _) =>
         {
@@ -314,7 +331,11 @@ internal sealed class ToolOptionsBar : Border
             _marqueeEllipse = _marqueeShape.SelectedIndex == 1;
             MarqueeShapeChosen?.Invoke(_marqueeEllipse);
         };
-        _lassoKind.ItemsSource = new[] { "Freehand", "Polygonal" };
+        _lassoKind.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.Lasso.Freehand"),
+            L.Get("ToolOptions.Lasso.Polygonal"),
+        };
         _lassoKind.SelectedIndex = 0;
         _lassoKind.SelectionChanged += (_, _) =>
         {
@@ -326,11 +347,20 @@ internal sealed class ToolOptionsBar : Border
             var wand = _options.Wand with { Contiguous = _contiguous.IsChecked == true };
             Set(ref _options.Wand, wand);
         };
-        _wandAll.ItemsSource = new[] { "Sample: This Layer", "Sample: All Layers" };
+        _wandAll.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.Sample.ThisLayer"),
+            L.Get("ToolOptions.Sample.AllLayers"),
+        };
         _wandAll.SelectedIndex = 0;
         _wandAll.SelectionChanged += (_, _) => Set(ref _options.WandAllLayers, _wandAll.SelectedIndex == 1);
 
-        _shapeKind.ItemsSource = new[] { "Rectangle", "Ellipse", "Line" };
+        _shapeKind.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.Shape.Rectangle"),
+            L.Get("ToolOptions.Shape.Ellipse"),
+            L.Get("ToolOptions.Shape.Line"),
+        };
         _shapeKind.SelectedIndex = 0;
         _shapeKind.SelectionChanged += (_, _) =>
         {
@@ -341,10 +371,21 @@ internal sealed class ToolOptionsBar : Border
             On("corner", shape != ShapeKind.Line);
             On("linewidth", shape == ShapeKind.Line);
         };
-        _gradientKind.ItemsSource = new[] { "Linear", "Radial", "Angle", "Reflected", "Diamond" };
+        _gradientKind.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.Gradient.Linear"),
+            L.Get("ToolOptions.Gradient.Radial"),
+            L.Get("ToolOptions.Gradient.Angle"),
+            L.Get("ToolOptions.Gradient.Reflected"),
+            L.Get("ToolOptions.Gradient.Diamond"),
+        };
         _gradientKind.SelectedIndex = 0;
         _gradientKind.SelectionChanged += (_, _) => Set(ref _options.Gradient, (GradientShape)Math.Max(0, _gradientKind.SelectedIndex));
-        _gradientTo.ItemsSource = new[] { "To nothing", "To the background color" };
+        _gradientTo.ItemsSource = new[]
+        {
+            L.Get("ToolOptions.GradientTo.Nothing"),
+            L.Get("ToolOptions.GradientTo.Background"),
+        };
         _gradientTo.SelectedIndex = 0;
         _gradientTo.SelectionChanged += (_, _) => Set(ref _options.GradientToBackground, _gradientTo.SelectedIndex == 1);
         _gradientReversed.IsCheckedChanged += (_, _) => Set(ref _options.GradientReversed, _gradientReversed.IsChecked == true);

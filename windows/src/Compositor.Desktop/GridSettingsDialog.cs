@@ -28,7 +28,7 @@ internal sealed class GridSettingsDialog : DialogWindow
 
     internal GridSettingsDialog(LayoutGrid start)
     {
-        Title = "Grid Settings";
+        Title = L.Get("GridSettings.Title");
         Width = 380;
         SizeToContent = SizeToContent.Height;
         CanResize = false;
@@ -36,8 +36,8 @@ internal sealed class GridSettingsDialog : DialogWindow
         _spacing = new TextBox { Text = start.Spacing.ToString(), Width = 100 };
         _subdivisions = new TextBox { Text = start.Subdivisions.ToString(), Width = 100 };
 
-        var ok = new Button { Content = "OK", IsDefault = true };
-        var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var ok = new Button { Content = L.Get("Common.OK"), IsDefault = true };
+        var cancel = new Button { Content = L.Get("Common.Cancel"), IsCancel = true };
         ok.Click += (_, _) => Accept();
         cancel.Click += (_, _) => Close();
 
@@ -47,12 +47,12 @@ internal sealed class GridSettingsDialog : DialogWindow
             Spacing = 8,
             Children =
             {
-                Row("Spacing, pixels", _spacing),
-                Row("Subdivisions", _subdivisions),
+                Row(L.Get("GridSettings.SpacingPixels"), _spacing),
+                Row(L.Get("GridSettings.Subdivisions"), _subdivisions),
                 new TextBlock
                 {
-                    Text = $"Between {LayoutGrid.LeastSpacing} and {LayoutGrid.MostSpacing} pixels apart, "
-                        + $"split into at most {LayoutGrid.MostSubdivisions}.",
+                    Text = L.Get("GridSettings.LimitsNote", LayoutGrid.LeastSpacing, LayoutGrid.MostSpacing,
+                        LayoutGrid.MostSubdivisions),
                     TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 },
                 new StackPanel
