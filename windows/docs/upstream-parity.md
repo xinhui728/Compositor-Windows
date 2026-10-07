@@ -77,15 +77,15 @@ Status meanings:
 | 1.4 | `91cb0b1`, `f773f7b`, `4c5e1a6`, `d04f159` — Metal warps, all-frame coverage, texture memory/copy fixes | Completes GPU drawing and reduces GPU memory/copy churn; `d04f159` is why tag `v1.4` points after the release commit. | 🍎 Metal/QuartzCore resource lifetime and command-buffer ordering have no direct Avalonia equivalent. Do not port the APIs; benchmark the Skia path before any renderer architecture work. | `Core/Rendering/DocumentRenderer.cs`, `Desktop/CanvasView.cs` | XL | P3 |
 | 1.4 | `3ccc125` — keep prior filter preview while a larger result is rendering | Retains correctly placed previous preview instead of flickering to the original layer. | ✅ `FilterPreview` preserves the last successful generated asset when a subsequent preview refuses/fails. | `Core/Document/FilterPreview.cs`, `tests/Compositor.Core.Tests/FilterPreviewTests.cs` | S | P2 |
 | 1.4 | `5a8f6ce` — Photoshop-like Soft Light | Uses `CISoftLightBlendMode` because Core Graphics differed visibly. | ⚠️ Windows maps directly to `SKBlendMode.SoftLight`; it needs Photoshop/macOS golden-pixel comparison before calling this equivalent. | `Core/Pixels/BlendModes.cs` | M | P1 |
-| 1.4 | `60bde4f` — Shift constrains selected-pixel drag | Locks a moved selection’s pixels horizontally or vertically. | ❌ Canvas pixel drag passes only unconstrained `dx, dy`; transform drag has axis lock, but selected-pixel drag does not. | `Desktop/CanvasView.cs`, `Desktop/MainWindow.cs`, `Core/Document/SelectionEdits.cs` | S | P2 |
+| 1.4 | `60bde4f` — Shift constrains selected-pixel drag | Locks a moved selection’s pixels horizontally or vertically. | ✅ `CanvasView` constrains only the floating selected-pixel drag through `SelectionEdits.ConstrainPixelDrag`; it chooses the current dominant axis and returns to free movement when Shift is released. | `Desktop/CanvasView.cs`, `Core/Document/SelectionEdits.cs`, `tests/Compositor.Core.Tests/SelectionPixelsTests.cs` | S | P2 |
 | 1.4 | `451281e` — Cmd-A from Layers selects canvas | Layer-list focus no longer consumes Select All as row selection. | ✅ Window shortcut dispatch routes Ctrl+A to `SelectionEdits.SelectAll` unless a text field owns the edit chord. | `Desktop/MainWindow.cs`, `Core/IO/Shortcuts.cs` | S | P2 |
-| 1.4.1 | `133c34a` — precise paint-refusal feedback; Select All then Inverse clears selection | Explains why painting cannot proceed; canonicalizes full inverse to no active selection. | 🟡 Windows provides several tool-specific status messages, but `SelectionEdits.Invert` leaves an empty path rather than `DocumentSelection.All` after full inverse. | `Desktop/MainWindow.cs`, `Core/Document/SelectionEdits.cs` | S | P2 |
+| 1.4.1 | `133c34a` — precise paint-refusal feedback; Select All then Inverse clears selection | Explains why painting cannot proceed; canonicalizes full inverse to no active selection. | 🟡 `SelectionEdits.Invert` now canonicalizes a full inverse to `DocumentSelection.All`; Windows still has only the existing tool-specific paint-refusal messages rather than every upstream reason. | `Desktop/MainWindow.cs`, `Core/Document/SelectionEdits.cs`, `tests/Compositor.Core.Tests/SelectionCanonicalizationTests.cs` | S | P2 |
 | 1.4.1 | `d3170ab` — Clone Stamp and Blur at native layer resolution | Samples and paints scaled/rotated/flipped layers on their own pixel grid. | ⚠️ Output is written on the native grid, but Clone/Blur sampling is explicitly made at document size; this is not the same scaled-layer behavior. | `Core/Document/BrushEdits.cs` | L | P1 |
 | 1.4.1 | `67cc31e` — transform Apply/Cancel and scaled-size labels | Only persistent transforms show Apply/Cancel; layer rows expose non-100% scale. | 🟡 Direct canvas transforms are one undo step on release, but there is no equivalent transform inspector/scale label workflow. | `Desktop/CanvasView.cs`, `Desktop/MainWindow.cs` | M | P2 |
-| 1.4.1 | `b3419ab` — selection-aware masks and mask-alone view | Add Mask reveals selection; Option-add hides selection; Option-click displays only the mask. | ❌ Windows only offers Reveal All/Hide All and has no isolated layer-mask view. The existing mask representation is sufficient. | `Desktop/MainWindow.cs`, `Core/Document/LayerMaskEdits.cs`, `Core/Rendering/DocumentRenderer.cs` | M | P1 |
+| 1.4.1 | `b3419ab` — selection-aware masks and mask-alone view | Add Mask reveals selection; Option-add hides selection; Option-click displays only the mask. | ✅ `LayerMaskEdits.Add` creates existing Gray8 mask assets from selections and consumes the selection; Alt-clicking the Avalonia mask target toggles a view-only grayscale mask preview without history or serialization changes. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs`, `Core/Document/LayerMaskEdits.cs`, `Core/Rendering/MaskPreviewRenderer.cs`, tests | M | P1 |
 | 1.4.1 | `bca8f13` — live Command Auto Select and Shift aspect-lock state | Held modifiers invert Auto Select/aspect lock and update the controls while held. | 🟡 Shift toggles transform aspect ratio during a drag, but Windows has no Auto Select option or live modifier-state UI. | `Desktop/CanvasView.cs`, `Desktop/ToolOptions.cs`, `Desktop/ToolOptionsBar.cs` | S | P2 |
 | 1.4.1 | `1faf7a0` — reorderable tabs and overflow menu | Drag tabs to reorder; hide excess tabs in a menu while pinning the selected tab. | ❌ Windows has clickable/closable tabs only; `RefreshTabs` emits every tab in a `StackPanel`, with no drag reorder or overflow. | `Desktop/MainWindow.cs` | M | P2 |
-| 1.4.1 | `1318f1e`, `6c3b9a5` — Ungroup Layers shortcut and context menu | Removes the folder, preserves child order, and releases invalid detached clips. | ❌ No C# ungroup operation, shortcut, or layer context command was found. | `Core/Document/LayerEdits.cs`, `Desktop/MainWindow.cs`, `Core/IO/Shortcuts.cs` | M | P2 |
+| 1.4.1 | `1318f1e`, `6c3b9a5` — Ungroup Layers shortcut and context menu | Removes the folder, preserves child order, and releases invalid detached clips. | ✅ `LayerPlacement.Ungroup` promotes direct children in place, retains valid clipping stacks, and is wired to Layer menu, group context menu, undo/redo, and Ctrl+Shift+G. | `Core/Document/LayerPlacement.cs`, `Desktop/MainWindow.cs`, `Core/IO/Shortcuts.cs`, tests | M | P2 |
 | 1.4.1 | `6955a6f` — Option-hover mask thumbnail cursor | Adds a duplicate-and-eye affordance before mask-alone click. | ❌ No mask-thumbnail hover/cursor behavior exists in the Avalonia layer list. | `Desktop/MainWindow.cs` | S | P3 |
 | 1.4.1 | `686d8c7` — live transform fields commit as one undo | X/Y/W/H/scale controls preview then commit without a persistent Apply button. | ❌ The Windows move tool has canvas handles but no corresponding transform-value fields. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs` | M | P2 |
 | 1.4.1 | `c459f88` — resize-handle snapping | Resized edges snap to canvas/layer targets, respecting ratio/control modifiers. | ✅ Windows sends every transform draft, including resize, through `TransformEdits.Snap`; crop has its own snapping path. | `Core/Document/TransformEdits.cs`, `Core/Document/CropEdits.cs`, `Desktop/MainWindow.cs` | S | P2 |
@@ -221,22 +221,22 @@ These are not falsely attributed to 1.4.3–1.4.5 changes.
 | A — compatibility and correctness | Preserve format-11 round trips; add macOS-derived PSD, Soft Light, Add Noise, and mask fixtures; wire PSD/PSB Desktop import only with conversion-note UI. | `Core/IO/PSD/*`, `Desktop/MainWindow.cs`, optional import/conversion dialog, `Core/Format/*`, resources. | Existing manifest/project round trips; PSD mask/adjustment fixtures; desktop import integration; no manifest delta. | High data-correctness risk; M–L. |
 | B — rendering behavior | Resolve Soft Light parity; compare adjustment/noise placement and clipping stacks; profile CPU tiles before considering a backend abstraction. | `Core/Pixels/BlendModes.cs`, `AdjustmentOperators.cs`, `Core/Rendering/DocumentRenderer.cs`. | Golden-pixel cases for blend modes, masks, adjustments, tiled-vs-whole render. | Rendering regressions; L. |
 | C — Camera Raw parity | Add transient parametric curve state, smooth RGB tone LUT, Refine semantics, Parametric/Point UI, and localized labels. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs`, `Desktop/CameraRawPanel.cs`, `Desktop/CurveEditor.cs`, both resource files. | Upstream curve profiles, monotonicity, RGB/chroma fixtures, Avalonia pointer tests, `.comp` serialization unchanged. | Algorithm/UI coupling; L. |
-| D — tools and editor UI | Selection-aware masks and mask-alone view, Shift selected-pixel axis lock, ungroup, tabs overflow/reorder, transform fields, close-settlement behavior. | `Core/Document/SelectionEdits.cs`, `LayerMaskEdits.cs`, `LayerEdits.cs`, `Desktop/MainWindow.cs`, `CanvasView.cs`, tab controls, shortcuts/resources. | History/undo tests, layer-order/mask tests, keyboard and pointer desktop tests, close/cancel tests. | Interaction/history regressions; S–M per item. |
+| D — tools and editor UI | The first batch is complete: selection-aware masks and mask-alone view, Shift selected-pixel axis lock, and ungroup. Remaining work includes tabs overflow/reorder, transform fields, and close-settlement behavior. | `Core/Document/SelectionEdits.cs`, `LayerMaskEdits.cs`, `LayerPlacement.cs`, `Desktop/MainWindow.cs`, `CanvasView.cs`, tab controls, shortcuts/resources. | History/undo tests, layer-order/mask tests, keyboard and pointer desktop tests, close/cancel tests. | Interaction/history regressions; S–M per item. |
 | E — Apple Vision replacements | Decide whether pre-existing subject/object/background selection merits a licensed ONNX-based replacement. | New opt-in integration only if approved; no change today. | Model-free interface tests; model/license acceptance tests if adopted. | Licensing/package/model quality; XL. |
 | F — packaging and polish | Scanlines filter, parallelize only after golden output is stable, OS clipboard/export extensions, tab/mask cursor polish. | Dither core/dialog, clipboard/export services, Desktop resources. | Dither pixel fixtures and performance thresholds; end-to-end clipboard/export tests. | Platform integration and performance; M–L. |
 
 ### Recommended first implementation batch
 
-Keep the first code batch intentionally away from renderer architecture and
-serialization. These four related selection/layer workflow items are contained
-and low-risk relative to Camera Raw or GPU work:
+This initial code batch was completed in `5488f20` and `e992d92`, without
+changing renderer architecture or serialization:
 
-1. Normalize `Select All` followed by `Inverse` to no active selection.
-2. Add Reveal Selection / Hide Selection mask creation using the existing mask
-   PNG representation.
-3. Add mask-alone preview and its undo/selection tests.
-4. Add Shift axis-lock for selected-pixel dragging, then add Ungroup Layers
-   with shortcut/context-menu coverage as the adjacent layer-operation item.
+1. [x] Normalize `Select All` followed by `Inverse` to no active selection.
+2. [x] Add Reveal Selection / Hide Selection mask creation using the existing
+   mask PNG representation.
+3. [x] Add a view-only mask-alone preview with grayscale-render and non-mutating coverage.
+4. [x] Add Shift axis-lock for selected-pixel dragging.
+5. [x] Add Ungroup Layers with shortcut, context-menu, order, clipping, and
+   undo/redo coverage.
 
 Every visible label introduced by this batch must be added to both resource
 files. Use localized display labels only; never change command IDs, enum values,
@@ -269,6 +269,7 @@ IDs, command IDs, JSON property names, and serialized `.comp` values stable.
 - [x] Classified all 39 production-source commits in the range.
 - [x] Confirmed no `.comp` schema/version change in the range.
 - [x] Mapped Apple-only implementation choices to Windows equivalents.
+- [x] Complete the first Phase D selection/mask/layer interaction batch.
 - [ ] Complete Phase A fixtures and PSD Desktop integration.
 - [ ] Complete Phase B rendering parity fixtures/fixes.
 - [ ] Complete Phase C Camera Raw 1.4.5 parity.
