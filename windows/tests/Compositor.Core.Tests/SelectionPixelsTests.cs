@@ -138,6 +138,31 @@ public class SelectionPixelsTests
     }
 
     [Fact]
+    public void FloatingPixelDragRoundTripsThroughOneHistoryStep()
+    {
+        var (document, layer) = Patch();
+        using var _ = document;
+        var history = new DocumentHistory();
+
+        // The Desktop starts history before LiftPixels: lifting makes a temporary hole immediately, and Undo
+        // must restore the original pixels rather than that transient state.
+        history.Begin("Move Pixels", document, layer.ID);
+        var floating = SelectionEdits.LiftPixels(document, layer.ID);
+        Assert.NotNull(floating);
+        Assert.True(SelectionEdits.SettlePixels(document, floating!, 8, 3));
+        history.End(document, layer.ID);
+
+        Assert.Equal("Move Pixels", history.UndoName);
+        var undone = history.Undo()!.Value.Document!;
+        Assert.Equal(240, undone.Layers.Single().Asset!.Image.GetPixel(20, 15).Red);
+        Assert.Equal(20, undone.Layers.Single().Asset!.Image.GetPixel(28, 18).Red);
+
+        var redone = history.Redo()!.Value.Document!;
+        Assert.Equal(0, redone.Layers.Single().Asset!.Image.GetPixel(20, 15).Alpha);
+        Assert.Equal(240, redone.Layers.Single().Asset!.Image.GetPixel(28, 18).Red);
+    }
+
+    [Fact]
     public void ADragThatComesToNothingPutsTheLayerBackExactly()
     {
         // A cancel must leave no trace at all: the pixels, the outline and the layer's own picture.
@@ -154,6 +179,20 @@ public class SelectionPixelsTests
         var after = System.Security.Cryptography.SHA256.HashData(Pixels(Image(document)));
         Assert.Equal(was, after);
         Assert.Equal(outline, document.Selection.Path!.Bounds);
+    }
+
+    [Theory]
+    [InlineData(9, 4, true, 9, 0)]
+    [InlineData(-9, 4, true, -9, 0)]
+    [InlineData(4, -9, true, 0, -9)]
+    [InlineData(5, 5, true, 5, 0)]
+    [InlineData(4, -9, false, 4, -9)]
+    public void ShiftConstrainsOnlyTheCurrentSelectedPixelDragOffset(int dx, int dy, bool shift,
+        int expectedX, int expectedY)
+    {
+        // The dominant axis is decided for each pointer update. It is intentionally not a latched transform
+        // constraint: releasing Shift immediately returns the free offset to the floating-pixel drag.
+        Assert.Equal((expectedX, expectedY), SelectionEdits.ConstrainPixelDrag(dx, dy, shift));
     }
 
     /// <summary>A layer's pixels as bytes, whatever the row padding is.</summary>

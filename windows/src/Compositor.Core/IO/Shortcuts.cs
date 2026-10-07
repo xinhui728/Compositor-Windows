@@ -214,6 +214,7 @@ public static class Shortcuts
         Menu("Duplicate Layer", "J", Ctrl | Shift);
         Menu("Toggle Clipping Mask", "G", Ctrl | Alt);
         Menu("Group Layers", "G", Ctrl);
+        Menu("Ungroup Layers", "G", Ctrl | Shift);
         Menu("New Blank Layer", "N", Ctrl | Shift);
         Menu("Move Layer Up", "OemCloseBrackets", Ctrl);
         Menu("Move Layer Down", "OemOpenBrackets", Ctrl);

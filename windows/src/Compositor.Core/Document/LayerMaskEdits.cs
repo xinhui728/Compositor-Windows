@@ -10,13 +10,50 @@ namespace Compositor.Core.Document;
 public static class LayerMaskEdits
 {
     /// <summary>
-    /// A plain all-white mask, which reveals everything, or an all-black one, which hides it. Refused when
-    /// the layer already has a mask. A folder takes one too, which then clips everything inside it.
+    /// Adds a mask as Photoshop's Add Layer Mask control does. With no active selection it is a plain all-white
+    /// mask, which reveals everything, or an all-black one, which hides it. With a selection, reveal makes the
+    /// selected area white and everything else black; hide reverses those values. The selection is then let go in
+    /// the same edit. A folder takes one too, which then clips everything inside it.
     /// </summary>
     public static bool Add(CanvasDocument document, Guid layerID, bool revealing)
     {
         if (Lookup(document, layerID) is not { Mask: null } layer) return false;
-        layer.Mask = Model.LayerMask.Solid(revealing);
+        if (document.Selection.Path is null)
+        {
+            layer.Mask = Model.LayerMask.Solid(revealing);
+            return true;
+        }
+
+        // A selection-derived mask covers the layer's own grid, not the whole document. This is also how masks
+        // on empty folders and adjustment layers work: their transform describes the grid until they have pixels.
+        var width = layer.Asset?.Width ?? (int)Math.Round(layer.Transform.Width);
+        var height = layer.Asset?.Height ?? (int)Math.Round(layer.Transform.Height);
+        if (width <= 0 || height <= 0 || width > DocumentLimits.MaxSide || height > DocumentLimits.MaxSide
+            || (long)width * height > DocumentLimits.MaxSurfacePixels)
+        {
+            return false;
+        }
+
+        using var coverage = FillEdits.Coverage(document, out var region);
+        // There is an active outline on this path, so a missing coverage bitmap means it could not be sampled;
+        // do not quietly turn that error into a whole-layer mask.
+        if (coverage is null) return false;
+        var pixels = Bitmaps.Allocate(Bitmaps.MaskInfo(width, height));
+        var outside = revealing ? (byte)0 : (byte)255;
+        var inside = revealing ? (byte)255 : (byte)0;
+        var values = pixels.GetPixelSpan();
+        var toDocument = BrushEdits.PixelToDocument(layer.Transform, width, height);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var amount = FillEdits.Amount(coverage, region, toDocument.MapPoint(x + 0.5f, y + 0.5f));
+                values[y * pixels.RowBytes + x] = (byte)Math.Clamp(
+                    Math.Round(outside + (inside - outside) * amount, MidpointRounding.AwayFromZero), 0, 255);
+            }
+        }
+        layer.Mask = Model.LayerMask.AssetFrom(pixels);
+        document.Selection = DocumentSelection.All;
         return true;
     }
 

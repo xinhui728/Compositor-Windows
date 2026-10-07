@@ -131,6 +131,154 @@ public class LayerPlacementTests
     }
 
     [Fact]
+    public void UngroupingPlacesDirectChildrenInTheFoldersSlotAndKeepsTheirAppearance()
+    {
+        var beneath = Patch(SKColors.Blue, 0, 0, 8, 8, "Beneath");
+        var folder = Folder("Folder", null);
+        var above = Patch(SKColors.Red, 0, 0, 2, 8, "Above");
+        var first = Patch(SKColors.Green, 0, 0, 4, 8, "First");
+        first.ParentID = folder.ID;
+        var second = Patch(SKColors.Yellow, 4, 0, 4, 8, "Second");
+        second.ParentID = folder.ID;
+        using var document = Doc(8, 8, beneath, folder, above, first, second);
+        using var was = DocumentRenderer.Render(document);
+
+        Assert.True(LayerPlacement.Ungroup(document, folder.ID));
+
+        Assert.Equal(new[] { "Beneath", "First", "Second", "Above" }, Names(document));
+        Assert.All(new[] { first, second }, layer => Assert.Null(layer.ParentID));
+        Assert.DoesNotContain(document.Layers, layer => layer.ID == folder.ID);
+        Assert.Equal(new[] { "Beneath", "First", "Second", "Above" },
+            document.HierarchyEntries().Select(entry => entry.Layer.Name));
+        // A default pass-through folder has no visual contribution of its own.
+        using var now = DocumentRenderer.Render(document);
+        for (var x = 0; x < 8; x++) Assert.Equal(was.GetPixel(x, 4), now.GetPixel(x, 4));
+    }
+
+    [Fact]
+    public void UngroupingRoundTripsTheFolderAndChildrenThroughHistory()
+    {
+        var below = Patch(SKColors.Blue, 0, 0, 8, 8, "Below");
+        var folder = Folder("Folder", null);
+        var first = Patch(SKColors.Green, 0, 0, 4, 8, "First");
+        first.ParentID = folder.ID;
+        var second = Patch(SKColors.Yellow, 4, 0, 4, 8, "Second");
+        second.ParentID = folder.ID;
+        using var document = Doc(8, 8, below, folder, first, second);
+        var history = new DocumentHistory();
+
+        history.Begin("Ungroup Layers", document, folder.ID);
+        Assert.True(LayerPlacement.Ungroup(document, folder.ID));
+        history.End(document, first.ID);
+
+        Assert.Equal("Ungroup Layers", history.UndoName);
+        Assert.Equal(new[] { "Below", "First", "Second" }, Names(document));
+        var undone = history.Undo()!.Value.Document!;
+        Assert.Contains(undone.Layers, layer => layer.ID == folder.ID && layer.IsGroup);
+        Assert.Equal(folder.ID, undone.Layers.Single(layer => layer.ID == first.ID).ParentID);
+        Assert.Equal(folder.ID, undone.Layers.Single(layer => layer.ID == second.ID).ParentID);
+
+        var redone = history.Redo()!.Value;
+        Assert.DoesNotContain(redone.Document!.Layers, layer => layer.ID == folder.ID);
+        Assert.All(new[] { first.ID, second.ID }, id =>
+            Assert.Null(redone.Document.Layers.Single(layer => layer.ID == id).ParentID));
+        Assert.Equal(first.ID, redone.ActiveLayerID);
+    }
+
+    [Fact]
+    public void UngroupingDiscardsTheFoldersOwnAppearanceAndMask()
+    {
+        var folder = Folder("Folder", null);
+        folder.Opacity = 0.25;
+        folder.BlendMode = LayerBlendMode.Multiply;
+        folder.IsVisible = false;
+        folder.Mask = Model.LayerMask.Solid(revealing: false);
+        var child = Patch(SKColors.Red, 0, 0, 8, 8, "Child");
+        child.ParentID = folder.ID;
+        using var document = Doc(8, 8, folder, child);
+
+        Assert.True(LayerPlacement.Ungroup(document, folder.ID));
+
+        Assert.DoesNotContain(document.Layers, layer => layer.ID == folder.ID);
+        Assert.Null(child.ParentID);
+        // The child's own appearance is preserved; the removed folder's mask, blend, opacity and visibility
+        // cannot silently be transferred to it.
+        Assert.True(child.IsVisible);
+        Assert.Equal(1, child.Opacity);
+        Assert.Equal(LayerBlendMode.Normal, child.BlendMode);
+        Assert.Null(child.Mask);
+    }
+
+    [Fact]
+    public void UngroupingNestedFoldersOnlyReparentsTheDirectChildren()
+    {
+        var outer = Folder("Outer", null);
+        var lower = Patch(SKColors.Blue, 0, 0, 8, 8, "Lower");
+        lower.ParentID = outer.ID;
+        var folder = Folder("Folder", outer.ID);
+        var upper = Patch(SKColors.Red, 0, 0, 8, 8, "Upper");
+        upper.ParentID = outer.ID;
+        var first = Patch(SKColors.Green, 0, 0, 8, 8, "First");
+        first.ParentID = folder.ID;
+        var nested = Folder("Nested", folder.ID);
+        var nestedChild = Patch(SKColors.Yellow, 0, 0, 8, 8, "Nested child");
+        nestedChild.ParentID = nested.ID;
+        var last = Patch(SKColors.White, 0, 0, 8, 8, "Last");
+        last.ParentID = folder.ID;
+        using var document = Doc(8, 8, outer, lower, folder, upper, first, nested, nestedChild, last);
+
+        Assert.True(LayerPlacement.Ungroup(document, folder.ID));
+
+        Assert.Equal(outer.ID, first.ParentID);
+        Assert.Equal(outer.ID, nested.ParentID);
+        Assert.Equal(outer.ID, last.ParentID);
+        Assert.Equal(nested.ID, nestedChild.ParentID);
+        Assert.Equal(new[] { "Lower", "First", "Nested", "Last", "Upper" },
+            document.Layers.Where(layer => layer.ParentID == outer.ID).Select(layer => layer.Name));
+        Assert.Equal(new[] { "Outer", "Lower", "First", "Nested", "Nested child", "Last", "Upper" },
+            document.HierarchyEntries().Select(entry => entry.Layer.Name));
+    }
+
+    [Fact]
+    public void UngroupingKeepsAnInternalClippingStackAndReleasesADetachedOne()
+    {
+        var baseLayer = Patch(SKColors.Blue, 0, 0, 8, 8, "Base");
+        var folder = Folder("Folder", null);
+        var clipped = Patch(SKColors.Green, 0, 0, 8, 8, "Clipped");
+        clipped.ParentID = folder.ID;
+        var clippedAgain = Patch(SKColors.Red, 0, 0, 8, 8, "Clipped again");
+        clippedAgain.ParentID = folder.ID;
+        clippedAgain.MaskSourceID = clipped.ID;
+        using var document = Doc(8, 8, baseLayer, folder, clipped, clippedAgain);
+
+        Assert.True(LayerPlacement.Ungroup(document, folder.ID));
+        Assert.Equal(clipped.ID, clippedAgain.MaskSourceID);
+
+        var spacer = Patch(SKColors.White, 0, 0, 8, 8, "Spacer");
+        var detachedFolder = Folder("Detached", null);
+        var detached = Patch(SKColors.Black, 0, 0, 8, 8, "Detached clip");
+        detached.ParentID = detachedFolder.ID;
+        // The format can represent this graph-valid cross-folder reference. Once the child is promoted
+        // above a different sibling, it no longer forms a contiguous clipping stack and must be released.
+        detached.MaskSourceID = baseLayer.ID;
+        using var detachedDocument = Doc(8, 8, baseLayer, spacer, detachedFolder, detached);
+
+        Assert.True(LayerPlacement.Ungroup(detachedDocument, detachedFolder.ID));
+        Assert.Null(detached.MaskSourceID);
+    }
+
+    [Fact]
+    public void UngroupingOnlyAcceptsAnExistingFolder()
+    {
+        var layer = Patch(SKColors.Blue, 0, 0, 8, 8, "Layer");
+        using var document = Doc(8, 8, layer);
+
+        Assert.False(LayerPlacement.Ungroup(document, layer.ID));
+        Assert.False(LayerPlacement.Ungroup(document, Guid.NewGuid()));
+        Assert.Equal(new[] { "Layer" }, Names(document));
+    }
+
+    [Fact]
     public void MovingALayerIntoAFolderLandsItOnTop()
     {
         var folder = Folder("Folder", null);

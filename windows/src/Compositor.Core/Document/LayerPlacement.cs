@@ -167,6 +167,34 @@ public static class LayerPlacement
         return Adopt(document, planned, parents, new Dictionary<Guid, Guid?>()) ? folder.ID : null;
     }
 
+    /// <summary>
+    /// Reverses grouping for one folder: its direct children take the folder's place among its siblings,
+    /// in their existing order, and the folder is removed. Nested folders remain intact. The folder's own
+    /// appearance and mask leave with it, as Photoshop's Ungroup does. A clipping link that is no longer a
+    /// contiguous sibling stack is released; clipping between direct children is retained.
+    /// </summary>
+    public static bool Ungroup(CanvasDocument document, Guid groupID)
+    {
+        if (document.Layers.FirstOrDefault(layer => layer.ID == groupID) is not { IsGroup: true } group) return false;
+
+        var childIDs = document.Layers.Where(layer => layer.ParentID == group.ID).Select(layer => layer.ID).ToHashSet();
+        var children = document.Layers.Where(layer => childIDs.Contains(layer.ID)).ToList();
+        var planned = new List<ImageLayer>(document.Layers.Count - 1);
+
+        // Splice direct children into the folder's slot. Descendants of a child remain where they are in the
+        // backing list: their ParentID still makes them part of that child, and sibling order remains intact.
+        foreach (var layer in document.Layers)
+        {
+            if (layer.ID == group.ID) planned.AddRange(children);
+            else if (!childIDs.Contains(layer.ID)) planned.Add(layer);
+        }
+
+        var parents = children.ToDictionary(layer => layer.ID, _ => group.ParentID);
+        var sources = new Dictionary<Guid, Guid?>();
+        ReleaseDetached(planned, parents, sources);
+        return Adopt(document, planned, parents, sources);
+    }
+
     /// <summary>Whether a layer may be moved to a folder: not into itself, nor into anything inside it.</summary>
     public static bool CanPlace(CanvasDocument document, Guid id, Guid? parent)
     {

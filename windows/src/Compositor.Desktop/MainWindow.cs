@@ -152,6 +152,8 @@ public sealed class MainWindow : Window
     private MenuItem _clearEffects = new();
     private readonly MenuItem _clipping = new();
     private readonly MenuItem _addMask = new() { Header = L.Get("Menu.AddMask") };
+    private readonly MenuItem _revealMask = new();
+    private readonly MenuItem _hideMask = new();
     private readonly MenuItem _maskToggle = new();
     private readonly MenuItem _maskLink = new();
 
@@ -239,6 +241,7 @@ public sealed class MainWindow : Window
     private DocumentHistory _history => _open.History;
 
     private List<Guid> _rows => _open.Rows;
+    private bool _rebuildingLayerList;
 
     private string? _projectPath
     {
@@ -411,9 +414,20 @@ public sealed class MainWindow : Window
         _clipping.Click += (_, _) => ToggleClipping();
         _maskToggle.Click += (_, _) => ToggleMask();
         _maskLink.Click += (_, _) => ToggleMaskLink();
-        _addMask.Items.Add(Command(L.Get("Menu.RevealAllWhite"), () => AddMask(revealing: true)));
-        _addMask.Items.Add(Command(L.Get("Menu.HideAllBlack"), () => AddMask(revealing: false)));
-        _layers.SelectionChanged += (_, _) => UpdateLayerMenu();
+        _revealMask.Click += (_, _) => AddMask(revealing: true);
+        _hideMask.Click += (_, _) => AddMask(revealing: false);
+        _addMask.Items.Add(_revealMask);
+        _addMask.Items.Add(_hideMask);
+        _layers.SelectionChanged += (_, _) =>
+        {
+            // A mask-alone view is tied to its target. Selecting another row returns to the composite; rebuilding
+            // the list for an edit is not a user target change and deliberately leaves the view alone.
+            if (!_rebuildingLayerList && _canvas.MaskOnlyLayerID is { } previewing && Selected != previewing)
+            {
+                StopMaskOnlyPreview();
+            }
+            UpdateLayerMenu();
+        };
         _tabs.Add(_open);
         Content = Layout();
         RefreshTabs();
@@ -503,6 +517,8 @@ public sealed class MainWindow : Window
                         _clipping,
                         LayerCommand(L.Get("Menu.GroupSelectedLayers"), GroupSelected, "Group Layers",
                             (document, layer) => document.Layers.Count < LayerPlacement.MaxLayers),
+                        LayerCommand(L.Get("Menu.UngroupLayers"), UngroupLayers, "Ungroup Layers",
+                            (_, layer) => layer.IsGroup),
                         LayerCommand(L.Get("Menu.MoveOutOfFolder"), MoveOutOfFolder, null,
                             (_, layer) => layer.ParentID is not null),
                         _merge,
@@ -1031,6 +1047,7 @@ public sealed class MainWindow : Window
         Does("Duplicate Layer", DuplicateLayer);
         Does("Toggle Clipping Mask", ToggleClipping);
         Does("Group Layers", GroupSelected);
+        Does("Ungroup Layers", UngroupLayers);
         Does("Merge Layers", MergeLayers);
         Does("New Blank Layer", NewBlankLayer);
         Does("Move Layer Up", () => MoveLayer(1));
@@ -1132,14 +1149,17 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || Selected is not { } id) return false;
         if (document.Selection.Path is not { } path || !path.Contains(at.X, at.Y)) return false;
+        // Lifting cuts the source pixels immediately so the floating preview has a real hole behind it. Start
+        // history first, otherwise Undo would restore that temporary hole rather than the pre-drag layer.
+        _history.Begin("Move Pixels", document, id);
         if (SelectionEdits.LiftPixels(document, id) is not { } floating)
         {
+            _history.End(document, id);
             Say(L.Get("Status.NoSelectionPixelsToMove"));
             return false;
         }
         _moving = floating;
         _movedBy = (0, 0);
-        _history.Begin("Move Pixels", document, id);
         _canvas.Floating = (floating, 0, 0);
         Say(L.Get("Status.DraggingSelectionPixels"));
         return true;
@@ -3013,6 +3033,14 @@ public sealed class MainWindow : Window
         var layer = document is not null && Selected is { } id
             ? document.Layers.FirstOrDefault(candidate => candidate.ID == id)
             : null;
+        // A preview has no durable target: undo, redo, deleting its mask, or selecting a different layer returns
+        // to the composite without creating a history entry or touching the project.
+        if (!_rebuildingLayerList && _canvas.MaskOnlyLayerID is { } previewing
+            && (document?.Layers.FirstOrDefault(candidate => candidate.ID == previewing)?.Mask is null
+                || Selected != previewing))
+        {
+            StopMaskOnlyPreview();
+        }
         foreach (var item in _layerItems) item.IsEnabled = layer is not null;
         foreach (var (item, ready) in _layerRows)
         {
@@ -3030,10 +3058,35 @@ public sealed class MainWindow : Window
             : L.Get("Menu.CreateClippingMask");
         _clipping.IsEnabled = document is not null && layer is not null && LayerMaskEdits.CanToggle(document, layer.ID);
         _addMask.IsEnabled = layer is { Mask: null };
+        var hasSelection = document?.Selection.Path is not null;
+        _revealMask.Header = L.Get(hasSelection ? "Menu.RevealSelection" : "Menu.RevealAllWhite");
+        _hideMask.Header = L.Get(hasSelection ? "Menu.HideSelection" : "Menu.HideAllBlack");
         _maskToggle.Header = layer?.Mask?.IsEnabled == false ? L.Get("Menu.EnableMask") : L.Get("Menu.DisableMask");
         _maskToggle.IsEnabled = layer?.Mask is not null;
         _maskLink.Header = layer?.Mask?.IsLinked == false ? L.Get("Menu.LinkMask") : L.Get("Menu.UnlinkMask");
         _maskLink.IsEnabled = layer is { IsGroup: false, Mask: not null };
+    }
+
+    /// <summary>Leaves an isolated mask view without changing its mask target, pixels, history, or serialization.</summary>
+    private void StopMaskOnlyPreview() => _canvas.MaskOnlyLayerID = null;
+
+    /// <summary>
+    /// A normal click on the mask target makes brush and gradient tools address the mask and returns to the image.
+    /// Option/Alt-click follows Photoshop by toggling that mask alone on the canvas.
+    /// </summary>
+    private void SelectMaskTarget(Guid id, bool alone)
+    {
+        if (_document is not { } document || document.Layers.FirstOrDefault(layer => layer.ID == id)?.Mask is null) return;
+        var row = _rows.IndexOf(id);
+        if (row >= 0) _layers.SelectedIndex = row;
+        var alreadyShowing = _canvas.MaskOnlyLayerID == id;
+        if (alone) _canvas.MaskOnlyLayerID = alreadyShowing ? null : id;
+        else StopMaskOnlyPreview();
+        SetPaintingMask(true);
+        // The Layers target is also the visible indication of an isolated mask. Rebuild after the state changes
+        // so its border follows both Alt-click directions without making the state itself part of the document.
+        ShowLayers(document);
+        Refresh();
     }
 
     /// <summary>Turns LayerMerge's stable history action into display text without changing the action itself.</summary>
@@ -3052,6 +3105,34 @@ public sealed class MainWindow : Window
         ShowLayers(document);
         var row = layer is { } id ? _rows.IndexOf(id) : -1;
         if (row >= 0) _layers.SelectedIndex = row;
+        Refresh();
+    }
+
+    /// <summary>
+    /// Selects a freshly ungrouped folder's direct children in their existing stacking order, with the first as
+    /// the active row. This matches the macOS operation while leaving the ListBox's language-neutral layer ids
+    /// as the only selection state that history sees.
+    /// </summary>
+    private void ReselectMany(IReadOnlyList<Guid> layers)
+    {
+        if (_document is not { } document) return;
+        ShowLayers(document);
+        var rows = layers.Select(id => _rows.IndexOf(id)).Where(index => index >= 0).ToList();
+        if (rows.Count == 0)
+        {
+            _layers.SelectedIndex = -1;
+            Refresh();
+            return;
+        }
+        _layers.SelectedIndex = rows[0];
+        if (_layers.SelectedItems is { } selected)
+        {
+            foreach (var row in rows.Skip(1))
+            {
+                var item = _layers.ItemsSource?.OfType<ListBoxItem>().ElementAtOrDefault(row);
+                if (item is not null && !selected.Contains(item)) selected.Add(item);
+            }
+        }
         Refresh();
     }
 
@@ -3164,6 +3245,34 @@ public sealed class MainWindow : Window
         Reselect(folder);
     }
 
+    /// <summary>Unwraps the selected folder, leaving its direct children where the folder stood.</summary>
+    private void UngroupLayers()
+    {
+        if (Selected is not { } id) return;
+        UngroupLayer(id);
+    }
+
+    /// <summary>
+    /// The context menu supplies its own folder id; the Layer-menu and shortcut supply the selected one. The
+    /// children are remembered before the core splice so the panel can select exactly what became ungrouped.
+    /// </summary>
+    private void UngroupLayer(Guid id)
+    {
+        if (_document is not { } document
+            || document.Layers.FirstOrDefault(layer => layer.ID == id) is not { IsGroup: true })
+        {
+            return;
+        }
+        var children = document.Layers.Where(layer => layer.ParentID == id).Select(layer => layer.ID).ToList();
+        Guid? primary = children.Count > 0 ? children[0] : null;
+        _history.Begin("Ungroup Layers", document, id);
+        var changed = LayerPlacement.Ungroup(document, id);
+        _history.End(document, primary);
+        if (!changed) return;
+        if (children.Count > 0) ReselectMany(children);
+        else Reselect(null);
+    }
+
     private void MoveOutOfFolder()
     {
         if (_document is not { } document || Selected is not { } id) return;
@@ -3184,8 +3293,15 @@ public sealed class MainWindow : Window
     private void AddMask(bool revealing)
     {
         if (_document is not { } document || Selected is not { } id) return;
-        Edit(revealing ? "Add Reveal-All Mask" : "Add Hide-All Mask", () => LayerMaskEdits.Add(document, id, revealing));
+        var selection = document.Selection.Path is not null;
+        var changed = Edit(selection
+                ? revealing ? "Reveal Selection" : "Hide Selection"
+                : revealing ? "Add Reveal-All Mask" : "Add Hide-All Mask",
+            () => LayerMaskEdits.Add(document, id, revealing));
         Reselect(id);
+        // Selecting a newly created mask makes brush and gradient operations target it, as the upstream Layers
+        // control does. This is editor state, not a document edit.
+        if (changed) SetPaintingMask(true);
     }
 
     private void ToggleMask()
@@ -3200,8 +3316,9 @@ public sealed class MainWindow : Window
     private void DeleteMask()
     {
         if (_document is not { } document || Selected is not { } id) return;
-        Edit("Delete Layer Mask", () => LayerMaskEdits.Remove(document, id));
+        var changed = Edit("Delete Layer Mask", () => LayerMaskEdits.Remove(document, id));
         Reselect(id);
+        if (changed && _options.PaintOnMask) SetPaintingMask(false);
     }
 
     private void ToggleMaskLink()
@@ -5565,35 +5682,87 @@ public sealed class MainWindow : Window
 
     private void ShowLayers(CanvasDocument document)
     {
-        var rows = new List<ListBoxItem>();
-        _rows.Clear();
-        // Top of the stack first, as the Mac build's panel lists it.
-        foreach (var entry in document.HierarchyEntries(topFirst: true))
+        _rebuildingLayerList = true;
+        try
         {
-            var record = entry.Layer;
-            var notes = new List<string>();
-            if (!entry.Visible) notes.Add(L.Get("Layer.Hidden"));
-            if (record.BlendMode is { } blend && blend != LayerBlendMode.Normal) notes.Add(LocalizedNames.BlendMode(blend));
-            if (record.Opacity is { } opacity and < 1) notes.Add($"{opacity:0.##}");
-            if (record.MaskFile is not null) notes.Add(L.Get("Layer.Mask"));
-            if (record.MaskSourceID is not null) notes.Add(L.Get("Layer.Clipped"));
-            rows.Add(new ListBoxItem
+            var rows = new List<ListBoxItem>();
+            _rows.Clear();
+            // Top of the stack first, as the Mac build's panel lists it.
+            foreach (var entry in document.HierarchyEntries(topFirst: true))
             {
-                // The row carries the layer it stands for, so a multi-selection can be read back.
-                Tag = record.ID,
-                Content = new TextBlock
+                var record = entry.Layer;
+                var notes = new List<string>();
+                if (!entry.Visible) notes.Add(L.Get("Layer.Hidden"));
+                if (record.BlendMode is { } blend && blend != LayerBlendMode.Normal) notes.Add(LocalizedNames.BlendMode(blend));
+                if (record.Opacity is { } opacity and < 1) notes.Add($"{opacity:0.##}");
+                if (record.MaskSourceID is not null) notes.Add(L.Get("Layer.Clipped"));
+                var row = new ListBoxItem
                 {
-                    Text = new string(' ', entry.Depth * 3) + record.Name +
-                        (notes.Count > 0 ? "  ·  " + string.Join(", ", notes) : ""),
-                    Foreground = Ink,
-                },
-            });
-            _rows.Add(record.ID);
+                    // The row carries the layer it stands for, so a multi-selection can be read back.
+                    Tag = record.ID,
+                    Content = new TextBlock
+                    {
+                        Text = new string(' ', entry.Depth * 3) + record.Name +
+                            (notes.Count > 0 ? "  ·  " + string.Join(", ", notes) : ""),
+                        Foreground = Ink,
+                    },
+                };
+                if (record.MaskFile is not null)
+                {
+                    // The compact target stands in for the macOS mask thumbnail. Alt-clicking it toggles the
+                    // grayscale mask-only view; an ordinary click targets the mask for painting.
+                    var mask = new Button
+                    {
+                        Content = L.Get("Layer.Mask"),
+                        Padding = new Thickness(4, 1),
+                        Background = Brushes.Transparent,
+                        BorderBrush = _canvas.MaskOnlyLayerID == record.ID ? Brushes.White : null,
+                        BorderThickness = _canvas.MaskOnlyLayerID == record.ID ? new Thickness(1) : new Thickness(0),
+                    };
+                    ToolTip.SetTip(mask, L.Get("Layer.MaskOnlyPreviewTooltip"));
+                    mask.PointerPressed += (_, e) =>
+                    {
+                        if (!e.GetCurrentPoint(mask).Properties.IsLeftButtonPressed) return;
+                        SelectMaskTarget(record.ID, e.KeyModifiers.HasFlag(KeyModifiers.Alt));
+                        e.Handled = true;
+                    };
+                    var existing = (Control)row.Content!;
+                    row.Content = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 5,
+                        Children = { existing, mask },
+                    };
+                }
+                // Selecting the layer's pixels is one of the ways the upstream editor leaves mask-only view.
+                // The mask button handles its own event, so it does not take this route.
+                row.PointerPressed += (_, e) =>
+                {
+                    if (e.Source is not Button && e.GetCurrentPoint(row).Properties.IsLeftButtonPressed)
+                    {
+                        StopMaskOnlyPreview();
+                    }
+                };
+                if (record.IsGroup == true)
+                {
+                    var ungroup = new MenuItem { Header = L.Get("Menu.UngroupLayers") };
+                    ungroup.Click += (_, _) => UngroupLayer(record.ID);
+                    var context = new ContextMenu();
+                    context.Items.Add(ungroup);
+                    row.ContextMenu = context;
+                }
+                rows.Add(row);
+                _rows.Add(record.ID);
+            }
+            var selected = _layers.SelectedIndex;
+            _layers.ItemsSource = rows;
+            // A row is the layer an edit acts on, so the top of the stack starts selected.
+            _layers.SelectedIndex = selected >= 0 && selected < rows.Count ? selected : rows.Count > 0 ? 0 : -1;
         }
-        var selected = _layers.SelectedIndex;
-        _layers.ItemsSource = rows;
-        // A row is the layer an edit acts on, so the top of the stack starts selected.
-        _layers.SelectedIndex = selected >= 0 && selected < rows.Count ? selected : rows.Count > 0 ? 0 : -1;
+        finally
+        {
+            _rebuildingLayerList = false;
+        }
     }
 
     /// <summary>

@@ -1141,4 +1141,12 @@
   <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Down 10 px" xml:space="preserve"><value>向下微移 10 像素</value></data>
   <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Down 1 px" xml:space="preserve"><value>將選取的像素向下移動 1 像素</value></data>
   <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Down 10 px" xml:space="preserve"><value>將選取的像素向下移動 10 像素</value></data>
+  <data name="Menu.UngroupLayers" xml:space="preserve"><value>取消圖層群組</value></data>
+  <data name="Menu.RevealSelection" xml:space="preserve"><value>顯示選取範圍</value></data>
+  <data name="Menu.HideSelection" xml:space="preserve"><value>隱藏選取範圍</value></data>
+  <data name="Layer.MaskOnlyPreviewTooltip" xml:space="preserve"><value>按一下可將此遮色片設為繪製目標。按住 Alt 並按一下可單獨檢視遮色片；再次按住 Alt 按一下，或選取其他圖層即可返回影像。</value></data>
+  <data name="Shortcut.Command.Menus:Ungroup Layers" xml:space="preserve"><value>取消圖層群組</value></data>
+  <data name="History.Ungroup Layers" xml:space="preserve"><value>取消圖層群組</value></data>
+  <data name="History.Reveal Selection" xml:space="preserve"><value>顯示選取範圍</value></data>
+  <data name="History.Hide Selection" xml:space="preserve"><value>隱藏選取範圍</value></data>
 </root>

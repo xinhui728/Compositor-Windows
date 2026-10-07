@@ -441,6 +441,9 @@ public sealed class CanvasView : Control
         set
         {
             _document = value;
+            // This belongs to the canvas view, never the document. A different tab cannot inherit a mask that
+            // happened to have the same layer id, and changing documents never creates an undoable edit.
+            MaskOnlyLayerID = null;
             Fit();
         }
     }
@@ -451,6 +454,23 @@ public sealed class CanvasView : Control
     /// being touched. The owner must clear this before disposing it.
     /// </summary>
     public CanvasDocument? PreviewDocument { get; set; }
+
+    /// <summary>
+    /// The mask the canvas is temporarily showing by itself, or null for the ordinary composite. It is editor
+    /// view state only: no document field, history entry, or project serialization observes it.
+    /// </summary>
+    public Guid? MaskOnlyLayerID
+    {
+        get => _maskOnlyLayerID;
+        set
+        {
+            if (_maskOnlyLayerID == value) return;
+            _maskOnlyLayerID = value;
+            InvalidateVisual();
+        }
+    }
+
+    private Guid? _maskOnlyLayerID;
 
     public double Zoom => _zoom;
 
@@ -577,7 +597,9 @@ public sealed class CanvasView : Control
             SKRectI.Create(0, 0, document.Width, document.Height));
         if (region.Width <= 0 || region.Height <= 0) return;
 
-        using var rendered = DocumentRenderer.RenderRegion(document, region);
+        using var rendered = MaskOnlyLayerID is { } layerID
+            ? MaskPreviewRenderer.RenderRegion(document, layerID, region) ?? DocumentRenderer.RenderRegion(document, region)
+            : DocumentRenderer.RenderRegion(document, region);
         using var image = ToImage(rendered);
         var destination = new Rect(
             (region.Left - _origin.X) * _zoom,
@@ -622,7 +644,10 @@ public sealed class CanvasView : Control
         if ((PreviewDocument ?? _document) is { } document
             && x >= 0 && y >= 0 && x < document.Width && y < document.Height)
         {
-            using var one = DocumentRenderer.RenderRegion(document, SKRectI.Create(x, y, 1, 1));
+            using var one = MaskOnlyLayerID is { } layerID
+                ? MaskPreviewRenderer.RenderRegion(document, layerID, SKRectI.Create(x, y, 1, 1))
+                    ?? DocumentRenderer.RenderRegion(document, SKRectI.Create(x, y, 1, 1))
+                : DocumentRenderer.RenderRegion(document, SKRectI.Create(x, y, 1, 1));
             sampled = one.GetPixel(0, 0);
         }
         _sampleRing = ShowsSampleRing ? (_sampleOriginal, sampled) : null;
@@ -1184,7 +1209,14 @@ public sealed class CanvasView : Control
     private void DrawStroke(DrawingContext context)
     {
         if (!_painting || _stroke.Count < 2) return;
-        var colour = Color.FromArgb(170, (byte)(Brush.Red * 255), (byte)(Brush.Green * 255), (byte)(Brush.Blue * 255));
+        // An isolated mask remains a grayscale view while it is painted. The finished stroke takes the same
+        // white-for-paint / black-for-erase rule in MainWindow.Painted.
+        var tone = MaskOnlyLayerID is null
+            ? (byte?)null
+            : (byte)(Brush.Erasing ? 0 : 255);
+        var colour = tone is { } gray
+            ? Color.FromArgb(170, gray, gray, gray)
+            : Color.FromArgb(170, (byte)(Brush.Red * 255), (byte)(Brush.Green * 255), (byte)(Brush.Blue * 255));
         var pen = new Pen(new SolidColorBrush(colour), Math.Max(1, Brush.Diameter * _zoom), lineCap: PenLineCap.Round);
         for (var index = 1; index < _stroke.Count; index++)
         {
@@ -1436,7 +1468,10 @@ public sealed class CanvasView : Control
         if (_pixelsFrom is { } cut)
         {
             var at = ToDocument(now);
-            PixelsMoved?.Invoke((int)Math.Round(at.X - cut.X), (int)Math.Round(at.Y - cut.Y));
+            var (dx, dy) = SelectionEdits.ConstrainPixelDrag(
+                (int)Math.Round(at.X - cut.X), (int)Math.Round(at.Y - cut.Y),
+                e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            PixelsMoved?.Invoke(dx, dy);
             e.Handled = true;
             return;
         }

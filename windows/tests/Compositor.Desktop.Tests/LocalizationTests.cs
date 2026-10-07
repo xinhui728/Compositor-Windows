@@ -96,6 +96,26 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void SelectionMaskAndUngroupParityStringsHaveReviewedResourcesInBothCultures()
+    {
+        var english = new LocalizationManager(LocalizationManager.EnglishCulture);
+        var traditionalChinese = new LocalizationManager(LocalizationManager.TraditionalChineseCulture);
+
+        Assert.Equal("_Ungroup Layers", english.Get("Menu.UngroupLayers"));
+        Assert.Equal("Reveal _Selection", english.Get("Menu.RevealSelection"));
+        Assert.Equal("Hide _Selection", english.Get("Menu.HideSelection"));
+        Assert.Equal("取消圖層群組", traditionalChinese.Get("Menu.UngroupLayers"));
+        Assert.Equal("顯示選取範圍", traditionalChinese.Get("Menu.RevealSelection"));
+        Assert.Equal("隱藏選取範圍", traditionalChinese.Get("Menu.HideSelection"));
+
+        var ungroup = Assert.Single(Shortcuts.Definitions, definition =>
+            definition.ID == $"{Shortcuts.Menus}:Ungroup Layers");
+        Assert.Equal("G", ungroup.Original.Key);
+        Assert.Equal(ShortcutModifiers.Control | ShortcutModifiers.Shift, ungroup.Original.Modifiers);
+        Assert.Equal("取消圖層群組", traditionalChinese.Get($"Shortcut.Command.{ungroup.ID}"));
+    }
+
+    [Fact]
     public void SelectedLanguageIsPersistedOutsideProjects()
     {
         var folder = Path.Combine(Path.GetTempPath(), "Compositor.Desktop.Tests", Guid.NewGuid().ToString("N"));

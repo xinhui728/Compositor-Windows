@@ -62,6 +62,7 @@
   <data name="Menu.MoveLayerUp" xml:space="preserve"><value>Move Layer _Up</value></data>
   <data name="Menu.MoveLayerDown" xml:space="preserve"><value>Move Layer _Down</value></data>
   <data name="Menu.GroupSelectedLayers" xml:space="preserve"><value>_Group Selected Layers</value></data>
+  <data name="Menu.UngroupLayers" xml:space="preserve"><value>_Ungroup Layers</value></data>
   <data name="Menu.MoveOutOfFolder" xml:space="preserve"><value>Move _Out of Folder</value></data>
   <data name="Menu.DeleteMask" xml:space="preserve"><value>_Delete Mask</value></data>
   <data name="Menu.EditText" xml:space="preserve"><value>Edit _Text…</value></data>
@@ -72,6 +73,8 @@
   <data name="Menu.AddMask" xml:space="preserve"><value>Add _Mask</value></data>
   <data name="Menu.RevealAllWhite" xml:space="preserve"><value>_Reveal All (White)</value></data>
   <data name="Menu.HideAllBlack" xml:space="preserve"><value>_Hide All (Black)</value></data>
+  <data name="Menu.RevealSelection" xml:space="preserve"><value>Reveal _Selection</value></data>
+  <data name="Menu.HideSelection" xml:space="preserve"><value>Hide _Selection</value></data>
   <data name="Menu.HueSaturation" xml:space="preserve"><value>_Hue/Saturation…</value></data>
   <data name="Menu.Levels" xml:space="preserve"><value>_Levels…</value></data>
   <data name="Menu.AutoLevels" xml:space="preserve"><value>_Auto Levels</value></data>
@@ -433,6 +436,7 @@
   <data name="Shortcut.Command.Menus:Duplicate Layer" xml:space="preserve"><value>Duplicate Layer</value></data>
   <data name="Shortcut.Command.Menus:Toggle Clipping Mask" xml:space="preserve"><value>Toggle Clipping Mask</value></data>
   <data name="Shortcut.Command.Menus:Group Layers" xml:space="preserve"><value>Group Layers</value></data>
+  <data name="Shortcut.Command.Menus:Ungroup Layers" xml:space="preserve"><value>Ungroup Layers</value></data>
   <data name="Shortcut.Command.Menus:New Blank Layer" xml:space="preserve"><value>New Blank Layer</value></data>
   <data name="Shortcut.Command.Menus:Move Layer Up" xml:space="preserve"><value>Move Layer Up</value></data>
   <data name="Shortcut.Command.Menus:Move Layer Down" xml:space="preserve"><value>Move Layer Down</value></data>
@@ -654,6 +658,7 @@
   <data name="Layer.Opacity" xml:space="preserve"><value>Opacity</value></data>
   <data name="Layer.Hidden" xml:space="preserve"><value>hidden</value></data>
   <data name="Layer.Mask" xml:space="preserve"><value>mask</value></data>
+  <data name="Layer.MaskOnlyPreviewTooltip" xml:space="preserve"><value>Click to target this mask for painting. Alt-click to view this mask alone; Alt-click again or select another layer to return to the image.</value></data>
   <data name="Layer.Clipped" xml:space="preserve"><value>clipped</value></data>
   <data name="Status.AdjustmentApplied" xml:space="preserve"><value>{0} applied</value></data>
   <data name="Status.AdjustmentNeedsPixels" xml:space="preserve"><value>{0} needs a layer with pixels of its own</value></data>
@@ -851,6 +856,7 @@
   <data name="History.New Blank Layer" xml:space="preserve"><value>New Blank Layer</value></data>
   <data name="History.New Folder" xml:space="preserve"><value>New Folder</value></data>
   <data name="History.Group Layers" xml:space="preserve"><value>Group Layers</value></data>
+  <data name="History.Ungroup Layers" xml:space="preserve"><value>Ungroup Layers</value></data>
   <data name="History.New Adjustment Layer" xml:space="preserve"><value>New Adjustment Layer</value></data>
   <data name="History.Merge Down" xml:space="preserve"><value>Merge Down</value></data>
   <data name="History.Merge Layers" xml:space="preserve"><value>Merge Layers</value></data>
@@ -878,6 +884,8 @@
   <data name="History.Create Clipping Mask" xml:space="preserve"><value>Create Clipping Mask</value></data>
   <data name="History.Add Reveal-All Mask" xml:space="preserve"><value>Add Reveal-All Mask</value></data>
   <data name="History.Add Hide-All Mask" xml:space="preserve"><value>Add Hide-All Mask</value></data>
+  <data name="History.Reveal Selection" xml:space="preserve"><value>Reveal Selection</value></data>
+  <data name="History.Hide Selection" xml:space="preserve"><value>Hide Selection</value></data>
   <data name="History.Enable Layer Mask" xml:space="preserve"><value>Enable Layer Mask</value></data>
   <data name="History.Disable Layer Mask" xml:space="preserve"><value>Disable Layer Mask</value></data>
   <data name="History.Delete Layer Mask" xml:space="preserve"><value>Delete Layer Mask</value></data>

@@ -42,6 +42,28 @@ public sealed class LayerMask : IDisposable
         return new LayerMask(new ImportedImage(image, Bitmaps.DrawAsMask(image, width, height), "Layer Mask"));
     }
 
+    /// <summary>
+    /// The tone a mask has beyond its own pixels once it is placed on the document. A mask made from a selection
+    /// can be smaller than the canvas, so this keeps a reveal mask revealing and a hide mask hiding around its edge.
+    /// </summary>
+    public static byte Background(SKBitmap image)
+    {
+        if (image.Width <= 0 || image.Height <= 0 || image.ColorType != SKColorType.Gray8) return 255;
+        var pixels = image.GetPixelSpan();
+        long total = 0;
+        var count = 0;
+        for (var y = 0; y < image.Height; y++)
+        {
+            for (var x = 0; x < image.Width; x++)
+            {
+                if (y is not 0 && y != image.Height - 1 && x is not 0 && x != image.Width - 1) continue;
+                total += pixels[y * image.RowBytes + x];
+                count++;
+            }
+        }
+        return count > 0 && total * 2 < (long)count * 255 ? (byte)0 : (byte)255;
+    }
+
     /// <summary>The same mask with new pixels, still enabled or not, linked or not, and where it sits.</summary>
     public LayerMask Replacing(ImportedImage asset) => new(asset, IsEnabled, Placement, IsLinked);
 

@@ -355,6 +355,17 @@ public static class SelectionEdits
         return true;
     }
 
+    /// <summary>
+    /// The offset for a dragged floating selection. Holding Shift constrains the drag to whichever document
+    /// axis has travelled farther at this instant; releasing Shift restores the unconstrained offset. This is
+    /// deliberately separate from <see cref="MovePixels"/>, whose keyboard callers must remain unconstrained.
+    /// </summary>
+    public static (int Dx, int Dy) ConstrainPixelDrag(int dx, int dy, bool shift)
+    {
+        if (!shift) return (dx, dy);
+        return Math.Abs((long)dx) >= Math.Abs((long)dy) ? (dx, 0) : (0, dy);
+    }
+
     /// <summary>The outline a lasso would close, for the tool to draw while it is still being dragged.</summary>
     public static SKPath Lasso(IReadOnlyList<SKPoint> points)
     {
