@@ -68,7 +68,7 @@ Status meanings:
 
 | Version | Upstream change | macOS implementation | Windows status | Windows files | Difficulty | Priority |
 |---|---|---|---|---|---|---|
-| 1.4 | `8c0417b` — sharp adjustment surfaces; PSD Levels, Hue/Saturation, and placed-mask import fixes; adjustment-noise anchoring | Renders adjustment offscreens at pixel resolution; PSD `hue2`, Levels gamma, and mask patch bounds/default are decoded correctly. | 🟡 Core PSD reader/builder carries mask bounds/default and adjustment parsing, but Desktop Import does not call `PsdImporter`; exact scaled-adjustment noise phase needs macOS golden fixtures. | `Core/IO/PSD/PsdReader.cs`, `PsdDocumentBuilder.cs`, `PsdTypes.cs`, `Core/Rendering/DocumentRenderer.cs`, `Desktop/MainWindow.cs` | M | P0 |
+| 1.4 | `8c0417b` — sharp adjustment surfaces; PSD Levels, Hue/Saturation, and placed-mask import fixes; adjustment-noise anchoring | Renders adjustment offscreens at pixel resolution; PSD `hue2`, Levels gamma, and mask patch bounds/default are decoded correctly. | 🟡 Core PSD reader/builder carries mask bounds/default and adjustment parsing. Desktop now routes PSD/PSB to editable documents (or a wrapper group in an existing document), with self-authored PSD/PSB mask/clipping/blend fixtures. A localized conversion-confirmation report and macOS-derived scaled-noise oracle remain. | `Core/IO/PSD/PsdReader.cs`, `PsdDocumentBuilder.cs`, `PsdTypes.cs`, `Core/Document/LayerPlacement.cs`, `Core/Rendering/DocumentRenderer.cs`, `Desktop/MainWindow.cs`, PSD tests | M | P0 |
 | 1.4 | `fe7a83d` — Photoshop positive Hue/Saturation | Positive saturation divides by the remaining saturation; negative saturation scales toward gray. | ✅ `AdjustedSaturation` has the same positive/negative rule. | `Core/Pixels/AdjustmentOperators.cs` | S | P1 |
 | 1.4 | `af3b568` — Levels/Hue-Saturation multicore and cached LUTs | Splits pixel work across cores and keeps the last eight Hue/Saturation cubes. | 🟡 Correct operators exist, but C# `ApplyLevels` and `ApplyHueSaturation` iterate rows serially and do not keep the matching cube cache. | `Core/Pixels/AdjustmentOperators.cs`, `LevelsPixels.cs` | M | P3 |
 | 1.4 | `cdf8674`, `4b04323`, `5708ed3` — initial GPU canvas, selected-pixel move, brush/gradient/smudge previews | Adds `GPUCanvas` and keeps textures resident during interactive edits. | 🍎 The Metal texture pipeline is not portable. Windows has functional Skia canvas previews and CPU document rendering, but not this GPU residency model. | `Core/Rendering/DocumentRenderer.cs`, `Desktop/CanvasView.cs`, `Desktop/MainWindow.cs` | XL | P3 |
@@ -174,7 +174,7 @@ or source file without requiring a migration:
 
 | Source change | Compatibility implication | Windows action |
 |---|---|---|
-| `8c0417b` Add Noise origin and PSD decoding | Same `.comp` JSON; scaled adjustment output and PSD import can differ. | Add cross-platform golden fixtures and wire PSD/PSB import through the desktop workflow. |
+| `8c0417b` Add Noise origin and PSD decoding | Same `.comp` JSON; scaled adjustment output and PSD import can differ. | PSD/PSB now enters the Desktop document workflow with self-authored mask/clipping/blend fixtures. Keep the separate Add Noise positioning regression and obtain a macOS reference before declaring exact cross-platform parity. |
 | `5a8f6ce` Soft Light | Same saved blend-mode enum; pixels can differ by implementation. | Compare Skia Soft Light to macOS/Photoshop fixtures; provide a custom formula if necessary. |
 | `b3419ab` selection-derived masks | Same existing mask PNG and fields; creation behavior changes. | Implement the UI/tool semantics without changing mask serialization. |
 | `60d9117` Camera Raw curves | Camera Raw result is baked into layer pixels; no manifest setting is introduced. | Port the transient algorithm only; do not add JSON fields. |
@@ -182,19 +182,26 @@ or source file without requiring a migration:
 ## Import, export, clipboard, and existing non-range gaps
 
 The only import work changed by the upstream range is the PSD correctness work
-in `8c0417b`. The Windows core can parse PSD/PSB via `PsdImporter`, but Desktop
-File > Import calls generic `ImageImporter.Decode`, which intentionally rejects
-PSD/PSB as a one-image decode. The picker currently advertises those extensions,
-so this is a P0 integration/correctness issue rather than a reason to change
-the `.comp` format.
+in `8c0417b`. The Windows core parses PSD/PSB via `PsdImporter`, and Desktop now
+routes those extensions before `ImageImporter.Decode`: an empty editor receives
+an editable `CanvasDocument`; an existing document receives one wrapper group
+whose children retain the imported hierarchy, masks, clipping and adjustments.
+This does not add any `.comp` field or change format 11. A full localized
+conversion-report/confirm sheet remains a follow-up: this batch reports only a
+localized conversion-note count so Core's English free-form note text is never
+shown in a Chinese UI.
+
+Desktop does not yet have a file drag/drop entry point for any image format, so
+there is no PSD-specific drop route to wire in this batch. A future drop handler
+must share the same extension dispatch and wrapper-group operation rather than
+calling `ImageImporter.Decode` for PSD/PSB.
 
 No new PNG, JPEG, TIFF, RAW, clipboard, or export option was added by upstream
 between these tags. The audit still records current Windows limitations for
 future parity planning:
 
-- Image import supports common raster formats, TIFF, HEIC/AVIF, SVG, and RAW
-  through the existing decoders; PSD/PSB needs Desktop wiring to preserve
-  layers.
+- Image import supports common raster formats, TIFF, HEIC/AVIF, SVG, RAW, and
+  PSD/PSB. PSD/PSB retains the layers Core can represent instead of flattening.
 - Export UI/core currently writes PNG and JPEG, not TIFF or PSD/PSB.
 - Cut/Copy/Paste is an in-process `ClipboardImage`, not an OS clipboard bridge.
 - Text format supports color/font runs in format 10/11, but the Desktop editor
@@ -218,7 +225,7 @@ These are not falsely attributed to 1.4.3–1.4.5 changes.
 
 | Phase | Tasks | Likely files | Required tests | Risk / complexity |
 |---|---|---|---|---|
-| A — compatibility and correctness | Preserve format-11 round trips; add macOS-derived PSD, Soft Light, Add Noise, and mask fixtures; wire PSD/PSB Desktop import only with conversion-note UI. | `Core/IO/PSD/*`, `Desktop/MainWindow.cs`, optional import/conversion dialog, `Core/Format/*`, resources. | Existing manifest/project round trips; PSD mask/adjustment fixtures; desktop import integration; no manifest delta. | High data-correctness risk; M–L. |
+| A — compatibility and correctness | Preserve format-11 round trips; keep the completed Desktop PSD/PSB routing and self-authored mask/clipping/blend/adjustment fixtures; add a localized conversion-confirmation dialog and macOS reference fixtures before declaring exact parity. | `Core/IO/PSD/*`, `Core/Document/LayerPlacement.cs`, `Desktop/MainWindow.cs`, optional import/conversion dialog, resources. | Existing manifest/project round trips; PSD/PSB fixture and wrapper-group history tests; Desktop resource contract; no manifest delta. | High data-correctness risk; M–L. |
 | B — rendering behavior | Resolve Soft Light parity; compare adjustment/noise placement and clipping stacks; profile CPU tiles before considering a backend abstraction. | `Core/Pixels/BlendModes.cs`, `AdjustmentOperators.cs`, `Core/Rendering/DocumentRenderer.cs`. | Golden-pixel cases for blend modes, masks, adjustments, tiled-vs-whole render. | Rendering regressions; L. |
 | C — Camera Raw parity | Add transient parametric curve state, smooth RGB tone LUT, Refine semantics, Parametric/Point UI, and localized labels. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs`, `Desktop/CameraRawPanel.cs`, `Desktop/CurveEditor.cs`, both resource files. | Upstream curve profiles, monotonicity, RGB/chroma fixtures, Avalonia pointer tests, `.comp` serialization unchanged. | Algorithm/UI coupling; L. |
 | D — tools and editor UI | The first batch is complete: selection-aware masks and mask-alone view, Shift selected-pixel axis lock, and ungroup. Remaining work includes tabs overflow/reorder, transform fields, and close-settlement behavior. | `Core/Document/SelectionEdits.cs`, `LayerMaskEdits.cs`, `LayerPlacement.cs`, `Desktop/MainWindow.cs`, `CanvasView.cs`, tab controls, shortcuts/resources. | History/undo tests, layer-order/mask tests, keyboard and pointer desktop tests, close/cancel tests. | Interaction/history regressions; S–M per item. |
@@ -245,14 +252,16 @@ JSON keys, or `.comp` serialization strings.
 ## Test checklist
 
 - [x] Tag/source audit completed; format schema verified unchanged.
-- [ ] Add cross-platform fixtures for PSD Levels/Hue/mask placement.
-- [ ] Add golden Soft Light, Add Noise, clipping/mask, and tiled-render tests.
+- [x] Add self-authored PSD/PSB fixtures for Levels/Curves/Hue, mask placement,
+  clipping, representative blends, unsupported adjustment notes, and format-11 round trip.
+- [ ] Add macOS/Photoshop reference pixels for Soft Light and scaled adjustment/noise;
+  existing Add Noise positioning/tiled-render tests remain separate from PSD import.
 - [ ] Add Camera Raw 1.4.5 curve math/chroma tests before UI work.
 - [ ] Add pointer/keyboard tests for selection masks, Shift pixel movement,
   tabs, ungroup, transform controls, and close settlement.
-- [ ] Run `dotnet test windows/tests/Compositor.Core.Tests/Compositor.Core.Tests.csproj`.
-- [ ] Run relevant Desktop/localization tests after any visible UI change.
-- [ ] Run `dotnet build windows/Compositor.slnx` with no new errors.
+- [x] Run `dotnet test windows/tests/Compositor.Core.Tests/Compositor.Core.Tests.csproj`.
+- [x] Run relevant Desktop/localization tests after visible UI changes.
+- [x] Run `dotnet build windows/Compositor.slnx` with no new errors.
 
 ## Localization gate
 
@@ -270,7 +279,8 @@ IDs, command IDs, JSON property names, and serialized `.comp` values stable.
 - [x] Confirmed no `.comp` schema/version change in the range.
 - [x] Mapped Apple-only implementation choices to Windows equivalents.
 - [x] Complete the first Phase D selection/mask/layer interaction batch.
-- [ ] Complete Phase A fixtures and PSD Desktop integration.
+- [x] Complete Phase A P0 PSD/PSB Desktop routing, wrapper-group handoff, and self-authored fixture coverage.
+- [ ] Finish Phase A conversion-confirmation UI and macOS/Photoshop reference-pixel comparison.
 - [ ] Complete Phase B rendering parity fixtures/fixes.
 - [ ] Complete Phase C Camera Raw 1.4.5 parity.
 - [ ] Complete Phase D interaction parity.
