@@ -1,4 +1,5 @@
 using System.Text;
+using Compositor.Core.Document;
 using Compositor.Core.Format;
 using Compositor.Core.IO;
 using Compositor.Core.IO.PSD;
@@ -8,9 +9,10 @@ using SkiaSharp;
 namespace Compositor.Core.Tests;
 
 /// <summary>
-/// Photoshop files, written by hand here so the reader is checked against the format rather than against
-/// itself: the header, one image resource, the layer and mask section with folders, masks and PackBits
-/// rows, the merged image data, and the PNG save and render an import feeds.
+/// Self-authored Photoshop fixtures, written by hand here so the reader is checked against the format rather
+/// than against itself: the header, one image resource, the layer and mask section with folders, masks and
+/// PackBits rows, the merged image data, and the PNG save and render an import feeds. They contain only the
+/// solid colors and geometry below; no Photoshop or third-party artwork is included.
 /// </summary>
 public class PsdImportTests : IDisposable
 {
@@ -40,11 +42,11 @@ public class PsdImportTests : IDisposable
     private const int CanvasHeight = 6;
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void LayersFoldersMasksAndClippingComeIn(int version)
+    [InlineData(1, "Layered.psd")]
+    [InlineData(2, "Layered.psb")]
+    public void LayersFoldersMasksAndClippingComeIn(int version, string filename)
     {
-        var import = PsdImporter.Read(Write($"Layered{version}.psd", LayeredFile(version)));
+        var import = PsdImporter.Read(Write(filename, LayeredFile(version)));
 
         var manifest = import.Manifest;
         Assert.Equal(11, manifest.Version);
@@ -202,6 +204,15 @@ public class PsdImportTests : IDisposable
     }
 
     [Fact]
+    public void ATruncatedPhotoshopFixtureIsClassifiedAsUnreadable()
+    {
+        var bytes = LayeredFile(1)[..24];
+        var error = Assert.Throws<ImportException>(() => PsdImporter.Read(Write("Truncated.psd", bytes)));
+
+        Assert.Equal(ImportError.Unreadable, error.Error);
+    }
+
+    [Fact]
     public void AnImportSavesAndRendersThroughTheProjectFormat()
     {
         var import = PsdImporter.Read(Write("Round.psd", LayeredFile(1)));
@@ -254,6 +265,152 @@ public class PsdImportTests : IDisposable
     }
 
     [Fact]
+    public void CurvesAndHueSaturationAdjustmentFixturesStayEditable()
+    {
+        var import = PsdImporter.Read(Write("Adjustments-supported.psd", SupportedAdjustmentsFile()));
+        var curves = Assert.Single(import.Manifest.Layers, layer => layer.Name == "Curves").Adjustment;
+        var hue = Assert.Single(import.Manifest.Layers, layer => layer.Name == "Hue Saturation").Adjustment;
+
+        Assert.NotNull(curves);
+        Assert.Equal(AdjustmentKind.Curves, curves.Kind);
+        Assert.Equal(new[] { 0.0, 128.0, 255.0 }, curves.Curves.Channels[0].Select(point => point.X));
+        Assert.Equal(new[] { 0.0, 160.0, 255.0 }, curves.Curves.Channels[0].Select(point => point.Y));
+
+        Assert.NotNull(hue);
+        Assert.Equal(AdjustmentKind.HueSaturation, hue.Kind);
+        Assert.True(hue.HsvSettings!.Colorize);
+        Assert.Equal(30, hue.HsvSettings.Current.Hue);
+        Assert.Equal(20, hue.HsvSettings.Current.Saturation);
+        Assert.Equal(-10, hue.HsvSettings.Current.Lightness);
+        Assert.All(import.Manifest.Layers.Where(layer => layer.Adjustment is not null), layer => Assert.Null(layer.ImageFile));
+        ProjectStore.Validate(import.Manifest);
+    }
+
+    [Fact]
+    public void UnsupportedAdjustmentFixturesAreReportedAndNotPretendedEditable()
+    {
+        var import = PsdImporter.Read(Write("Adjustments-unsupported.psd", UnsupportedAdjustmentsFile()));
+
+        Assert.Equal(new[] { "Background" }, import.Manifest.Layers.Select(layer => layer.Name));
+        Assert.Equal(new[] { "Exposure", "Black & White", "Color Balance" }, import.Notes.Select(note => note.Layer));
+        Assert.All(import.Notes, note => Assert.Contains("isn't supported and was skipped", note.What, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PhotoshopBlendFixtureMapsAndRendersRepresentativeModes()
+    {
+        var import = PsdImporter.Read(Write("Blend-modes.psd", BlendModesFile()));
+        Assert.Equal(
+            new[]
+            {
+                LayerBlendMode.Normal, LayerBlendMode.Multiply, LayerBlendMode.Screen,
+                LayerBlendMode.Overlay, LayerBlendMode.SoftLight,
+            },
+            import.Manifest.Layers.Skip(1).Select(layer => layer.BlendModeValue));
+
+        using var document = import.Snapshot().ToDocument();
+        using var rendered = DocumentRenderer.Render(document);
+        // Each one-pixel source sits over the same neutral-grey backdrop. These values are independent
+        // reference calculations for the five standard blend equations, not values obtained from the renderer.
+        Close(rendered.GetPixel(0, 0), 200, 100, 50, 255);
+        Close(rendered.GetPixel(1, 0), 100, 50, 25, 255);
+        Close(rendered.GetPixel(2, 0), 228, 178, 153, 255);
+        Close(rendered.GetPixel(3, 0), 201, 100, 50, 255, tolerance: 1);
+        Close(rendered.GetPixel(4, 0), 158, 114, 89, 255, tolerance: 1);
+    }
+
+    [Fact]
+    public void ImportedLayersJoinAnExistingDocumentAsOneUndoableGroup()
+    {
+        var import = PsdImporter.Read(Write("Join.psd", LayeredFile(1)));
+        using var incoming = import.Snapshot().ToDocument();
+        var importedRoots = incoming.Layers.Where(layer => layer.ParentID is null).Select(layer => layer.ID).ToHashSet();
+        var importedChild = Assert.Single(incoming.Layers, layer => layer.Name == "Unicode \u2713 Name");
+        var folder = Assert.Single(incoming.Layers, layer => layer.Name == "Folder 1");
+
+        using var document = new Model.CanvasDocument(Guid.NewGuid(), CanvasWidth, CanvasHeight);
+        var existing = new Model.ImageLayer(Guid.NewGuid(), Model.ImportedImage.Create(Solid(CanvasWidth, CanvasHeight, SKColors.Transparent), "Existing"),
+            new Model.LayerTransform(0, 0, CanvasWidth, CanvasHeight), "Existing");
+        document.Layers.Add(existing);
+        var history = new Model.DocumentHistory();
+        history.Begin("Import Photoshop File", document, existing.ID);
+        var group = LayerPlacement.InsertImportedDocument(document, incoming, "Join", existing.ID);
+        history.End(document, group);
+
+        Assert.NotNull(group);
+        Assert.Empty(incoming.Layers);
+        var wrapper = Assert.Single(document.Layers, layer => layer.ID == group);
+        Assert.True(wrapper.IsGroup);
+        Assert.Equal("Join", wrapper.Name);
+        Assert.Null(wrapper.ParentID);
+        Assert.Equal(existing.ID, document.Layers[0].ID);
+        Assert.Equal(group, document.Layers[1].ID);
+        Assert.All(document.Layers.Where(layer => importedRoots.Contains(layer.ID)), layer => Assert.Equal(group, layer.ParentID));
+        Assert.Equal(folder.ID, document.Layers.Single(layer => layer.ID == importedChild.ID).ParentID);
+        var importedBackground = Assert.Single(document.Layers, layer => layer.Name == "Background");
+        var importedClip = Assert.Single(document.Layers, layer => layer.Name == "Clipped");
+        Assert.NotNull(importedBackground.Mask);
+        Assert.Equal(importedBackground.ID, importedClip.MaskSourceID);
+        Assert.Equal((byte)0, importedBackground.Mask.Asset.Image.GetPixel(0, 0).Red);
+        Assert.True(history.IsModified);
+        ProjectStore.Validate(Manifest(document));
+        using (var rendered = DocumentRenderer.Render(document))
+        {
+            Assert.Equal((byte)0, rendered.GetPixel(0, 0).Alpha);
+            Assert.Equal(new SKColor(0, 0, 255, 255), rendered.GetPixel(1, 1));
+        }
+
+        var undone = Assert.IsType<Model.DocumentHistory.Snapshot>(history.Undo());
+        Assert.Equal(existing.ID, undone.ActiveLayerID);
+        document.Adopt(Assert.IsType<Model.CanvasDocument>(undone.Document));
+        Assert.Single(document.Layers);
+        Assert.Equal(existing.ID, document.Layers[0].ID);
+        var redone = Assert.IsType<Model.DocumentHistory.Snapshot>(history.Redo());
+        Assert.Equal(group, redone.ActiveLayerID);
+        document.Adopt(Assert.IsType<Model.CanvasDocument>(redone.Document));
+        Assert.Contains(document.Layers, layer => layer.ID == group);
+    }
+
+    [Fact]
+    public void ImportedLayersJoinTheSelectedGroupAndRejectInvalidStacksAtomically()
+    {
+        using var incoming = PsdImporter.Read(Write("Nested.psd", LayeredFile(1))).Snapshot().ToDocument();
+        using var document = new Model.CanvasDocument(Guid.NewGuid(), CanvasWidth, CanvasHeight);
+        var target = new Model.ImageLayer(Guid.NewGuid(), null,
+            new Model.LayerTransform(0, 0, CanvasWidth, CanvasHeight), "Target")
+        {
+            IsGroup = true,
+        };
+        document.Layers.Add(target);
+
+        var wrapper = LayerPlacement.InsertImportedDocument(document, incoming, "Nested", target.ID);
+
+        Assert.NotNull(wrapper);
+        Assert.Equal(target.ID, document.Layers.Single(layer => layer.ID == wrapper).ParentID);
+        Assert.Equal(new[] { "Background", "Clipped", "Folder 1", "Hidden" }, document.Layers
+            .Where(layer => layer.ParentID == wrapper).Select(layer => layer.Name));
+        ProjectStore.Validate(Manifest(document));
+
+        var before = document.Layers.Select(layer => layer.ID).ToArray();
+        using var collision = new Model.CanvasDocument(Guid.NewGuid(), CanvasWidth, CanvasHeight);
+        collision.Layers.Add(new Model.ImageLayer(document.Layers[0].ID, null,
+            new Model.LayerTransform(0, 0, CanvasWidth, CanvasHeight), "Collision"));
+        Assert.Null(LayerPlacement.InsertImportedDocument(document, collision, "Collision", target.ID));
+        Assert.Equal(before, document.Layers.Select(layer => layer.ID));
+        Assert.Single(collision.Layers);
+
+        using var invalid = new Model.CanvasDocument(Guid.NewGuid(), CanvasWidth, CanvasHeight);
+        invalid.Layers.Add(new Model.ImageLayer(Guid.NewGuid(), null,
+            new Model.LayerTransform(0, 0, CanvasWidth, CanvasHeight), "Invalid")
+        {
+            ParentID = Guid.NewGuid(),
+        });
+        Assert.Null(LayerPlacement.InsertImportedDocument(document, invalid, "Invalid", target.ID));
+        Assert.Equal(before, document.Layers.Select(layer => layer.ID));
+        Assert.Single(invalid.Layers);
+    }
+
+    [Fact]
     public void AnImportPastTheBudgetIsRefused()
     {
         var path = Write("Heavy.psd", LayeredFile(1));
@@ -262,6 +419,30 @@ public class PsdImportTests : IDisposable
     }
 
     private static int[] Pixels(Model.ImportedImage image) => new[] { image.Width, image.Height };
+
+    private static ProjectManifest Manifest(Model.CanvasDocument document) => new()
+    {
+        DocumentID = document.ID,
+        Width = document.Width,
+        Height = document.Height,
+        Resolution = document.Resolution,
+        Layers = [.. document.Layers.Select(Model.CanvasDocument.Record)],
+    };
+
+    private static SKBitmap Solid(int width, int height, SKColor colour)
+    {
+        var bitmap = new SKBitmap(Model.Bitmaps.ColorInfo(width, height));
+        bitmap.Erase(colour);
+        return bitmap;
+    }
+
+    private static void Close(SKColor actual, int red, int green, int blue, int alpha, int tolerance = 0)
+    {
+        Assert.InRange(actual.Red, red - tolerance, red + tolerance);
+        Assert.InRange(actual.Green, green - tolerance, green + tolerance);
+        Assert.InRange(actual.Blue, blue - tolerance, blue + tolerance);
+        Assert.InRange(actual.Alpha, alpha - tolerance, alpha + tolerance);
+    }
 
     // ---------------------------------------------------------------------------------------------
     // A Photoshop file, written a field at a time.
@@ -281,7 +462,7 @@ public class PsdImportTests : IDisposable
         public int[] ChannelIds = [];
         public List<byte[]> Planes = [];
         public bool Raw;
-        public byte[]? Levels;
+        public List<(string Key, byte[] Data)> AdditionalBlocks = [];
         public byte[]? MaskPlane;
         public int MaskTop, MaskLeft, MaskBottom, MaskRight;
         public byte MaskDefault = 255;
@@ -407,7 +588,7 @@ public class PsdImportTests : IDisposable
             Bottom = CanvasHeight,
             ChannelIds = [0, 1, 2],
             Planes = [Plane(CanvasWidth, CanvasHeight, 0), Plane(CanvasWidth, CanvasHeight, 0), Plane(CanvasWidth, CanvasHeight, 0)],
-            Levels = LevelsBlock(),
+            AdditionalBlocks = [("levl", LevelsBlock())],
         });
         using var file = new MemoryStream();
         var writer = new BeWriter(file);
@@ -424,6 +605,88 @@ public class PsdImportTests : IDisposable
         return file.ToArray();
     }
 
+    private static byte[] SupportedAdjustmentsFile()
+    {
+        List<LayerSpec> layers =
+        [
+            SolidLayer("Background", 0, 0, CanvasWidth, CanvasHeight, 64, 96, 128),
+            AdjustmentLayer("Curves", "curv", CurvesBlock()),
+            AdjustmentLayer("Hue Saturation", "hue2", HueBlock()),
+        ];
+        return PhotoshopFile(layers);
+    }
+
+    private static byte[] UnsupportedAdjustmentsFile()
+    {
+        List<LayerSpec> layers =
+        [
+            SolidLayer("Background", 0, 0, CanvasWidth, CanvasHeight, 64, 96, 128),
+            AdjustmentLayer("Exposure", "expA", [0, 1]),
+            AdjustmentLayer("Black & White", "blwh", [0, 1]),
+            AdjustmentLayer("Color Balance", "blnc", [0, 1]),
+        ];
+        return PhotoshopFile(layers);
+    }
+
+    private static byte[] BlendModesFile()
+    {
+        var layers = new List<LayerSpec>
+        {
+            SolidLayer("Background", 0, 0, CanvasWidth, CanvasHeight, 128, 128, 128),
+        };
+        var modes = new[]
+        {
+            ("Normal", "norm"), ("Multiply", "mul "), ("Screen", "scrn"),
+            ("Overlay", "over"), ("Soft Light", "sLit"),
+        };
+        for (var x = 0; x < modes.Length; x++)
+        {
+            layers.Add(SolidLayer(modes[x].Item1, x, 0, 1, 1, 200, 100, 50, modes[x].Item2));
+        }
+        return PhotoshopFile(layers);
+    }
+
+    private static LayerSpec SolidLayer(string name, int left, int top, int width, int height, byte red, byte green,
+        byte blue, string blend = "norm") => new()
+    {
+        Name = name,
+        Left = left,
+        Top = top,
+        Right = left + width,
+        Bottom = top + height,
+        Blend = blend,
+        ChannelIds = [0, 1, 2],
+        Planes = [Plane(width, height, red), Plane(width, height, green), Plane(width, height, blue)],
+    };
+
+    private static LayerSpec AdjustmentLayer(string name, string key, byte[] payload) => new()
+    {
+        Name = name,
+        Right = CanvasWidth,
+        Bottom = CanvasHeight,
+        ChannelIds = [0, 1, 2],
+        Planes = [Plane(CanvasWidth, CanvasHeight, 0), Plane(CanvasWidth, CanvasHeight, 0), Plane(CanvasWidth, CanvasHeight, 0)],
+        AdditionalBlocks = [(key, payload)],
+    };
+
+    private static byte[] PhotoshopFile(List<LayerSpec> layers, int version = 1)
+    {
+        var psb = version == 2;
+        using var file = new MemoryStream();
+        var writer = new BeWriter(file);
+        Header(writer, version, channels: 3);
+        writer.U32(0);
+        writer.U32(0);
+        var section = LayerSection(layers, psb);
+        writer.Length(psb, section.Length);
+        writer.Bytes(section);
+        writer.U16(0);
+        writer.Bytes(Flat(CanvasWidth * CanvasHeight, 64));
+        writer.Bytes(Flat(CanvasWidth * CanvasHeight, 96));
+        writer.Bytes(Flat(CanvasWidth * CanvasHeight, 128));
+        return file.ToArray();
+    }
+
     private static byte[] LevelsBlock()
     {
         var payload = new byte[292];
@@ -437,6 +700,35 @@ public class PsdImportTests : IDisposable
             payload[at + 7] = 250;
             payload[at + 9] = 120;
         }
+        return payload;
+    }
+
+    private static byte[] CurvesBlock()
+    {
+        using var stream = new MemoryStream();
+        var writer = new BeWriter(stream);
+        // The first zero selects the Pascal-style version offset the PSD block uses.
+        writer.Byte(0);
+        writer.U16(1);
+        writer.U16(1);
+        writer.U16(3);
+        writer.U16(0);
+        writer.U16(0);
+        writer.U16(160);
+        writer.U16(128);
+        writer.U16(255);
+        writer.U16(255);
+        return stream.ToArray();
+    }
+
+    private static byte[] HueBlock()
+    {
+        var payload = new byte[16];
+        payload[2] = 1; // Colorize.
+        payload[5] = 30;
+        payload[7] = 20;
+        payload[8] = 0xFF;
+        payload[9] = 0xF6; // -10.
         return payload;
     }
 
@@ -576,12 +868,13 @@ public class PsdImportTests : IDisposable
             writer.Byte(layer.Fill);
             writer.Byte(0);
         }
-        if (layer.Levels is { } levels)
+        foreach (var (key, payload) in layer.AdditionalBlocks)
         {
             writer.Ascii("8BIM");
-            writer.Ascii("levl");
-            writer.U32(levels.Length);
-            writer.Bytes(levels);
+            writer.Ascii(key);
+            writer.U32(payload.Length);
+            writer.Bytes(payload);
+            if (payload.Length % 2 == 1) writer.Byte(0);
         }
         return stream.ToArray();
     }

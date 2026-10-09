@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Globalization;
+using System.Resources;
 using Compositor.Core.IO;
 using Compositor.Desktop.Localization;
 
@@ -116,6 +118,30 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void PhotoshopImportStringsAreCompleteAndReviewedInBothCultures()
+    {
+        var english = new LocalizationManager(LocalizationManager.EnglishCulture);
+        var traditionalChinese = new LocalizationManager(LocalizationManager.TraditionalChineseCulture);
+
+        Assert.Equal("Open _Photoshop document…", english.Get("Menu.OpenPhotoshopDocument"));
+        Assert.Equal("Adobe Photoshop (*.psd;*.psb)", english.Get("Dialog.FileTypePhotoshop"));
+        Assert.Equal("Unable to open Photoshop file.", english.Get("Status.PhotoshopImportFailed"));
+        Assert.Equal("Import Photoshop File", english.Get("History.Import Photoshop File"));
+        Assert.Equal("開啟 Photoshop 文件…", traditionalChinese.Get("Menu.OpenPhotoshopDocument"));
+        Assert.Equal("Adobe Photoshop 檔案 (*.psd;*.psb)", traditionalChinese.Get("Dialog.FileTypePhotoshop"));
+        Assert.Equal("無法開啟 Photoshop 檔案。", traditionalChinese.Get("Status.PhotoshopImportFailed"));
+        Assert.Equal("匯入 Photoshop 檔案", traditionalChinese.Get("History.Import Photoshop File"));
+
+        var resources = new ResourceManager("Compositor.Desktop.Localization.Strings", typeof(LocalizationManager).Assembly);
+        var englishKeys = Keys(resources.GetResourceSet(CultureInfo.GetCultureInfo(LocalizationManager.EnglishCulture),
+            createIfNotExists: true, tryParents: true));
+        var traditionalChineseKeys = Keys(resources.GetResourceSet(
+            CultureInfo.GetCultureInfo(LocalizationManager.TraditionalChineseCulture), createIfNotExists: true, tryParents: false));
+        Assert.True(englishKeys.SetEquals(traditionalChineseKeys),
+            $"Missing zh-TW keys: {string.Join(", ", englishKeys.Except(traditionalChineseKeys))}");
+    }
+
+    [Fact]
     public void SelectedLanguageIsPersistedOutsideProjects()
     {
         var folder = Path.Combine(Path.GetTempPath(), "Compositor.Desktop.Tests", Guid.NewGuid().ToString("N"));
@@ -133,5 +159,11 @@ public class LocalizationTests
         {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
+    }
+
+    private static HashSet<string> Keys(ResourceSet? set)
+    {
+        Assert.NotNull(set);
+        return set.Cast<DictionaryEntry>().Select(entry => Assert.IsType<string>(entry.Key)).ToHashSet(StringComparer.Ordinal);
     }
 }
