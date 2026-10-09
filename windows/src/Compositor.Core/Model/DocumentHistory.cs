@@ -32,6 +32,8 @@ public sealed class DocumentHistory
 
     public bool CanUndo => _depth == 0 && _past.Count > 0;
     public bool CanRedo => _depth == 0 && _future.Count > 0;
+    /// <summary>Whether an interactive edit has started and still needs one matching <see cref="End"/>.</summary>
+    public bool HasOpenTransaction => _depth > 0;
     public string UndoName => _past.Count > 0 ? _past[^1].Name : "";
     public string RedoName => _future.Count > 0 ? _future[^1].Name : "";
     public bool IsModified => _revision != _savedRevision;

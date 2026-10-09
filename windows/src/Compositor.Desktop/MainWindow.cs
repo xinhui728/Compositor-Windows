@@ -65,6 +65,8 @@ public sealed class MainWindow : Window
     private CameraRawPanel? _cameraRaw;
     /// <summary>The layer the Camera Raw panel was opened on, so what Apply writes to does not follow the panel selection.</summary>
     private Guid? _cameraRawLayer;
+    /// <summary>The tab the Camera Raw panel belongs to, so a late panel callback cannot edit another document.</summary>
+    private Tab? _cameraRawTab;
     /// <summary>The scope the last Camera Raw preview counted, for the panel to draw when that picture is shown.</summary>
     private CameraRawScope? _cameraRawScope;
 
@@ -77,6 +79,9 @@ public sealed class MainWindow : Window
     private ColorRangePanel? _colorRangePanel;
     /// <summary>The selection there was before the panel opened, which a Cancel puts back.</summary>
     private DocumentSelection? _colorRangeWas;
+    /// <summary>The tab and selected layer that own the colour-range history transaction.</summary>
+    private Tab? _colorRangeTab;
+    private Guid? _colorRangeLayer;
 
     /// <summary>The picker while the self check has it up, so the caller can photograph that window too — the
     /// picture of the editor does not hold a window of its own.</summary>
@@ -141,6 +146,11 @@ public sealed class MainWindow : Window
     private Func<CanvasDocument, bool>? _previewApply;
     /// <summary>The one layer a single-layer preview stands for, so a panel that thinks in layers can be shown.</summary>
     private Guid? _previewLayer;
+    /// <summary>The tab that owns the current preview. Delayed preview work must never follow a tab switch.</summary>
+    private Tab? _previewTab;
+    /// <summary>Invalidates a queued preview callback when its owner is settled or closed.</summary>
+    private readonly PreviewCallbackGeneration _previewGeneration = new();
+    private EventHandler? _previewTick;
     /// <summary>The box and the layers a distortion drag began with, so every step is measured from it.</summary>
     private LayerTransform? _distortBox;
     private List<Guid>? _distortLayers;
@@ -233,6 +243,13 @@ public sealed class MainWindow : Window
     private DispatcherTimer? _watchTimer;
     private readonly StackPanel _tabStrip = new() { Orientation = Orientation.Horizontal, Spacing = 4 };
 
+    /// <summary>Guards the asynchronous close bridge and prevents a second close request from settling twice.</summary>
+    private bool _windowCloseApproved;
+    private bool _windowCloseInProgress;
+    private readonly HashSet<Tab> _closingTabs = [];
+    private readonly HashSet<Tab> _savingTabs = [];
+    private bool _settlingPendingEdits;
+
     private CanvasDocument? _document
     {
         get => _open.Document;
@@ -256,12 +273,22 @@ public sealed class MainWindow : Window
         set => _open.Watch = value;
     }
 
+    /// <summary>
+    /// An awaited dialog belongs to the document that opened it. Its continuation must prove that document is
+    /// still in front before it can create history or change pixels; closing a dialog while switching tabs can
+    /// otherwise resume on the next dispatcher turn after a different tab has become current.
+    /// </summary>
+    private bool IsFront(Tab tab, CanvasDocument document) =>
+        ReferenceEquals(_open, tab) && ReferenceEquals(tab.Document, document);
+
     /// <summary>Which pointer tool is in hand, and the menu rows that show it.</summary>
     private readonly Dictionary<Tool, MenuItem> _toolItems = [];
     private Tool _tool = Tool.Pan;
 
     /// <summary>The layer a transform drag is editing, while the pointer is down.</summary>
     private Guid? _transforming;
+    private Tab? _transformTab;
+    private Guid? _transformLayer;
 
     /// <summary>What the box was when the drag began, and where every layer it moves was.</summary>
     private LayerTransform? _transformBox;
@@ -300,9 +327,10 @@ public sealed class MainWindow : Window
         // The two calls a screen has to be asked for are made once the window is open, which is when there is a
         // screen to ask.
         Opened += (_, _) => FitToScreen();
-        // The picker is a window of its own and the app is left running until the last window closes, so it
-        // goes with the editor rather than being left behind to hold the session open.
-        Closing += (_, _) => _picker?.Close();
+        // Avalonia's Closing event is synchronous, while settling a document and asking whether to save is
+        // deliberately asynchronous. WindowClosing cancels the first request, finishes that workflow, and
+        // then permits one final Close call once every tab is safe to dispose.
+        Closing += WindowClosing;
         Background = Skin.ChromeBrush;
         // The window's plain labels (a heading, a readout) take their colour from here, as the Mac's do from
         // the appearance; controls that name their own text keep it.
@@ -459,7 +487,7 @@ public sealed class MainWindow : Window
                     Header = L.Get("Menu.File"),
                     Items =
                     {
-                        Command(L.Get("Menu.NewProject"), () => _ = NewProject(), "New Project"),
+                        Command(L.Get("Menu.NewProject"), () => QueueLifecycle(NewProject), "New Project"),
                         Command(L.Get("Menu.OpenProject"), OpenProject, "Open Project"),
                         Command(L.Get("Menu.OpenPhotoshopDocument"), () => _ = OpenPhotoshopDocument()),
                         _recentMenu,
@@ -467,10 +495,10 @@ public sealed class MainWindow : Window
                         Command(L.Get("Menu.Save"), Save, "Save"),
                         Command(L.Get("Menu.SaveAs"), SaveAs, "Save As"),
                         new Separator(),
-                        Command(L.Get("Menu.ExportPng"), ExportPng, "Export PNG"),
+                        Command(L.Get("Menu.ExportPng"), () => QueueLifecycle(ExportPng), "Export PNG"),
                         Command(L.Get("Menu.ExportJpeg"), () => _ = ExportJpeg(), "Export JPEG"),
                         new Separator(),
-                        Command(L.Get("Menu.CloseTab"), () => _ = CloseTab(_open), "Close Tab"),
+                        Command(L.Get("Menu.CloseTab"), () => QueueLifecycle(() => CloseTab(_open)), "Close Tab"),
                         Command(L.Get("Menu.Exit"), Close),
                     },
                 },
@@ -766,7 +794,7 @@ public sealed class MainWindow : Window
     {
         var add = new Button { Content = "＋", Padding = new Thickness(8, 0, 8, 0) };
         ToolTip.SetTip(add, L.Get("Toolbar.NewCanvasTooltip"));
-        add.Click += (_, _) => _ = NewProject();
+        add.Click += (_, _) => QueueLifecycle(NewProject);
         var zooms = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -1017,13 +1045,16 @@ public sealed class MainWindow : Window
 
         Does("Undo", Undo);
         Does("Redo", Redo);
-        Does("New Project", () => _ = NewProject());
+        Does("New Project", () => QueueLifecycle(NewProject));
         Does("Open Project", OpenProject);
         Does("Save", Save);
         Does("Save As", SaveAs);
-        Does("Export PNG", ExportPng);
+        Does("Export PNG", () => QueueLifecycle(ExportPng));
         Does("Export JPEG", () => _ = ExportJpeg());
-        Does("Close Tab", () => _ = CloseTab(_open));
+        Does("Close Tab", () =>
+        {
+            QueueLifecycle(() => CloseTab(_open));
+        });
         Does("Fit Canvas", () => { _canvas.Fit(); Say(); });
         Does("Actual Pixels", () => { _canvas.ActualSize(); Say(); });
         Does("Zoom In", () => { _canvas.ZoomBy(1.25); Say(); });
@@ -1141,6 +1172,9 @@ public sealed class MainWindow : Window
     /// <summary>The pixels a drag is carrying, and how far it has taken them.</summary>
     private FloatingPixels? _moving;
     private (int Dx, int Dy) _movedBy;
+    /// <summary>The tab and layer that own the open Move Pixels history transaction.</summary>
+    private Tab? _movingTab;
+    private Guid? _movingLayer;
 
     /// <summary>
     /// A press inside the selection with Control held: the pixels under it come away from the layer and are
@@ -1162,6 +1196,8 @@ public sealed class MainWindow : Window
         }
         _moving = floating;
         _movedBy = (0, 0);
+        _movingTab = _open;
+        _movingLayer = id;
         _canvas.Floating = (floating, 0, 0);
         Say(L.Get("Status.DraggingSelectionPixels"));
         return true;
@@ -1170,13 +1206,16 @@ public sealed class MainWindow : Window
     /// <summary>The pixels follow the pointer: where they are now is where they would land.</summary>
     private void PixelsDragged(int dx, int dy)
     {
-        if (_document is not { } document || _moving is not { } moving) return;
+        if (_movingTab?.Document is not { } document || _moving is not { } moving) return;
         _movedBy = (dx, dy);
-        _canvas.Floating = (moving, dx, dy);
+        if (ReferenceEquals(_movingTab, _open)) _canvas.Floating = (moving, dx, dy);
         // The outline goes with them, so what is selected is what is being carried.
         document.Selection = moving.Origin.Translated(dx, dy);
-        _canvas.InvalidateVisual();
-        Say(L.Get("Status.MovingPixels", dx, dy));
+        if (ReferenceEquals(_movingTab, _open))
+        {
+            _canvas.InvalidateVisual();
+            Say(L.Get("Status.MovingPixels", dx, dy));
+        }
     }
 
     /// <summary>
@@ -1185,8 +1224,22 @@ public sealed class MainWindow : Window
     /// </summary>
     private void PixelsLetGo()
     {
-        if (_document is not { } document || _moving is not { } moving) return;
+        SettleFloatingPixels();
+    }
+
+    /// <summary>
+    /// Puts down the floating selection in the tab that lifted it, rather than whichever tab happens to be
+    /// frontmost when a late pointer release arrives. This is also the close/switch settlement path.
+    /// </summary>
+    private bool SettleFloatingPixels()
+    {
+        var tab = _movingTab;
+        var layer = _movingLayer;
+        var moving = _moving;
+        if (tab?.Document is not { } document || moving is null) return false;
         _moving = null;
+        _movingTab = null;
+        _movingLayer = null;
         _canvas.Floating = null;
         if (_movedBy is (0, 0))
         {
@@ -1198,9 +1251,13 @@ public sealed class MainWindow : Window
         }
         var moved = _movedBy;
         _movedBy = (0, 0);
-        _history.End(document, Selected);
-        Refresh();
-        if (moved is not (0, 0)) Say(L.Get("Status.PixelsMoved", moved.Dx, moved.Dy));
+        tab.History.End(document, layer);
+        if (ReferenceEquals(tab, _open))
+        {
+            Refresh();
+            if (moved is not (0, 0)) Say(L.Get("Status.PixelsMoved", moved.Dx, moved.Dy));
+        }
+        return true;
     }
 
     /// <summary>
@@ -1314,7 +1371,9 @@ public sealed class MainWindow : Window
         Say(L.Get("Preferences.RestartRequired"));
     }
 
-    private async void OpenProject()
+    private void OpenProject() => QueueLifecycle(OpenProjectAsync);
+
+    private async Task OpenProjectAsync()
     {
         try
         {
@@ -1324,7 +1383,7 @@ public sealed class MainWindow : Window
                 AllowMultiple = false,
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
-            Open(path);
+            await OpenAsync(path);
         }
         catch (Exception error)
         {
@@ -1348,6 +1407,7 @@ public sealed class MainWindow : Window
                 ],
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
+            if (!await SettlePendingEditsAsync(_open)) return;
             OpenPhotoshopDocument(path);
         }
         catch (Exception)
@@ -1356,7 +1416,13 @@ public sealed class MainWindow : Window
         }
     }
 
-    private void Open(string path)
+    private async Task OpenAsync(string path)
+    {
+        if (!await SettlePendingEditsAsync(_open)) return;
+        OpenNow(path);
+    }
+
+    private void OpenNow(string path)
     {
         var snapshot = ProjectStore.Load(path);
         // Into an empty tab when there is one and a tab of its own otherwise: an open project is not thrown
@@ -1386,7 +1452,7 @@ public sealed class MainWindow : Window
         // The window opens with one empty tab, which is what the first project goes into: that is why the tab
         // count does not change on the first open and does on the second.
         if (_tabs.Count != 1 || _document is not null) throw new InvalidOperationException("the window did not open with one empty tab");
-        Open(first);
+        OpenNow(first);
         report.Add($"open first: {_tabs.Count} tab(s), front {_open.Name}, " +
             $"{_document?.Width}x{_document?.Height}, {_rows.Count} row(s)");
         if (_tabs.Count != 1) throw new InvalidOperationException("the first project did not take the empty tab");
@@ -1394,7 +1460,7 @@ public sealed class MainWindow : Window
         if (_rows.Count != _document!.Layers.Count) throw new InvalidOperationException("the panel does not hold the first project's layers");
 
         var firstTab = _open;
-        Open(second);
+        OpenNow(second);
         report.Add($"open second: {_tabs.Count} tab(s), front {_open.Name}, " +
             $"{_document?.Width}x{_document?.Height}, {_rows.Count} row(s)");
         if (_tabs.Count != 2) throw new InvalidOperationException("the second project did not get a tab of its own");
@@ -1433,7 +1499,7 @@ public sealed class MainWindow : Window
     internal string CameraRawSelfCheck(string project)
     {
         var report = new List<string>();
-        Open(project);
+        OpenNow(project);
         if (_document is not { } document) throw new InvalidOperationException("the project did not open");
         var target = document.Layers.FirstOrDefault(layer => layer.Asset is not null && !layer.IsGroup)
             ?? throw new InvalidOperationException("the project has no layer with pixels of its own");
@@ -1640,7 +1706,7 @@ public sealed class MainWindow : Window
     internal string ShortcutsSelfCheck(string project)
     {
         var report = new List<string>();
-        Open(project);
+        OpenNow(project);
         if (_document is null) throw new InvalidOperationException("the project did not open");
         report.Add($"the table: {Shortcuts.Definitions.Count} rows, {_verbs.Count} with an action to call, "
             + $"{_byKey.Count} on a key and {_keyRows.Count} of them shown in a menu");
@@ -1802,7 +1868,7 @@ public sealed class MainWindow : Window
         // check that drives a pointer has many ways to fail and only one of them is worth a stack trace.
         try
         {
-            Open(project);
+            OpenNow(project);
         if (_document is not { } document) throw new InvalidOperationException("the project did not open");
         _canvas.Fit();
         report.Add($"open {System.IO.Path.GetFileName(project)}: {document.Width}x{document.Height} "
@@ -2637,7 +2703,7 @@ public sealed class MainWindow : Window
     internal string ToolsSelfCheck(string project)
     {
         var report = new List<string>();
-        Open(project);
+        OpenNow(project);
         if (_document is not { } document) throw new InvalidOperationException("the project did not open");
         report.Add($"open {System.IO.Path.GetFileName(project)}: {document.Width}x{document.Height}");
 
@@ -2739,6 +2805,108 @@ public sealed class MainWindow : Window
     /// <summary>A colour as the status line names one.</summary>
     private static string Spell(SKColor colour) => $"{colour.Red},{colour.Green},{colour.Blue}";
 
+    /// <summary>Runs an asynchronous lifecycle operation without an <c>async void</c> event handler.</summary>
+    private void QueueLifecycle(Func<Task> operation)
+    {
+        _ = ObserveLifecycleAsync(operation);
+    }
+
+    private static async Task ObserveLifecycleAsync(Func<Task> operation)
+    {
+        try
+        {
+            await operation();
+        }
+        catch (Exception error)
+        {
+            // Lifecycle work is always initiated by a synchronous Avalonia event. Observe failures rather than
+            // letting a fire-and-forget task hide them; the document remains open because no close is approved.
+            System.Diagnostics.Debug.WriteLine(error);
+        }
+    }
+
+    /// <summary>
+    /// Resolves all UI state that belongs to the tab currently in front. Windows intentionally settles on a
+    /// tab switch rather than letting a preview cross documents; this is stricter than the old mixed behavior
+    /// and extends the v1.4.4 quit-only settlement to make the port safe for multi-tab use.
+    /// </summary>
+    private Task<bool> SettlePendingEditsAsync(Tab owner)
+    {
+        if (!ReferenceEquals(owner, _open)) return Task.FromResult(true);
+        if (_settlingPendingEdits || _savingTabs.Count > 0 || _canvas.HasBlockingPointerOperation) return Task.FromResult(false);
+        _settlingPendingEdits = true;
+        try
+        {
+            // Text and canvas transforms have already changed the document as they are edited, so they are
+            // committed exactly once. Crop and selection outlines are view-only drafts and are cancelled.
+            CommitText();
+            _canvas.FinishGradientDrag();
+            if (ReferenceEquals(_movingTab, owner)) SettleFloatingPixels();
+            if (!_canvas.FinishTransformDrag() && ReferenceEquals(_transformTab, owner)) TransformFinished();
+            if (_opacityDragging)
+            {
+                _opacityDragging = false;
+                if (_document is { } document)
+                {
+                    ApplyOpacity();
+                    _history.End(document, Selected);
+                    Refresh();
+                }
+            }
+            if (_cropFrame is not null) CancelCrop();
+            _canvas.CancelCropDrag();
+            _canvas.CancelDraft();
+
+            // Everything below is a preview or a dialog whose unconfirmed values must never reach the document.
+            CloseCameraRaw(owner);
+            var colorRangePanel = _colorRangePanel;
+            CancelColorRange(owner);
+            var picker = _picker;
+            CancelPicker();
+            ClosePendingDialogs(picker, colorRangePanel);
+            StopPreview(owner);
+            // Do not guess how to finish a future interactive operation that has opened history but was not
+            // explicitly modelled above. Keeping the document open is safer than dropping its undo boundary.
+            return Task.FromResult(!owner.History.HasOpenTransaction);
+        }
+        finally
+        {
+            _settlingPendingEdits = false;
+        }
+    }
+
+    /// <summary>Cancels editor-owned dialogs recursively; an unsaved-changes question belongs to the close flow.</summary>
+    private void ClosePendingDialogs(params Window?[] alreadyClosing)
+    {
+        var excluded = alreadyClosing.Where(window => window is not null).Cast<Window>().ToHashSet();
+        foreach (var dialog in OwnedWindowsRecursively(this).OfType<DialogWindow>()
+                     .Where(dialog => dialog is not UnsavedChangesDialog && !excluded.Contains(dialog)).ToArray())
+        {
+            dialog.Close();
+        }
+    }
+
+    /// <summary>
+    /// Cancels the editor's non-modal colour picker. Clearing the field before closing means a late input event
+    /// cannot sample into a picker whose window is already on its way down; its Cancelled callback is harmlessly
+    /// idempotent and restores the same null field.
+    /// </summary>
+    private void CancelPicker()
+    {
+        var picker = _picker;
+        _picker = null;
+        picker?.Close();
+    }
+
+    private static IEnumerable<Window> OwnedWindowsRecursively(Window owner)
+    {
+        foreach (var child in owner.OwnedWindows.ToArray())
+        {
+            foreach (var nested in OwnedWindowsRecursively(child)) yield return nested;
+            yield return child;
+        }
+    }
+
     /// <summary>
     /// The tab the next project goes into: the empty one when the tab in front holds nothing, and a new one
     /// otherwise. It is put in front, and the caller fills it in.
@@ -2759,20 +2927,19 @@ public sealed class MainWindow : Window
     /// again. Whatever was half-done in the tab being left — a preview, a draft outline, a drag, a typing
     /// session — belongs to that tab, so it is let go rather than carried over.
     /// </summary>
-    private void Bring(Tab tab)
+    private void Bring(Tab tab) => QueueLifecycle(() => BringAsync(tab));
+
+    private async Task BringAsync(Tab tab)
     {
-        if (!ReferenceEquals(tab, _open))
+        if (_windowCloseInProgress) return;
+        if (ReferenceEquals(tab, _open))
         {
-            _open.SelectedRow = _layers.SelectedIndex;
-            StopPreview();
-            _canvas.CancelDraft();
-            if (_text is not null) CancelText();
-            _transforming = null;
-            _transformBox = null;
-            _transformOriginals.Clear();
-            _cropFrame = null;
-            _open = tab;
+            Show(tab);
+            return;
         }
+        if (!_tabs.Contains(tab) || !await SettlePendingEditsAsync(_open)) return;
+        _open.SelectedRow = _layers.SelectedIndex;
+        _open = tab;
         Show(tab);
     }
 
@@ -2781,6 +2948,7 @@ public sealed class MainWindow : Window
     {
         // The Camera Raw panel belongs to the tab it was opened on, so a tab coming in front lets it go: every
         // way the front tab comes to change runs through here.
+        if (_previewTab is not null && !ReferenceEquals(_previewTab, tab)) StopPreview();
         CloseCameraRaw();
         _canvas.Document = tab.Document;
         if (tab.Document is not null)
@@ -2811,13 +2979,34 @@ public sealed class MainWindow : Window
     /// </summary>
     private async Task CloseTab(Tab tab)
     {
-        if (!await MayReplace(tab)) return;
+        if (_windowCloseInProgress || !_closingTabs.Add(tab)) return;
+        try
+        {
+            if (!_tabs.Contains(tab)) return;
+            if (ReferenceEquals(tab, _open) && !await SettlePendingEditsAsync(tab)) return;
+            if (!await MayReplace(tab)) return;
+            CloseTabNow(tab);
+        }
+        finally
+        {
+            _closingTabs.Remove(tab);
+        }
+    }
+
+    /// <summary>Disposes a tab only after its pending state and unsaved decision were safely settled.</summary>
+    private void CloseTabNow(Tab tab)
+    {
         var at = _tabs.IndexOf(tab);
         if (at < 0) return;
         var wasOpen = ReferenceEquals(tab, _open);
+        var name = tab.Name;
         _tabs.RemoveAt(at);
         if (_tabs.Count == 0) _tabs.Add(new Tab());
+        if (wasOpen) _canvas.Document = null;
         tab.Document?.Dispose();
+        tab.Document = null;
+        tab.Watch = null;
+        tab.Rows.Clear();
         var next = _tabs[Math.Min(at, _tabs.Count - 1)];
         if (wasOpen)
         {
@@ -2829,7 +3018,7 @@ public sealed class MainWindow : Window
         {
             RefreshTabs();
         }
-        Say(L.Get("Status.TabClosed", tab.Name));
+        Say(L.Get("Status.TabClosed", name));
     }
 
     /// <summary>The tab strip: a button a tab, the one in front marked, and a way to start another.</summary>
@@ -2845,7 +3034,7 @@ public sealed class MainWindow : Window
             {
                 Content = "×", Padding = new Thickness(4, 0, 4, 0), Tag = tab, Background = Brushes.Transparent,
             };
-            close.Click += (_, _) => _ = CloseTab(tab);
+            close.Click += (_, _) => QueueLifecycle(() => CloseTab(tab));
             // A tab is a capsule, as the Mac draws one: the one in front the brighter of the two.
             var front = ReferenceEquals(tab, _open);
             _tabStrip.Children.Add(new Border
@@ -2875,6 +3064,7 @@ public sealed class MainWindow : Window
     private async Task NewProject()
     {
         if (await NewDocumentDialog.Ask(this) is not { } asked) return;
+        if (!await SettlePendingEditsAsync(_open)) return;
         var made = LayerPlacement.NewDocument(asked.Width, asked.Height, asked.Resolution);
         if (made is null)
         {
@@ -2897,12 +3087,71 @@ public sealed class MainWindow : Window
     private async Task<bool> MayReplace(Tab? tab = null)
     {
         var which = tab ?? _open;
-        if (which.Document is null || !which.History.IsModified) return true;
+        if (which.Document is null) return true;
+        if (_savingTabs.Contains(which)) return false;
         var named = which.Path is { } path
             ? L.Get("Confirm.UnsavedNamed", System.IO.Path.GetFileName(path))
             : L.Get("Confirm.UnsavedUntitled");
-        return await ConfirmDialog.Ask(this, L.Get("Confirm.DiscardUnsavedTitle"),
-            L.Get("Confirm.DiscardUnsavedMessage", named), L.Get("Common.Discard"), L.Get("Common.Keep"));
+        return await DocumentCloseFlow.ConfirmAsync(which.History.IsModified,
+            () => UnsavedChangesDialog.Ask(this, L.Get("Confirm.SaveChangesTitle"),
+                L.Get("Confirm.SaveChangesMessage", named), L.Get("Common.Save"), L.Get("Common.Discard"), L.Get("Common.Cancel")),
+            () => SaveTabAsync(which, forceSaveAs: false));
+    }
+
+    /// <summary>
+    /// Avalonia requires a synchronous answer to Closing. The first close is cancelled, then this workflow
+    /// settles the active tab and asks every changed tab in active-first order. A second Close is allowed only
+    /// after all decisions (and any requested saves) succeed.
+    /// </summary>
+    private void WindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_windowCloseApproved) return;
+        e.Cancel = true;
+        // A tab-close confirmation already owns the window's modal interaction. Let that decision finish rather
+        // than beginning a second unsaved-changes flow behind it.
+        if (OwnedWindowsRecursively(this).OfType<UnsavedChangesDialog>().Any()) return;
+        if (_windowCloseInProgress) return;
+        _windowCloseInProgress = true;
+        QueueLifecycle(CloseWindowAsync);
+    }
+
+    private async Task CloseWindowAsync()
+    {
+        try
+        {
+            if (_savingTabs.Count > 0 || !await SettlePendingEditsAsync(_open)) return;
+            var order = new[] { _open }.Concat(_tabs.Where(tab => !ReferenceEquals(tab, _open))).ToList();
+            if (!await DocumentCloseFlow.ConfirmAllAsync(order, MayReplace)) return;
+            if (_savingTabs.Count > 0) return;
+
+            // No document is disposed until every tab has agreed to close. That makes Cancel in a later tab
+            // leave all earlier documents untouched, and prevents a preview timer from seeing freed pixels.
+            StopPreview();
+            CloseCameraRaw();
+            var picker = _picker;
+            var colorRangePanel = _colorRangePanel;
+            CancelColorRange();
+            CancelPicker();
+            ClosePendingDialogs(picker, colorRangePanel);
+            _watchTimer?.Stop();
+            _canvas.Document = null;
+            _canvas.Floating = null;
+            _clipboard?.Dispose();
+            _clipboard = null;
+            foreach (var tab in _tabs)
+            {
+                tab.Document?.Dispose();
+                tab.Document = null;
+                tab.Watch = null;
+                tab.Rows.Clear();
+            }
+            _windowCloseApproved = true;
+            Close();
+        }
+        finally
+        {
+            _windowCloseInProgress = false;
+        }
     }
 
     /// <summary>The layer the panel has selected, or the top one when nothing is: what an edit acts on.</summary>
@@ -3205,11 +3454,12 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer) return;
+        var tab = _open;
         if (await TextPrompt.Ask(this, L.Get("Dialog.RenameLayerTitle"), L.Get("Dialog.LayerName"), layer.Name) is not { } name) return;
-        if (_document is not { } current) return;
-        _history.Begin("Rename Layer", current, id);
-        var renamed = LayerEdits.Rename(current, id, name);
-        _history.End(current, id);
+        if (!IsFront(tab, document)) return;
+        tab.History.Begin("Rename Layer", document, id);
+        var renamed = LayerEdits.Rename(document, id, name);
+        tab.History.End(document, id);
         if (!renamed)
         {
             Say(L.Get("Status.InvalidLayerName"));
@@ -3856,16 +4106,18 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.CameraRawNeedsPixels"));
             return;
         }
+        var tab = _open;
         CloseCameraRaw();
         StartPreview(document, id);
         _cameraRawLayer = id;
+        _cameraRawTab = tab;
         var panel = new CameraRawPanel(_cameraRawAmounts, BrushColour());
         // The preview carries the panel's overlay switches: clipped shadows and highlights and the sharpening
         // mask are shown over the grade while the amounts are moved, and the overlay is what is shown when one
         // is on. The edit that is finally made is the grade alone, never the overlay.
         panel.Preview = PreviewCameraRaw;
         panel.Applied += ApplyCameraRaw;
-        panel.Cancelled += CloseCameraRaw;
+        panel.Cancelled += () => CloseCameraRaw(tab);
         _cameraRaw = panel;
         _cameraRawHost.Child = panel.View;
         _cameraRawHost.IsVisible = true;
@@ -3887,7 +4139,8 @@ public sealed class MainWindow : Window
     /// </summary>
     private void PreviewCameraRaw(CameraRawSettings settings, bool shadows, bool highlights, bool mask)
     {
-        if (_document is not { } document || _cameraRawLayer is not { } id) return;
+        if (_cameraRawTab?.Document is not { } document || _cameraRawLayer is not { } id
+            || !ReferenceEquals(_cameraRawTab, _open)) return;
         RequestPreview(document =>
         {
             var shown = CameraRawEdits.Preview(document, id, settings, shadows, highlights, mask, out var scope);
@@ -3928,7 +4181,8 @@ public sealed class MainWindow : Window
     private void UprightDrawn(SKPoint start, SKPoint end)
     {
         if (_cameraRaw is not { } panel || _cameraRawLayer is not { } id) return;
-        if (_document is not { } document || document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer)
+        if (_cameraRawTab?.Document is not { } document || !ReferenceEquals(_cameraRawTab, _open)
+            || document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer)
         {
             return;
         }
@@ -3945,7 +4199,8 @@ public sealed class MainWindow : Window
     private void ShowUprightGuides()
     {
         if (_cameraRaw is not { } panel || _cameraRawLayer is not { } id
-            || _document is not { } document || document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer)
+            || _cameraRawTab?.Document is not { } document || !ReferenceEquals(_cameraRawTab, _open)
+            || document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer)
         {
             _canvas.UprightGuides = [];
             return;
@@ -3969,11 +4224,12 @@ public sealed class MainWindow : Window
     private void ApplyCameraRaw(CameraRawSettings settings)
     {
         // Read before the panel is let go, since putting it away forgets which layer it was opened on.
+        var tab = _cameraRawTab;
         var id = _cameraRawLayer;
-        CloseCameraRaw();
+        CloseCameraRaw(tab);
+        if (tab?.Document is not { } current || !ReferenceEquals(tab, _open) || id is not { } layer || settings.IsIdentity) return;
         // Kept for the next time the panel is opened, as the Mac's filter settings keep the last grade.
         _cameraRawAmounts = settings;
-        if (_document is not { } current || id is not { } layer || settings.IsIdentity) return;
         Edit("Camera Raw Filter", () => CameraRawEdits.Apply(current, layer, settings));
         Reselect(layer);
         Say(L.Get("Status.CameraRawApplied", settings.Exposure, settings.Contrast, settings.Saturation));
@@ -3983,11 +4239,14 @@ public sealed class MainWindow : Window
     /// Puts the Camera Raw panel away and stops the preview it was driving. The document was never touched, so
     /// there is nothing to put back.
     /// </summary>
-    private void CloseCameraRaw()
+    private void CloseCameraRaw(Tab? owner = null)
     {
+        if (owner is not null && !ReferenceEquals(_cameraRawTab, owner)) return;
         if (_cameraRaw is null) return;
+        var tab = _cameraRawTab;
         _cameraRaw = null;
         _cameraRawLayer = null;
+        _cameraRawTab = null;
         _cameraRawScope = null;
         _cameraRawHost.Child = null;
         _cameraRawHost.IsVisible = false;
@@ -3997,7 +4256,7 @@ public sealed class MainWindow : Window
         _canvas.UprightDrawing = false;
         _canvas.UprightDrawn = null;
         _canvas.UprightGuides = [];
-        StopPreview();
+        StopPreview(tab);
     }
 
     /// <summary>
@@ -4012,6 +4271,7 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.FilterNeedsPixels", LocalizedNames.Filter(kind)));
             return;
         }
+        var tab = _open;
         StartPreview(document, id);
         var asked = await FilterDialog.Ask(this, kind, _filterAmounts, settings =>
         {
@@ -4022,13 +4282,13 @@ public sealed class MainWindow : Window
             }
             HidePreview();
         });
-        StopPreview();
+        StopPreview(tab);
         if (asked is not { } settings) return;
+        if (!ReferenceEquals(_open, tab) || !ReferenceEquals(tab.Document, document)) return;
         // The amounts this filter was used with are kept for the next time it is opened, as the Mac's one set
         // of filter settings does.
         _filterAmounts = settings;
-        if (_document is not { } current) return;
-        Edit($"{kind} Filter", () => FilterEdits.Apply(current, id, kind, settings));
+        Edit($"{kind} Filter", () => FilterEdits.Apply(document, id, kind, settings));
         Reselect(id);
         Say(L.Get("Status.FilterApplied", LocalizedNames.Filter(kind)));
     }
@@ -4045,16 +4305,17 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.DitherNeedsPixels"));
             return;
         }
+        var tab = _open;
         StartPreview(document, id);
         var asked = await DitherDialog.Ask(this, _ditherLook, _ditherAmounts,
             (style, settings) => RequestPreview((target, layer) => DitherEdits.Apply(target, layer, style, settings)));
-        StopPreview();
+        StopPreview(tab);
         if (asked is not { } chosen) return;
+        if (!ReferenceEquals(_open, tab) || !ReferenceEquals(tab.Document, document)) return;
         // The look as well as the amounts: Dither opens again on the one it was last used with.
         _ditherLook = chosen.Style;
         _ditherAmounts = chosen.Settings;
-        if (_document is not { } current) return;
-        Edit("Dither", () => DitherEdits.Apply(current, id, chosen.Style, chosen.Settings));
+        Edit("Dither", () => DitherEdits.Apply(document, id, chosen.Style, chosen.Settings));
         Reselect(id);
         Say(L.Get("Status.DitherApplied", LocalizedNames.Dither(chosen.Style), chosen.Settings.Levels));
     }
@@ -4121,9 +4382,10 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || Selected is not { } id) return;
         if (document.Layers.FirstOrDefault(layer => layer.ID == id) is not { } layer) return;
+        var tab = _open;
         if (await EffectDialog.Ask(this, kind, layer.Effects) is not { } effects) return;
-        if (_document is not { } current) return;
-        Edit(EffectDialog.TitleFor(kind), () => LayerEdits.SetEffect(current, id, kind, effects));
+        if (!IsFront(tab, document)) return;
+        Edit(EffectDialog.TitleFor(kind), () => LayerEdits.SetEffect(document, id, kind, effects));
         Reselect(id);
     }
 
@@ -4161,13 +4423,14 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || Selected is not { } id) return;
         if (LayerAdjustmentEdits.Settings(document, id) is not { } settings) return;
+        var tab = _open;
         StartPreview(document, id);
         var asked = await AdjustmentDialog.Ask(this, settings,
             changed => RequestPreview((target, layer) => LayerAdjustmentEdits.Set(target, layer, changed)));
-        StopPreview();
+        StopPreview(tab);
         if (asked is not { } changed) return;
-        if (_document is not { } current) return;
-        Edit($"{LayerPlacement.Name(changed.Kind)} Adjustment", () => LayerAdjustmentEdits.Set(current, id, changed));
+        if (!ReferenceEquals(_open, tab) || !ReferenceEquals(tab.Document, document)) return;
+        Edit($"{LayerPlacement.Name(changed.Kind)} Adjustment", () => LayerAdjustmentEdits.Set(document, id, changed));
         Reselect(id);
         Say(L.Get("Status.AdjustmentSet", LocalizedNames.Adjustment(changed.Kind)));
     }
@@ -4185,13 +4448,14 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.AdjustmentNeedsPixels", LocalizedNames.Adjustment(kind)));
             return;
         }
+        var tab = _open;
         StartPreview(document, id);
         var asked = await AdjustmentDialog.Ask(this, new LayerAdjustment { Kind = kind },
             settings => RequestPreview((target, layer) => FilterEdits.ApplyAdjustment(target, layer, settings)));
-        StopPreview();
+        StopPreview(tab);
         if (asked is not { } settings) return;
-        if (_document is not { } current) return;
-        Edit(LayerPlacement.Name(kind), () => FilterEdits.ApplyAdjustment(current, id, settings));
+        if (!ReferenceEquals(_open, tab) || !ReferenceEquals(tab.Document, document)) return;
+        Edit(LayerPlacement.Name(kind), () => FilterEdits.ApplyAdjustment(document, id, settings));
         Reselect(id);
         Say(L.Get("Status.AdjustmentApplied", LocalizedNames.Adjustment(kind)));
     }
@@ -4311,13 +4575,14 @@ public sealed class MainWindow : Window
     private async Task ImageSize()
     {
         if (_document is not { } document) return;
+        var tab = _open;
         if (await ImageSizeDialog.Ask(this, document.Width, document.Height, document.Resolution,
                 LayerSampling.HighQuality) is not { } asked)
         {
             return;
         }
-        if (_document is not { } current) return;
-        if (!Edit("Image Size", () => ImageEdits.Resize(current, asked.Width, asked.Height, asked.Resolution, asked.Sampling)))
+        if (!IsFront(tab, document)) return;
+        if (!Edit("Image Size", () => ImageEdits.Resize(document, asked.Width, asked.Height, asked.Resolution, asked.Sampling)))
         {
             Say(L.Get("Status.ImageSizeTooLarge"));
             return;
@@ -4615,7 +4880,8 @@ public sealed class MainWindow : Window
     {
         if (_watch?.Changed() is not true) return;
         if (_document is not { } document || _projectPath is not { } path) return;
-        if (_history.IsModified)
+        if (_savingTabs.Contains(_open) || _history.IsModified || _history.HasOpenTransaction || ReferenceEquals(_movingTab, _open)
+            || ReferenceEquals(_previewTab, _open) || ReferenceEquals(_colorRangeTab, _open))
         {
             Say(L.Get("Status.ProjectChangedExternally"));
             return;
@@ -4675,11 +4941,12 @@ public sealed class MainWindow : Window
     private async Task NewGuide()
     {
         if (_document is not { } document) return;
+        var tab = _open;
         if (await GuideDialog.Ask(this, document.Width, document.Height) is not { } asked) return;
-        if (_document is not { } current) return;
-        _history.Begin("New Guide", current, Selected);
-        var made = GuideEdits.Add(current, asked.Axis, asked.Position);
-        _history.End(current, Selected);
+        if (!IsFront(tab, document)) return;
+        tab.History.Begin("New Guide", document, Selected);
+        var made = GuideEdits.Add(document, asked.Axis, asked.Position);
+        tab.History.End(document, Selected);
         if (made is null)
         {
             Say(L.Get("Status.GuideLimit"));
@@ -4732,17 +4999,22 @@ public sealed class MainWindow : Window
 
     /// <summary>Starts showing what a panel would do to a layer, before anything is committed.
     private void StartPreview(CanvasDocument document, Guid layerID) =>
-        StartPreview(FilterPreview.Begin(document, layerID), layerID);
+        StartPreview(_open, FilterPreview.Begin(document, layerID), layerID);
 
     /// <summary>The same for a look that changes several layers at once, which is what a group distortion is.</summary>
     private void StartPreview(CanvasDocument document, IReadOnlyList<Guid> layerIDs) =>
-        StartPreview(FilterPreview.Begin(document, layerIDs), null);
+        StartPreview(_open, FilterPreview.Begin(document, layerIDs), null);
 
-    private void StartPreview(FilterPreview? preview, Guid? layerID)
+    private void StartPreview(Tab owner, FilterPreview? preview, Guid? layerID)
     {
         if (preview is null) return;
+        // A preview owns bitmap clones. Dispose any earlier one before replacing its document reference, rather
+        // than leaving a delayed timer free to draw or mutate it after a tab change.
+        StopPreview();
         _preview = preview;
         _previewLayer = layerID;
+        _previewTab = owner;
+        _previewGeneration.Invalidate();
         _canvas.PreviewDocument = preview.Document;
     }
 
@@ -4784,20 +5056,30 @@ public sealed class MainWindow : Window
 
     private void RequestPreview(Func<CanvasDocument, bool> apply)
     {
-        if (_preview is null) return;
+        if (_preview is null || !ReferenceEquals(_previewTab, _open)) return;
         _previewApply = apply;
         _previewTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(140) };
         _previewTimer.Stop();
-        _previewTimer.Tick -= ShowPreviewOnce;
-        _previewTimer.Tick += ShowPreviewOnce;
+        if (_previewTick is not null) _previewTimer.Tick -= _previewTick;
+        var generation = _previewGeneration.Schedule();
+        _previewTick = (sender, args) => ShowPreviewOnce(sender, args, generation);
+        _previewTimer.Tick += _previewTick;
         _previewTimer.Start();
     }
 
     /// <summary>Runs the edit on the preview once the amounts have settled, and draws it.</summary>
     private void ShowPreviewOnce(object? sender, EventArgs e)
     {
+        ShowPreviewOnce(sender, e, _previewGeneration.Current);
+    }
+
+    private void ShowPreviewOnce(object? sender, EventArgs e, long generation)
+    {
+        if (!_previewGeneration.IsCurrent(generation)) return;
         _previewTimer?.Stop();
-        if (_preview is not { } preview || _previewApply is not { } apply) return;
+        if (_previewTimer is not null && _previewTick is not null) _previewTimer.Tick -= _previewTick;
+        _previewTick = null;
+        if (_preview is not { } preview || _previewApply is not { } apply || !ReferenceEquals(_previewTab, _open)) return;
         if (!preview.Show(apply)) return;
         // The canvas is put back on the preview every time it is shown: the panel's Preview tick may have been
         // off, which takes the canvas back to the document as it stands.
@@ -4818,17 +5100,25 @@ public sealed class MainWindow : Window
     /// </summary>
     private void HidePreview()
     {
+        _previewGeneration.Invalidate();
         _previewTimer?.Stop();
+        if (_previewTimer is not null && _previewTick is not null) _previewTimer.Tick -= _previewTick;
+        _previewTick = null;
         if (_preview is null) return;
         _canvas.PreviewDocument = null;
         _canvas.InvalidateVisual();
     }
 
-    private void StopPreview()
+    private void StopPreview(Tab? owner = null)
     {
+        if (owner is not null && !ReferenceEquals(_previewTab, owner)) return;
+        _previewGeneration.Invalidate();
         _previewTimer?.Stop();
+        if (_previewTimer is not null && _previewTick is not null) _previewTimer.Tick -= _previewTick;
+        _previewTick = null;
         _previewApply = null;
         _previewLayer = null;
+        _previewTab = null;
         _canvas.PreviewDocument = null;
         _preview?.Dispose();
         _preview = null;
@@ -4853,6 +5143,7 @@ public sealed class MainWindow : Window
             _colorRangePanel?.Activate();
             return;
         }
+        var tab = _open;
         if (ColorRangeSession.Begin(document) is not { } session)
         {
             Say(L.Get("Status.NoPictureToSample"));
@@ -4860,30 +5151,22 @@ public sealed class MainWindow : Window
         }
         _colorRange = session;
         _colorRangeWas = document.Selection;
-        _history.Begin("Color Range", document, Selected);
+        _colorRangeTab = tab;
+        _colorRangeLayer = Selected;
+        tab.History.Begin("Color Range", document, _colorRangeLayer);
         var panel = new ColorRangePanel(session);
         panel.Changed += () =>
         {
             // An amount or a switch moved: the selection is built again from the colours picked and shown.
-            if (_document is { } current) ShowColorRange(current, session.Rebuild(current));
+            if (OwnsColorRange(tab, document, session)) ShowColorRange(document, session.Rebuild(document));
         };
         panel.Applied += () =>
         {
-            if (_document is { } current) _history.End(current, Selected);
-            CloseColorRange();
-            Refresh();
-            Say(L.Get("Status.ColorRangeSelected", session.Include.Count, session.Fuzziness));
+            FinishColorRange(tab, document, session, applied: true);
         };
         panel.Cancelled += () =>
         {
-            if (_document is { } current)
-            {
-                current.Selection = _colorRangeWas ?? DocumentSelection.All;
-                // Ends as it began: the history drops a step whose document is what it started from.
-                _history.End(current, Selected);
-                _canvas.InvalidateVisual();
-            }
-            CloseColorRange();
+            FinishColorRange(tab, document, session, applied: false);
         };
         _colorRangePanel = panel;
         // The picture is live and every press on it samples, whichever tool is in hand, as the Mac's does.
@@ -4905,23 +5188,61 @@ public sealed class MainWindow : Window
             : L.Get("Status.ColorRangePicked", _colorRange?.Include.Count ?? 0));
     }
 
-    /// <summary>Puts the panel away and lets the session and its sample go.</summary>
-    private void CloseColorRange()
+    /// <summary>Whether this callback still belongs to the colour-range session that opened it.</summary>
+    private bool OwnsColorRange(Tab tab, CanvasDocument document, ColorRangeSession session) =>
+        ReferenceEquals(_colorRangeTab, tab) && ReferenceEquals(tab.Document, document) && ReferenceEquals(_colorRange, session);
+
+    /// <summary>
+    /// Completes a range panel against the document it opened on. Its callbacks deliberately do not consult
+    /// <see cref="_document"/>, because a panel that is being dismissed during a tab switch must never restore
+    /// A's selection into B.
+    /// </summary>
+    private void FinishColorRange(Tab tab, CanvasDocument document, ColorRangeSession session, bool applied)
     {
+        if (!OwnsColorRange(tab, document, session)) return;
+        var picked = session.Include.Count;
+        var fuzziness = session.Fuzziness;
+        if (!applied) document.Selection = _colorRangeWas ?? DocumentSelection.All;
+        tab.History.End(document, _colorRangeLayer);
         _colorRangePanel = null;
         _colorRange?.Dispose();
         _colorRange = null;
         _colorRangeWas = null;
+        _colorRangeTab = null;
+        _colorRangeLayer = null;
         _canvas.EyedropperOnClick = _tool == Tool.Eyedropper;
+        if (ReferenceEquals(tab, _open))
+        {
+            _canvas.InvalidateVisual();
+            Refresh();
+            if (applied) Say(L.Get("Status.ColorRangeSelected", picked, fuzziness));
+        }
+    }
+
+    /// <summary>Cancels an open range panel and restores the selection that existed before it opened.</summary>
+    private void CancelColorRange(Tab? owner = null)
+    {
+        if (owner is not null && !ReferenceEquals(_colorRangeTab, owner)) return;
+        // Closing a window normally raises Closed immediately, but the lifecycle must not rely on that timing:
+        // a pending dispatcher turn must not leave the tab with an open history transaction after this method
+        // says it was settled. FinishColorRange is idempotent through OwnsColorRange, so the later Closed event
+        // simply observes that the session has already gone away.
+        var panel = _colorRangePanel;
+        panel?.Close();
+        if (_colorRangeTab is { } tab && tab.Document is { } document && _colorRange is { } session)
+        {
+            FinishColorRange(tab, document, session, applied: false);
+        }
     }
 
     /// <summary>Image ▸ Canvas Size: the canvas in pixels, with the picture kept at one of nine anchors.</summary>
     private async Task CanvasSize()
     {
         if (_document is not { } document) return;
+        var tab = _open;
         if (await CanvasSizeDialog.Ask(this, document.Width, document.Height, CanvasEdits.CentreAnchor) is not { } asked) return;
-        if (_document is not { } current) return;
-        Edit("Canvas Size", () => CanvasEdits.Resize(current, asked.Width, asked.Height, asked.Anchor));
+        if (!IsFront(tab, document)) return;
+        Edit("Canvas Size", () => CanvasEdits.Resize(document, asked.Width, asked.Height, asked.Anchor));
         Say(L.Get("Status.CanvasResized", asked.Width, asked.Height));
     }
 
@@ -4929,10 +5250,11 @@ public sealed class MainWindow : Window
     private async Task Trim()
     {
         if (_document is not { } document) return;
+        var tab = _open;
         if (await TrimDialog.Ask(this, new TrimOptions()) is not { } options) return;
-        if (_document is not { } current) return;
-        if (!Edit("Trim", () => TrimEdits.Trim(current, options))) Say(L.Get("Status.NothingToTrim"));
-        else Say(L.Get("Status.Trimmed", current.Width, current.Height));
+        if (!IsFront(tab, document)) return;
+        if (!Edit("Trim", () => TrimEdits.Trim(document, options))) Say(L.Get("Status.NothingToTrim"));
+        else Say(L.Get("Status.Trimmed", document.Width, document.Height));
     }
 
     /// <summary>
@@ -4970,11 +5292,13 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>Opens a project from the recent list; one that has gone says so rather than failing quietly.</summary>
-    private void OpenRecent(string path)
+    private void OpenRecent(string path) => QueueLifecycle(() => OpenRecentAsync(path));
+
+    private async Task OpenRecentAsync(string path)
     {
         try
         {
-            Open(path);
+            await OpenAsync(path);
         }
         catch (Exception error)
         {
@@ -5080,6 +5404,7 @@ public sealed class MainWindow : Window
     private void CancelCrop()
     {
         _cropFrame = null;
+        _canvas.CancelCropDrag();
         _canvas.SnapLines = (null, null);
         ShowCropBox();
         Refresh();
@@ -5222,12 +5547,13 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.LayerNotText"));
             return;
         }
+        var tab = _open;
         var origin = new SKPoint((float)layer.Transform.X, (float)layer.Transform.Y);
         if (await TextDialog.Ask(this, L.Get("Dialog.EditTextTitle"), text.Style) is not { } wanted) return;
-        if (_document is not { } current) return;
-        _history.Begin("Edit Text", current, id);
-        var changed = TextEdits.SetStyle(current, id, wanted);
-        _history.End(current, id);
+        if (!IsFront(tab, document)) return;
+        tab.History.Begin("Edit Text", document, id);
+        var changed = TextEdits.SetStyle(document, id, wanted);
+        tab.History.End(document, id);
         if (!changed) { Say(L.Get("Status.TextDrawFailed")); return; }
         Reselect(id);
         Say(L.Get("Status.TextCreated", wanted.Content.Length, origin.X, origin.Y));
@@ -5274,7 +5600,7 @@ public sealed class MainWindow : Window
         }
         // Colour Range is up: the colour is one of the ones being looked for, and Shift or Alt says whether it
         // joins the range or is taken out of it — as the Mac build's panel does with the same two keys.
-        if (_colorRange is { } ranging)
+        if (_colorRange is { } ranging && ReferenceEquals(_colorRangeTab, _open))
         {
             var mode = keys.HasFlag(KeyModifiers.Alt) ? ColorRangeSession.Picking.Remove
                 : keys.HasFlag(KeyModifiers.Shift) ? ColorRangeSession.Picking.Add
@@ -5535,6 +5861,7 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.SelectSomethingFirst"));
             return;
         }
+        var tab = _open;
         var most = which == SelectionAmount.Feather ? SelectionEdits.MaxFeather : SelectionEdits.MaxAmount;
         var label = which == SelectionAmount.Feather ? L.Get("Dialog.FeatherRadiusPixels") : L.Get("Dialog.Pixels");
         if (await TextPrompt.Ask(this, L.Get("Dialog.ModifySelectionTitle", L.Get($"SelectionAmount.{which}")), label, "4") is not { } typed) return;
@@ -5543,12 +5870,12 @@ public sealed class MainWindow : Window
             Say(L.Get("Status.AmountMustBeWholeNumber", most));
             return;
         }
-        if (_document is not { } current) return;
+        if (!IsFront(tab, document)) return;
         Edit($"{which} Selection", () => which switch
         {
-            SelectionAmount.Expand => SelectionEdits.Expand(current, amount),
-            SelectionAmount.Contract => SelectionEdits.Contract(current, amount),
-            _ => SelectionEdits.Feather(current, amount),
+            SelectionAmount.Expand => SelectionEdits.Expand(document, amount),
+            SelectionAmount.Contract => SelectionEdits.Contract(document, amount),
+            _ => SelectionEdits.Feather(document, amount),
         });
     }
 
@@ -5654,10 +5981,12 @@ public sealed class MainWindow : Window
         if (_document is not { } document || Selected is not { } id) return;
         if (TransformEdits.GroupBox(document, SelectedLayers) is not { } box) return;
         _transforming = id;
+        _transformTab = _open;
+        _transformLayer = id;
         _transformBox = box;
         _transformOriginals = TransformEdits.GroupMembers(document, SelectedLayers)
             .ToDictionary(layer => layer.ID, layer => layer.Transform);
-        _history.Begin(_transformOriginals.Count > 1 ? "Transform Layers" : "Transform", document, id);
+        _transformTab.History.Begin(_transformOriginals.Count > 1 ? "Transform Layers" : "Transform", document, id);
     }
 
     /// <summary>
@@ -5666,7 +5995,7 @@ public sealed class MainWindow : Window
     /// </summary>
     private void TransformChanged(LayerTransform draft)
     {
-        if (_document is not { } document || _transforming is null) return;
+        if (_transformTab?.Document is not { } document || _transforming is null) return;
         if (_transformBox is not { } from) return;
         var tolerance = TransformSnap.Distance / Math.Max(_canvas.Zoom, 0.0001);
         // The grid is only a target while it is being shown: snapping to lines that are not there would be
@@ -5677,19 +6006,26 @@ public sealed class MainWindow : Window
         // Every layer is carried along by the box's own move, so several keep the shape they had.
         TransformEdits.Carry(document, _transformOriginals, from, placed);
         _canvas.TransformBox = placed;
-        Refresh();
+        if (ReferenceEquals(_transformTab, _open)) Refresh();
     }
 
     private void TransformFinished()
     {
-        if (_document is not { } document || _transforming is not { } id) return;
+        var tab = _transformTab;
+        var id = _transformLayer ?? _transforming;
+        if (tab?.Document is not { } document || id is null) return;
         _transforming = null;
+        _transformTab = null;
+        _transformLayer = null;
         _transformBox = null;
         _transformOriginals.Clear();
         _canvas.SnapLines = (null, null);
-        _history.End(document, id);
-        ShowTransformBox();
-        Refresh();
+        tab.History.End(document, id);
+        if (ReferenceEquals(tab, _open))
+        {
+            ShowTransformBox();
+            Refresh();
+        }
     }
 
     /// <summary>Repaints the canvas and says where the history stands.</summary>
@@ -5813,6 +6149,7 @@ public sealed class MainWindow : Window
                 ],
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
+            if (!await SettlePendingEditsAsync(_open)) return;
             if (PsdImporter.LooksImportable(path))
             {
                 OpenPhotoshopDocument(path);
@@ -5973,67 +6310,84 @@ public sealed class MainWindow : Window
     /// <summary>The canvas an SVG should be drawn to fit, if one is open.</summary>
     private SKSizeI? Fitting() => _document is { } document ? new SKSizeI(document.Width, document.Height) : null;
 
-    private void Save()
+    private void Save() => QueueLifecycle(async () =>
     {
-        if (_document is not { } document) return;
-        if (_projectPath is null)
-        {
-            SaveAs();
-            return;
-        }
-        WriteTo(document, _projectPath);
-    }
+        await SaveTabAsync(_open, forceSaveAs: false);
+    });
 
-    private async void SaveAs()
+    private void SaveAs() => QueueLifecycle(async () =>
     {
-        if (_document is not { } document) return;
+        await SaveTabAsync(_open, forceSaveAs: true);
+    });
+
+    /// <summary>
+    /// Saves exactly the tab passed by the lifecycle flow. It returns false for a picker cancellation or a write
+    /// failure, so a close request cannot accidentally dispose a document that was not saved.
+    /// </summary>
+    private async Task<bool> SaveTabAsync(Tab tab, bool forceSaveAs)
+    {
+        if (tab.Document is not { } document) return true;
+        if (ReferenceEquals(tab, _open) && !await SettlePendingEditsAsync(tab)) return false;
+        if (!_savingTabs.Add(tab)) return false;
         try
         {
+            if (!forceSaveAs && tab.Path is { } known)
+            {
+                return WriteTo(tab, document, known);
+            }
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = L.Get("Dialog.SaveProjectTitle"),
-                SuggestedFileName = _projectPath is { } known ? Path.GetFileName(known) : L.Get("Dialog.SuggestedProjectFile"),
+                SuggestedFileName = tab.Path is { } knownPath ? Path.GetFileName(knownPath) : L.Get("Dialog.SuggestedProjectFile"),
                 DefaultExtension = "comp",
             });
-            if (file?.TryGetLocalPath() is not { } path) return;
+            if (file?.TryGetLocalPath() is not { } path) return false;
             // A project is a folder on Windows, so a path that is already a file cannot be written as one.
             if (File.Exists(path))
             {
                 Say(L.Get("Status.ProjectPathIsFile"));
-                return;
+                return false;
             }
-            WriteTo(document, path);
-            _projectPath = path;
-            RefreshTabs();
+            if (!ReferenceEquals(tab.Document, document)) return false;
+            return WriteTo(tab, document, path);
         }
         catch (Exception error)
         {
             Say(L.Get("Status.SaveFailed", error.Message));
+            return false;
+        }
+        finally
+        {
+            _savingTabs.Remove(tab);
         }
     }
 
-    private void WriteTo(CanvasDocument document, string path)
+    private bool WriteTo(Tab tab, CanvasDocument document, string path)
     {
         try
         {
             // The snapshot shares the document's pixels and only reads them, so it is not disposed here.
             ProjectStore.Save(ProjectSnapshot.FromDocument(document), path);
-            _history.MarkSaved();
+            tab.History.MarkSaved();
+            tab.Path = path;
             // A save is the app's own writing, so the watch takes what is on disk now as what it holds: the
             // folder is only worth watching for what someone else writes afterwards.
-            _watch = ProjectWatch.For(path);
-            WatchProject();
+            tab.Watch = ProjectWatch.For(path);
+            if (ReferenceEquals(tab, _open)) WatchProject();
             NoteRecent(path);
-            Refresh();
+            RefreshTabs();
+            if (ReferenceEquals(tab, _open)) Refresh();
             Say(L.Get("Status.Saved", path));
+            return true;
         }
         catch (Exception error)
         {
             Say(L.Get("Status.SaveFailed", error.Message));
+            return false;
         }
     }
 
-    private async void ExportPng()
+    private async Task ExportPng()
     {
         if (_document is not { } document)
         {

@@ -612,6 +612,8 @@
   <data name="Confirm.UnsavedNamed" xml:space="preserve"><value>{0} 自上次儲存後已變更。</value></data>
   <data name="Confirm.UnsavedUntitled" xml:space="preserve"><value>此專案尚未儲存。</value></data>
   <data name="Confirm.DiscardUnsavedMessage" xml:space="preserve"><value>{0} 未儲存的內容將會遺失。</value></data>
+  <data name="Confirm.SaveChangesTitle" xml:space="preserve"><value>要儲存變更嗎？</value></data>
+  <data name="Confirm.SaveChangesMessage" xml:space="preserve"><value>{0} 是否要在關閉前儲存變更？</value></data>
   <data name="Dialog.BackgroundColorPickerTitle" xml:space="preserve"><value>選擇背景顏色</value></data>
   <data name="Dialog.BlurRadiusLabel" xml:space="preserve"><value>模糊延伸的距離，以像素為單位，0.5 到 50</value></data>
   <data name="Dialog.BlurRadiusTitle" xml:space="preserve"><value>模糊半徑</value></data>

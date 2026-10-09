@@ -616,6 +616,8 @@
   <data name="Confirm.UnsavedNamed" xml:space="preserve"><value>{0} has been changed since it was last saved.</value></data>
   <data name="Confirm.UnsavedUntitled" xml:space="preserve"><value>This project has not been saved.</value></data>
   <data name="Confirm.DiscardUnsavedMessage" xml:space="preserve"><value>{0} Anything not saved is lost.</value></data>
+  <data name="Confirm.SaveChangesTitle" xml:space="preserve"><value>Save changes?</value></data>
+  <data name="Confirm.SaveChangesMessage" xml:space="preserve"><value>{0} Do you want to save your changes before closing?</value></data>
   <data name="Dialog.BackgroundColorPickerTitle" xml:space="preserve"><value>Choose background color</value></data>
   <data name="Dialog.BlurRadiusLabel" xml:space="preserve"><value>How far the blur reaches, in pixels, 0.5 to 50</value></data>
   <data name="Dialog.BlurRadiusTitle" xml:space="preserve"><value>Blur radius</value></data>

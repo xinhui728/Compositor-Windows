@@ -913,6 +913,51 @@ public sealed class CanvasView : Control
     }
 
     /// <summary>
+    /// Finishes the gradient that is currently under the pointer.  The editor uses this while it is settling
+    /// a document before a window or tab can leave it: a pointer release that already did this leaves the
+    /// flag clear, so the edit can never be applied a second time.
+    /// </summary>
+    public bool FinishGradientDrag()
+    {
+        if (!_gradientDrag) return false;
+        _gradientDrag = false;
+        InvalidateVisual();
+        GradientFinished?.Invoke(_gradientStart, _gradientEnd);
+        return true;
+    }
+
+    /// <summary>
+    /// Finishes the transform that is currently under the pointer.  It has the same state transition as a
+    /// pointer release, but is available to the document lifecycle before that release can arrive late.
+    /// </summary>
+    public bool FinishTransformDrag()
+    {
+        if (!_transformDragging) return false;
+        _transformDragging = false;
+        _handle = null;
+        SnapLines = (null, null);
+        InvalidateVisual();
+        TransformFinished?.Invoke();
+        return true;
+    }
+
+    /// <summary>Cancels an uncommitted crop-handle drag; the frame itself remains owned by the editor.</summary>
+    public bool CancelCropDrag()
+    {
+        if (_cropDragging is CropDrag.None) return false;
+        _cropDragging = CropDrag.None;
+        _cropHandle = null;
+        InvalidateVisual();
+        return true;
+    }
+
+    /// <summary>
+    /// A brush, shape, guide, or perspective drag cannot be completed without its pointer's final geometry.
+    /// Lifecycle code must keep the document open until such a drag has naturally ended instead of guessing.
+    /// </summary>
+    public bool HasBlockingPointerOperation => _painting || _shaping || _distortCorners is not null || _guideDrag is not null;
+
+    /// <summary>
     /// Takes hold of a handle, or of the box itself, if the click landed on one. The drag is measured from
     /// where it began rather than compounded, so the app can hold the box it started with.
     /// </summary>
