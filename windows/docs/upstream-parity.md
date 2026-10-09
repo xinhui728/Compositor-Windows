@@ -93,7 +93,7 @@ Status meanings:
 | 1.4.2 | `ad9ad7c` — Smudge avoids ghost copies | Carries the prior dab’s pickup instead of repeatedly reusing stroke-start content. | ✅ C# updates its carried pickup after each dab and spaces smudge dabs continuously. | `Core/Document/WarpEdits.cs` | M | P2 |
 | 1.4.2 | `504129d` — Blur Radius independent of Strength | Adds a dedicated Blur Radius setting and control. | ✅ `BrushSettings.BlurRadius`, tool options, and the blur kernel keep radius separate from opacity/strength. | `Core/Document/BrushEdits.cs`, `Desktop/ToolOptionsBar.cs`, `Desktop/MainWindow.cs` | S | P2 |
 | 1.4.3 | `095da2f` — large-canvas Blur/Smudge/Liquify performance | Tiles/coarsens brush sources and replays sparse warp points rather than repeatedly processing full images. | ❌ Windows Blur/Clone samples and Warp allocate a full document surface; behavior exists but this large-canvas strategy does not. | `Core/Document/BrushEdits.cs`, `Core/Document/WarpEdits.cs` | L | P2 |
-| 1.4.4 | `1aad384` — safe quit/close with pending edits | Applies pending gradient/pixel move and cancels dialogs/previews before close. | 🟡 Switching tabs clears several transient states, but the top-level `Closing` handler only closes the color picker; it does not settle/cancel all pending work. | `Desktop/MainWindow.cs`, `Desktop/DialogWindow.cs` | M | P1 |
+| 1.4.4 | `1aad384` — safe quit/close with pending edits | Applies pending gradient/pixel move and cancels dialogs/previews before close. | ✅ `Window.Closing` now uses a cancel-then-async-confirm bridge; it commits active gradient, floating pixels, text and transform, cancels crop/filter/Camera Raw/adjustment/colour-range/picker previews, and asks every changed tab Save / Don't Save / Cancel before disposal. Delayed previews are tab-owned and invalidated before bitmap disposal. Windows deliberately settles on tab switching (rather than upstream's v1.4.4 `canSwitch` block) to prevent cross-document state. Brush/shape/distort/guide drags still block until pointer release because final geometry is not safely inferable. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs`, `Desktop/DocumentCloseFlow.cs`, `Desktop/UnsavedChangesDialog.cs` | M | P1 |
 | 1.4.4 | `9c99853`, `cd2f998` — Dither > Scanlines (CRT), then parallel rendering | Adds CRT scanlines with line spacing, glow, dots, wobble, and parallel/cheaper render path. | ❌ Windows has the preceding ten Dither looks but no `Scanlines` enum/settings/UI/kernel. | `Core/Document/DitherEdits.cs`, `Core/Pixels/DitherPixels.cs`, `Desktop/DitherDialog.cs` | M | P2 |
 | 1.4.5 | `60d9117` — Camera Raw point curve interaction and Parametric curve | Fixes gesture competition; point curves drag/add/delete with selection; parametric regions and dividers are interactive. | 🟡 Windows point curves already drag/add/right-click-delete through `CurveEditor`, so the original drag regression is absent. It lacks the Parametric page, tonal-region sliders, split dividers, selected-point treatment, and matching 16-point UX limit. | `Desktop/CurveEditor.cs`, `Desktop/CameraRawPanel.cs`, `Core/Document/CameraRawEdits.cs` | L | P1 |
 | 1.4.5 | `60d9117` — Camera Raw Photoshop RGB tone semantics | Replaces kinked triangular parametric math with smooth gamma-bent anchors; applies composite tone curve per R/G/B; Refine Saturation negative returns toward luminance-only. | ⚠️ Windows still builds a luma LUT and uses the pre-1.4.5 Rec.709-luminance/`ScaleLuminance` path. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs` | L | P1 |
@@ -228,7 +228,7 @@ These are not falsely attributed to 1.4.3–1.4.5 changes.
 | A — compatibility and correctness | Preserve format-11 round trips; keep the completed Desktop PSD/PSB routing and self-authored mask/clipping/blend/adjustment fixtures; add a localized conversion-confirmation dialog and macOS reference fixtures before declaring exact parity. | `Core/IO/PSD/*`, `Core/Document/LayerPlacement.cs`, `Desktop/MainWindow.cs`, optional import/conversion dialog, resources. | Existing manifest/project round trips; PSD/PSB fixture and wrapper-group history tests; Desktop resource contract; no manifest delta. | High data-correctness risk; M–L. |
 | B — rendering behavior | Resolve Soft Light parity; compare adjustment/noise placement and clipping stacks; profile CPU tiles before considering a backend abstraction. | `Core/Pixels/BlendModes.cs`, `AdjustmentOperators.cs`, `Core/Rendering/DocumentRenderer.cs`. | Golden-pixel cases for blend modes, masks, adjustments, tiled-vs-whole render. | Rendering regressions; L. |
 | C — Camera Raw parity | Add transient parametric curve state, smooth RGB tone LUT, Refine semantics, Parametric/Point UI, and localized labels. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs`, `Desktop/CameraRawPanel.cs`, `Desktop/CurveEditor.cs`, both resource files. | Upstream curve profiles, monotonicity, RGB/chroma fixtures, Avalonia pointer tests, `.comp` serialization unchanged. | Algorithm/UI coupling; L. |
-| D — tools and editor UI | The first batch is complete: selection-aware masks and mask-alone view, Shift selected-pixel axis lock, and ungroup. Remaining work includes tabs overflow/reorder, transform fields, and close-settlement behavior. | `Core/Document/SelectionEdits.cs`, `LayerMaskEdits.cs`, `LayerPlacement.cs`, `Desktop/MainWindow.cs`, `CanvasView.cs`, tab controls, shortcuts/resources. | History/undo tests, layer-order/mask tests, keyboard and pointer desktop tests, close/cancel tests. | Interaction/history regressions; S–M per item. |
+| D — tools and editor UI | The first batch is complete: selection-aware masks and mask-alone view, Shift selected-pixel axis lock, ungroup, and safe close/settlement. Remaining work includes tabs overflow/reorder and transform fields. | `Core/Document/SelectionEdits.cs`, `LayerMaskEdits.cs`, `LayerPlacement.cs`, `Desktop/MainWindow.cs`, `CanvasView.cs`, tab controls, shortcuts/resources. | History/undo tests, layer-order/mask tests, keyboard and pointer desktop tests, close/cancel tests. | Interaction/history regressions; S–M per item. |
 | E — Apple Vision replacements | Decide whether pre-existing subject/object/background selection merits a licensed ONNX-based replacement. | New opt-in integration only if approved; no change today. | Model-free interface tests; model/license acceptance tests if adopted. | Licensing/package/model quality; XL. |
 | F — packaging and polish | Scanlines filter, parallelize only after golden output is stable, OS clipboard/export extensions, tab/mask cursor polish. | Dither core/dialog, clipboard/export services, Desktop resources. | Dither pixel fixtures and performance thresholds; end-to-end clipboard/export tests. | Platform integration and performance; M–L. |
 
@@ -249,6 +249,20 @@ Every visible label introduced by this batch must be added to both resource
 files. Use localized display labels only; never change command IDs, enum values,
 JSON keys, or `.comp` serialization strings.
 
+### Pending-edit and safe-close batch
+
+The v1.4.4 close lifecycle was completed without a format change:
+
+1. [x] Settle active gradients, floating selected pixels, text, transforms, crop drafts, previews, Camera Raw, adjustments, Color Range, and the main color picker before a tab/document is disposed.
+2. [x] Use an Avalonia cancel-then-async-confirm bridge for title-bar close and File → Exit; ask every changed tab in active-first order using Save / Don't Save / Cancel.
+3. [x] Bind delayed preview work and color-range callbacks to their source tab so an old document cannot affect a newly selected one.
+4. [x] Block brush, shape, distortion, and guide drags that lack enough final geometry to settle safely.
+
+The Windows tab-switch settlement is intentionally more proactive than upstream
+v1.4.4, which blocks `canSwitch` for most pending states. It prevents the
+pre-existing Windows cross-tab preview/floating-pixel hazard while preserving the
+same commit-versus-cancel semantics.
+
 ## Test checklist
 
 - [x] Tag/source audit completed; format schema verified unchanged.
@@ -257,8 +271,11 @@ JSON keys, or `.comp` serialization strings.
 - [ ] Add macOS/Photoshop reference pixels for Soft Light and scaled adjustment/noise;
   existing Add Noise positioning/tiled-render tests remain separate from PSD import.
 - [ ] Add Camera Raw 1.4.5 curve math/chroma tests before UI work.
-- [ ] Add pointer/keyboard tests for selection masks, Shift pixel movement,
-  tabs, ungroup, transform controls, and close settlement.
+- [x] Add lifecycle regression coverage for clean/changed/save-failure/cancel close decisions,
+  active-first multi-tab confirmation, nested history state, picker cancellation, stale-preview
+  invalidation, and pointer-release-safe gradient settlement.
+- [ ] Expand headless UI coverage for selection masks, Shift pixel movement,
+  tabs, ungroup, and transform controls.
 - [x] Run `dotnet test windows/tests/Compositor.Core.Tests/Compositor.Core.Tests.csproj`.
 - [x] Run relevant Desktop/localization tests after visible UI changes.
 - [x] Run `dotnet build windows/Compositor.slnx` with no new errors.
