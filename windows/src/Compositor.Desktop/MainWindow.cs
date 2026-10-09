@@ -12,6 +12,7 @@ using Avalonia.VisualTree;
 using Compositor.Core.Document;
 using Compositor.Core.Format;
 using Compositor.Core.IO;
+using Compositor.Core.IO.PSD;
 using Compositor.Core.Model;
 using Compositor.Core.Rendering;
 using SkiaSharp;
@@ -460,6 +461,7 @@ public sealed class MainWindow : Window
                     {
                         Command(L.Get("Menu.NewProject"), () => _ = NewProject(), "New Project"),
                         Command(L.Get("Menu.OpenProject"), OpenProject, "Open Project"),
+                        Command(L.Get("Menu.OpenPhotoshopDocument"), () => _ = OpenPhotoshopDocument()),
                         _recentMenu,
                         Command(L.Get("Menu.ImportImage"), () => _ = ImportImage()),
                         Command(L.Get("Menu.Save"), Save, "Save"),
@@ -1327,6 +1329,30 @@ public sealed class MainWindow : Window
         catch (Exception error)
         {
             Say(L.Get("Status.OpenFailed", error.Message));
+        }
+    }
+
+    /// <summary>File ▸ Open Photoshop document: PSD and PSB are editable documents, not flat image layers.</summary>
+    private async Task OpenPhotoshopDocument()
+    {
+        try
+        {
+            var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = L.Get("Dialog.OpenPhotoshopTitle"),
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    PhotoshopFileType(),
+                    FilePickerFileTypes.All,
+                ],
+            });
+            if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
+            OpenPhotoshopDocument(path);
+        }
+        catch (Exception)
+        {
+            Say(L.Get("Status.PhotoshopImportFailed"));
         }
     }
 
@@ -2915,16 +2941,14 @@ public sealed class MainWindow : Window
     {
         if (_document is not { } document || _history.Undo() is not { } snapshot || snapshot.Document is null) return;
         document.Adopt(snapshot.Document);
-        ShowLayers(document);
-        Refresh();
+        Reselect(snapshot.ActiveLayerID);
     }
 
     private void Redo()
     {
         if (_document is not { } document || _history.Redo() is not { } snapshot || snapshot.Document is null) return;
         document.Adopt(snapshot.Document);
-        ShowLayers(document);
-        Refresh();
+        Reselect(snapshot.ActiveLayerID);
     }
 
     /// <summary>
@@ -5779,11 +5803,21 @@ public sealed class MainWindow : Window
                 AllowMultiple = false,
                 FileTypeFilter =
                 [
-                    new FilePickerFileType(L.Get("Dialog.FileTypeImages")) { Patterns = [.. ImageImporter.Extensions.Select(e => "*" + e)] },
+                    PhotoshopFileType(),
+                    new FilePickerFileType(L.Get("Dialog.FileTypeImages"))
+                    {
+                        Patterns = [.. ImageImporter.Extensions.Where(extension =>
+                            !PsdImporter.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase)).Select(extension => "*" + extension)],
+                    },
                     FilePickerFileTypes.All,
                 ],
             });
             if (picked.Count == 0 || picked[0].TryGetLocalPath() is not { } path) return;
+            if (PsdImporter.LooksImportable(path))
+            {
+                OpenPhotoshopDocument(path);
+                return;
+            }
             if (!ImageImporter.LooksImportable(path))
             {
                 Say(L.Get("Status.UnsupportedImageFormat", Path.GetExtension(path), string.Join(", ", ImageImporter.Extensions)));
@@ -5818,6 +5852,122 @@ public sealed class MainWindow : Window
         {
             Say(L.Get("Status.ImportFailed", error.Message));
         }
+    }
+
+    /// <summary>The shared file-picker group for Photoshop's layered document formats.</summary>
+    private static FilePickerFileType PhotoshopFileType() => new(L.Get("Dialog.FileTypePhotoshop"))
+    {
+        Patterns = [.. PsdImporter.Extensions.Select(extension => "*" + extension)],
+    };
+
+    /// <summary>
+    /// Decodes the complete Photoshop document before changing the editor. A failed parse therefore leaves the
+    /// current project, its tab and its history exactly as they were. With an existing document, the incoming
+    /// stack goes into one wrapper folder just as the macOS importer does.
+    /// </summary>
+    private void OpenPhotoshopDocument(string path)
+    {
+        try
+        {
+            var imported = PsdImporter.Read(path, RemainingImportPixels());
+            var snapshot = imported.Snapshot();
+            CanvasDocument incoming;
+            try
+            {
+                // ToDocument transfers the snapshot's image references to this document. Do not dispose the
+                // snapshot after success: its assets are now owned by the document.
+                incoming = snapshot.ToDocument();
+            }
+            catch
+            {
+                snapshot.Dispose();
+                throw;
+            }
+            var importedLayerCount = incoming.Layers.Count;
+
+            var ownsIncoming = true;
+            try
+            {
+                if (_document is not { } document)
+                {
+                    // The tab becomes the owner before any view work, so a presentation failure cannot dispose
+                    // the pixels it is now responsible for showing.
+                    _document = incoming;
+                    ownsIncoming = false;
+                    _projectPath = null;
+                    _history.Reset();
+                    Show(_open);
+                    var selected = incoming.Layers.LastOrDefault(layer => layer.ParentID is null) ?? incoming.Layers.LastOrDefault();
+                    if (selected is not null) Reselect(selected.ID);
+                }
+                else
+                {
+                    Guid? group = null;
+                    _history.Begin("Import Photoshop File", document, Selected);
+                    try
+                    {
+                        group = LayerPlacement.InsertImportedDocument(document, incoming,
+                            Path.GetFileNameWithoutExtension(path), Selected);
+                    }
+                    finally
+                    {
+                        // A failed hierarchy check leaves the document unchanged, and any unexpected exception
+                        // still must not leave history nested and unable to make its next undo step.
+                        _history.End(document, group ?? Selected);
+                    }
+                    if (group is null)
+                    {
+                        incoming.Dispose();
+                        ownsIncoming = false;
+                        Say(L.Get("Status.PhotoshopTooLarge"));
+                        return;
+                    }
+                    // InsertImportedDocument detached the temporary layer list, transferring the assets to the
+                    // current document. Do not dispose them through the temporary document now.
+                    ownsIncoming = false;
+                    Reselect(group.Value);
+                }
+            }
+            catch
+            {
+                if (ownsIncoming) incoming.Dispose();
+                throw;
+            }
+
+            Say(imported.Notes.Count == 0
+                ? L.Get("Status.PhotoshopImported", Path.GetFileName(path), incoming.Width, incoming.Height, importedLayerCount)
+                : L.Get("Status.PhotoshopImportedWithNotes", Path.GetFileName(path), incoming.Width, incoming.Height,
+                    importedLayerCount, imported.Notes.Count));
+        }
+        catch (ImportException error)
+        {
+            Say(error.Error switch
+            {
+                ImportError.Unreadable => L.Get("Status.PhotoshopUnreadable"),
+                ImportError.Unsupported => L.Get("Status.PhotoshopUnsupported"),
+                ImportError.TooLarge => L.Get("Status.PhotoshopTooLarge"),
+                _ => L.Get("Status.PhotoshopImportFailed"),
+            });
+        }
+        catch (Exception)
+        {
+            Say(L.Get("Status.PhotoshopImportFailed"));
+        }
+    }
+
+    /// <summary>The smallest free image or mask budget, so an incoming document cannot overfill either pool.</summary>
+    private int RemainingImportPixels()
+    {
+        if (_document is not { } document) return DocumentLimits.DocumentPixelBudget;
+        long images = 0;
+        long masks = 0;
+        foreach (var layer in document.Layers)
+        {
+            if (layer.Asset is { } asset) images += (long)asset.Width * asset.Height;
+            if (layer.Mask is { } mask) masks += (long)mask.Asset.Width * mask.Asset.Height;
+        }
+        var used = Math.Max(images, masks);
+        return used >= DocumentLimits.DocumentPixelBudget ? 0 : (int)(DocumentLimits.DocumentPixelBudget - used);
     }
 
     /// <summary>The canvas an SVG should be drawn to fit, if one is open.</summary>

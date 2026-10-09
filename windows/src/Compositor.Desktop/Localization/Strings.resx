@@ -32,6 +32,7 @@
   <data name="Menu.Help" xml:space="preserve"><value>_Help</value></data>
   <data name="Menu.NewProject" xml:space="preserve"><value>_New Project…</value></data>
   <data name="Menu.OpenProject" xml:space="preserve"><value>_Open project folder…</value></data>
+  <data name="Menu.OpenPhotoshopDocument" xml:space="preserve"><value>Open _Photoshop document…</value></data>
   <data name="Menu.OpenRecent" xml:space="preserve"><value>Open _Recent</value></data>
   <data name="Menu.ImportImage" xml:space="preserve"><value>_Import image…</value></data>
   <data name="Menu.Save" xml:space="preserve"><value>_Save</value></data>
@@ -631,12 +632,14 @@
   <data name="Dialog.ExportPngTitle" xml:space="preserve"><value>Export PNG</value></data>
   <data name="Dialog.FeatherRadiusPixels" xml:space="preserve"><value>Radius in pixels</value></data>
   <data name="Dialog.FileTypeImages" xml:space="preserve"><value>Images</value></data>
+  <data name="Dialog.FileTypePhotoshop" xml:space="preserve"><value>Adobe Photoshop (*.psd;*.psb)</value></data>
   <data name="Dialog.ForegroundColorPickerTitle" xml:space="preserve"><value>Choose foreground color</value></data>
   <data name="Dialog.ImportImageTitle" xml:space="preserve"><value>Import an image</value></data>
   <data name="Dialog.LayerName" xml:space="preserve"><value>Layer name</value></data>
   <data name="Dialog.LineWidthLabel" xml:space="preserve"><value>Pixels, 1 to 200</value></data>
   <data name="Dialog.LineWidthTitle" xml:space="preserve"><value>Line width</value></data>
   <data name="Dialog.ModifySelectionTitle" xml:space="preserve"><value>Modify Selection — {0}</value></data>
+  <data name="Dialog.OpenPhotoshopTitle" xml:space="preserve"><value>Open a Photoshop document</value></data>
   <data name="Dialog.OpenProjectFolderTitle" xml:space="preserve"><value>Open a Compositor project folder</value></data>
   <data name="Dialog.Pixels" xml:space="preserve"><value>Pixels</value></data>
   <data name="Dialog.RenameLayerTitle" xml:space="preserve"><value>Rename Layer</value></data>
@@ -740,6 +743,12 @@
   <data name="Status.ImageSizeTooLarge" xml:space="preserve"><value>That size is too large to resample to.</value></data>
   <data name="Status.ImportedImage" xml:space="preserve"><value>Imported {0} at {1} by {2}</value></data>
   <data name="Status.ImportFailed" xml:space="preserve"><value>Could not import that image: {0}</value></data>
+  <data name="Status.PhotoshopImported" xml:space="preserve"><value>{0} — {1} by {2}, {3} layers</value></data>
+  <data name="Status.PhotoshopImportedWithNotes" xml:space="preserve"><value>{0} — {1} by {2}, {3} layers, {4} conversion notes</value></data>
+  <data name="Status.PhotoshopImportFailed" xml:space="preserve"><value>Unable to open Photoshop file.</value></data>
+  <data name="Status.PhotoshopTooLarge" xml:space="preserve"><value>This Photoshop file exceeds the document size limit.</value></data>
+  <data name="Status.PhotoshopUnreadable" xml:space="preserve"><value>Unable to open Photoshop file. It may be damaged or unavailable.</value></data>
+  <data name="Status.PhotoshopUnsupported" xml:space="preserve"><value>This Photoshop file uses an unsupported format.</value></data>
   <data name="Status.InvalidLayerName" xml:space="preserve"><value>That name was blank, or was already the layer's name</value></data>
   <data name="Status.InvalidNumberRange" xml:space="preserve"><value>That has to be a number from {0:0} to {1:0}</value></data>
   <data name="Status.LayerCopyLimit" xml:space="preserve"><value>That layer could not be copied: there is no room for another 10,000 layers.</value></data>
@@ -874,6 +883,7 @@
   <data name="History.Transform Layers" xml:space="preserve"><value>Transform Layers</value></data>
   <data name="History.Transform" xml:space="preserve"><value>Transform</value></data>
   <data name="History.Import image" xml:space="preserve"><value>Import image</value></data>
+  <data name="History.Import Photoshop File" xml:space="preserve"><value>Import Photoshop File</value></data>
   <data name="History.Deselect" xml:space="preserve"><value>Deselect</value></data>
   <data name="History.Select Layer's Pixels" xml:space="preserve"><value>Select Layer's Pixels</value></data>
   <data name="History.Select Mask's Black Areas" xml:space="preserve"><value>Select Mask's Black Areas</value></data>

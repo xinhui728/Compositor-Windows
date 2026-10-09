@@ -96,6 +96,47 @@ public static class LayerPlacement
         return layer.ID;
     }
 
+    /// <summary>
+    /// Adds an imported document in the active layer's folder, retaining its internal folders, masks and
+    /// clipping links. The wrapper and incoming stack append as the macOS importer does; the active layer
+    /// chooses only the wrapper's parent scope, while the imported stack retains its own record order. The
+    /// imported document gives its layer ownership to <paramref name="document"/> on success and is left empty
+    /// so the caller may safely dispose it.
+    /// </summary>
+    public static Guid? InsertImportedDocument(CanvasDocument document, CanvasDocument imported, string name,
+        Guid? activeID)
+    {
+        if ((long)document.Layers.Count + imported.Layers.Count + 1 > MaxLayers) return null;
+
+        var incomingIDs = imported.Layers.Select(layer => layer.ID).ToHashSet();
+        if (incomingIDs.Count != imported.Layers.Count || document.Layers.Any(layer => incomingIDs.Contains(layer.ID)))
+        {
+            return null;
+        }
+
+        var active = Active(document, activeID);
+        var folder = new ImageLayer(Guid.NewGuid(), null, WholeCanvas(document), name)
+        {
+            IsGroup = true,
+            ParentID = active is { IsGroup: true } ? active.ID : active?.ParentID,
+        };
+        var planned = new List<ImageLayer>(document.Layers.Count + imported.Layers.Count + 1);
+        planned.AddRange(document.Layers);
+        planned.Add(folder);
+        planned.AddRange(imported.Layers);
+
+        // Only roots join the new wrapper. Parent links inside the imported hierarchy, including clipping
+        // source ids, stay exactly as the PSD importer made them.
+        var parents = imported.Layers.Where(layer => layer.ParentID is null)
+            .ToDictionary(layer => layer.ID, _ => (Guid?)folder.ID);
+        if (!Adopt(document, planned, parents, new Dictionary<Guid, Guid?>())) return null;
+
+        // Ownership moved to the destination: disposing the temporary source document must not dispose
+        // the images and masks which now belong to the document on screen.
+        imported.Layers.Clear();
+        return folder.ID;
+    }
+
     /// <summary>What that kind of adjustment layer is called, as the Filter and Image menus name it.</summary>
     public static string Name(AdjustmentKind kind) => kind switch
     {

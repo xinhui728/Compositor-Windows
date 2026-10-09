@@ -32,6 +32,7 @@
   <data name="Menu.Help" xml:space="preserve"><value>說明</value></data>
   <data name="Menu.NewProject" xml:space="preserve"><value>新增專案…</value></data>
   <data name="Menu.OpenProject" xml:space="preserve"><value>開啟專案資料夾…</value></data>
+  <data name="Menu.OpenPhotoshopDocument" xml:space="preserve"><value>開啟 Photoshop 文件…</value></data>
   <data name="Menu.OpenRecent" xml:space="preserve"><value>開啟最近使用的檔案</value></data>
   <data name="Menu.ImportImage" xml:space="preserve"><value>匯入影像…</value></data>
   <data name="Menu.Save" xml:space="preserve"><value>儲存</value></data>
@@ -627,12 +628,14 @@
   <data name="Dialog.ExportPngTitle" xml:space="preserve"><value>匯出 PNG</value></data>
   <data name="Dialog.FeatherRadiusPixels" xml:space="preserve"><value>半徑（像素）</value></data>
   <data name="Dialog.FileTypeImages" xml:space="preserve"><value>影像</value></data>
+  <data name="Dialog.FileTypePhotoshop" xml:space="preserve"><value>Adobe Photoshop 檔案 (*.psd;*.psb)</value></data>
   <data name="Dialog.ForegroundColorPickerTitle" xml:space="preserve"><value>選擇前景顏色</value></data>
   <data name="Dialog.ImportImageTitle" xml:space="preserve"><value>匯入影像</value></data>
   <data name="Dialog.LayerName" xml:space="preserve"><value>圖層名稱</value></data>
   <data name="Dialog.LineWidthLabel" xml:space="preserve"><value>像素，1 到 200</value></data>
   <data name="Dialog.LineWidthTitle" xml:space="preserve"><value>線條寬度</value></data>
   <data name="Dialog.ModifySelectionTitle" xml:space="preserve"><value>修改選取範圍 — {0}</value></data>
+  <data name="Dialog.OpenPhotoshopTitle" xml:space="preserve"><value>開啟 Photoshop 文件</value></data>
   <data name="Dialog.OpenProjectFolderTitle" xml:space="preserve"><value>開啟 Compositor 專案資料夾</value></data>
   <data name="Dialog.Pixels" xml:space="preserve"><value>像素</value></data>
   <data name="Dialog.RenameLayerTitle" xml:space="preserve"><value>重新命名圖層</value></data>
@@ -735,6 +738,12 @@
   <data name="Status.ImageSizeTooLarge" xml:space="preserve"><value>此尺寸過大，無法重新取樣。</value></data>
   <data name="Status.ImportedImage" xml:space="preserve"><value>已匯入 {0}，尺寸 {1} × {2}</value></data>
   <data name="Status.ImportFailed" xml:space="preserve"><value>無法匯入影像：{0}</value></data>
+  <data name="Status.PhotoshopImported" xml:space="preserve"><value>{0} — {1} × {2}，{3} 個圖層</value></data>
+  <data name="Status.PhotoshopImportedWithNotes" xml:space="preserve"><value>{0} — {1} × {2}，{3} 個圖層，{4} 項轉換注意事項</value></data>
+  <data name="Status.PhotoshopImportFailed" xml:space="preserve"><value>無法開啟 Photoshop 檔案。</value></data>
+  <data name="Status.PhotoshopTooLarge" xml:space="preserve"><value>此 Photoshop 檔案超過文件大小限制。</value></data>
+  <data name="Status.PhotoshopUnreadable" xml:space="preserve"><value>無法開啟 Photoshop 檔案；檔案可能已損毀或無法存取。</value></data>
+  <data name="Status.PhotoshopUnsupported" xml:space="preserve"><value>此 Photoshop 檔案使用了不支援的格式。</value></data>
   <data name="Status.InvalidLayerName" xml:space="preserve"><value>名稱空白，或與現有圖層名稱相同</value></data>
   <data name="Status.InvalidNumberRange" xml:space="preserve"><value>必須是介於 {0:0} 到 {1:0} 的數字</value></data>
   <data name="Status.LayerCopyLimit" xml:space="preserve"><value>無法複製圖層：已沒有可容納 10,000 個圖層的空間。</value></data>
@@ -868,6 +877,7 @@
   <data name="History.Transform Layers" xml:space="preserve"><value>變形圖層</value></data>
   <data name="History.Transform" xml:space="preserve"><value>變形</value></data>
   <data name="History.Import image" xml:space="preserve"><value>匯入影像</value></data>
+  <data name="History.Import Photoshop File" xml:space="preserve"><value>匯入 Photoshop 檔案</value></data>
   <data name="History.Deselect" xml:space="preserve"><value>取消選取</value></data>
   <data name="History.Select Layer's Pixels" xml:space="preserve"><value>選取圖層像素</value></data>
   <data name="History.Select Mask's Black Areas" xml:space="preserve"><value>選取遮色片的黑色區域</value></data>

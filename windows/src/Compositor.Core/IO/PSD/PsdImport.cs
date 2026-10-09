@@ -29,6 +29,13 @@ public sealed class PsdImport
 /// </summary>
 public static class PsdImporter
 {
+    /// <summary>The filename extensions that are Photoshop documents rather than single bitmap images.</summary>
+    public static readonly string[] Extensions = [".psd", ".psb"];
+
+    /// <summary>Whether a path belongs on the document importer path.</summary>
+    public static bool LooksImportable(string path) =>
+        Extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Reads a PSD or PSB into a document that can be saved as a <c>.comp</c>.
     /// <paramref name="remainingPixels"/> is what the document has left of its pixel budget; the default

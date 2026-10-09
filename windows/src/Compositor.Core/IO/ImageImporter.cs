@@ -37,8 +37,9 @@ public sealed class ImportException : Exception
 /// <summary>
 /// Reads an image file into the pixels a layer holds. Skia decodes JPEG, PNG, WebP, GIF and BMP; TIFF goes
 /// through LibTiff, because Skia ships no TIFF decoder; SVG is drawn once into pixels by <c>Svg.Skia</c> and
-/// does not stay vector, as the Mac build's does not. Camera RAW, HEIC and Photoshop files are not read
-/// here yet and say so rather than failing obscurely.
+/// does not stay vector, as the Mac build's does not. HEIC and camera RAW use their dedicated decoders.
+/// Photoshop files deliberately stay out of this one-image path: callers
+/// route them through <c>PsdImporter</c> so their editable layer stack is retained.
 /// </summary>
 public static class ImageImporter
 {
