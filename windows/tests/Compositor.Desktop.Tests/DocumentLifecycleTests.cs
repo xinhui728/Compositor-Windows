@@ -231,21 +231,6 @@ public sealed class DocumentLifecycleTests
     /// <summary>Starts the same headless Avalonia stack the desktop self-check uses, once for this test assembly.</summary>
     private static class DesktopHeadless
     {
-        private static readonly object Gate = new();
-        private static bool _initialized;
-
-        public static void EnsureInitialized()
-        {
-            lock (Gate)
-            {
-                if (_initialized) return;
-                AppBuilder.Configure<DesktopApp>()
-                    .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
-                    .UseSkia()
-                    .WithInterFont()
-                    .SetupWithoutStarting();
-                _initialized = true;
-            }
-        }
+        public static void EnsureInitialized() => DesktopTestHost.EnsureInitialized();
     }
 }

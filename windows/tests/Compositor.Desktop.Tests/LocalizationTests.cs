@@ -142,6 +142,32 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void CameraRawCurveParityStringsAreReviewedInBothCultures()
+    {
+        var english = new LocalizationManager(LocalizationManager.EnglishCulture);
+        var traditionalChinese = new LocalizationManager(LocalizationManager.TraditionalChineseCulture);
+
+        Assert.Equal("Parametric Curve", english.Get("CameraRaw.ParametricCurve"));
+        Assert.Equal("Point Curve", english.Get("CameraRaw.PointCurve"));
+        Assert.Equal("Darks", english.Get("CameraRaw.Darks"));
+        Assert.Equal("Lights", english.Get("CameraRaw.Lights"));
+        Assert.Equal("參數式曲線", traditionalChinese.Get("CameraRaw.ParametricCurve"));
+        Assert.Equal("點曲線", traditionalChinese.Get("CameraRaw.PointCurve"));
+        Assert.Equal("暗部", traditionalChinese.Get("CameraRaw.Darks"));
+        Assert.Equal("亮部", traditionalChinese.Get("CameraRaw.Lights"));
+        Assert.Equal("亮部區域", traditionalChinese.Get("CameraRaw.Highlights"));
+        Assert.Equal("調整飽和度", traditionalChinese.Get("CameraRaw.RefineSaturation"));
+
+        var resources = new ResourceManager("Compositor.Desktop.Localization.Strings", typeof(LocalizationManager).Assembly);
+        var englishKeys = Keys(resources.GetResourceSet(CultureInfo.GetCultureInfo(LocalizationManager.EnglishCulture),
+            createIfNotExists: true, tryParents: true));
+        var traditionalChineseKeys = Keys(resources.GetResourceSet(
+            CultureInfo.GetCultureInfo(LocalizationManager.TraditionalChineseCulture), createIfNotExists: true, tryParents: false));
+        Assert.True(englishKeys.SetEquals(traditionalChineseKeys),
+            $"Missing zh-TW keys: {string.Join(", ", englishKeys.Except(traditionalChineseKeys))}");
+    }
+
+    [Fact]
     public void SelectedLanguageIsPersistedOutsideProjects()
     {
         var folder = Path.Combine(Path.GetTempPath(), "Compositor.Desktop.Tests", Guid.NewGuid().ToString("N"));
