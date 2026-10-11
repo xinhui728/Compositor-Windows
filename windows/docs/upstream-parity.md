@@ -6,7 +6,7 @@ release notes. Do not merge macOS source into the Windows branch to close an
 item: port the behavior into the C# / Avalonia / SkiaSharp architecture and add
 tests around it.
 
-Last audited: 2026-10-07
+Last audited: 2026-10-11
 
 ## Evidence and baseline
 
@@ -95,10 +95,10 @@ Status meanings:
 | 1.4.3 | `095da2f` — large-canvas Blur/Smudge/Liquify performance | Tiles/coarsens brush sources and replays sparse warp points rather than repeatedly processing full images. | ❌ Windows Blur/Clone samples and Warp allocate a full document surface; behavior exists but this large-canvas strategy does not. | `Core/Document/BrushEdits.cs`, `Core/Document/WarpEdits.cs` | L | P2 |
 | 1.4.4 | `1aad384` — safe quit/close with pending edits | Applies pending gradient/pixel move and cancels dialogs/previews before close. | ✅ `Window.Closing` now uses a cancel-then-async-confirm bridge; it commits active gradient, floating pixels, text and transform, cancels crop/filter/Camera Raw/adjustment/colour-range/picker previews, and asks every changed tab Save / Don't Save / Cancel before disposal. Delayed previews are tab-owned and invalidated before bitmap disposal. Windows deliberately settles on tab switching (rather than upstream's v1.4.4 `canSwitch` block) to prevent cross-document state. Brush/shape/distort/guide drags still block until pointer release because final geometry is not safely inferable. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs`, `Desktop/DocumentCloseFlow.cs`, `Desktop/UnsavedChangesDialog.cs` | M | P1 |
 | 1.4.4 | `9c99853`, `cd2f998` — Dither > Scanlines (CRT), then parallel rendering | Adds CRT scanlines with line spacing, glow, dots, wobble, and parallel/cheaper render path. | ❌ Windows has the preceding ten Dither looks but no `Scanlines` enum/settings/UI/kernel. | `Core/Document/DitherEdits.cs`, `Core/Pixels/DitherPixels.cs`, `Desktop/DitherDialog.cs` | M | P2 |
-| 1.4.5 | `60d9117` — Camera Raw point curve interaction and Parametric curve | Fixes gesture competition; point curves drag/add/delete with selection; parametric regions and dividers are interactive. | 🟡 Windows point curves already drag/add/right-click-delete through `CurveEditor`, so the original drag regression is absent. It lacks the Parametric page, tonal-region sliders, split dividers, selected-point treatment, and matching 16-point UX limit. | `Desktop/CurveEditor.cs`, `Desktop/CameraRawPanel.cs`, `Core/Document/CameraRawEdits.cs` | L | P1 |
-| 1.4.5 | `60d9117` — Camera Raw Photoshop RGB tone semantics | Replaces kinked triangular parametric math with smooth gamma-bent anchors; applies composite tone curve per R/G/B; Refine Saturation negative returns toward luminance-only. | ⚠️ Windows still builds a luma LUT and uses the pre-1.4.5 Rec.709-luminance/`ScaleLuminance` path. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs` | L | P1 |
+| 1.4.5 | `60d9117` — Camera Raw point curve interaction and Parametric curve | Fixes gesture competition; point curves drag/add/delete with selection; parametric regions and dividers are interactive. | ✅ Windows has separate Parametric/Point pages. The parametric graph latches region/divider drags; Point mode has selected handles, add/drag/double-click delete, per-channel state, a 16-point cap, and pointer-capture cleanup. Right-click deletion remains as an additional Windows affordance. | `Desktop/ParametricCurveEditor.cs`, `Desktop/CurveEditor.cs`, `Desktop/CameraRawPanel.cs`, Desktop tests | L | P1 |
+| 1.4.5 | `60d9117` — Camera Raw Photoshop RGB tone semantics | Replaces kinked triangular parametric math with smooth gamma-bent anchors; applies composite tone curve per R/G/B; Refine Saturation negative returns toward luminance-only. | ✅ Windows uses the upstream 33-anchor, two-pass gamma bend and smooth interpolation; applies the composite tone LUT to each RGB channel exactly once before channel LUTs; and ports the -100/0/+100 Refine Saturation behavior. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs`, Core tests | L | P1 |
 
-## Camera Raw: exact 1.4.5 gap
+## Camera Raw: v1.4.5 implementation
 
 Only one substantive Camera Raw commit appears in this release interval:
 `60d9117907704443b991d7855a3ea454a535ee6e`, immediately before the v1.4.5
@@ -122,25 +122,30 @@ The source changes are more specific than the release note:
 4. Upstream added tests for smoothness/monotonicity, a Photoshop-traced
    Darks=-51/Lights=59 profile, and orange chroma under an S curve.
 
-Windows already has a broad Camera Raw panel and live preview, but its
-`CurveEditor` is a point-curves-only control. Its `CameraRawEdits.Curves()`
-produces a luma LUT and `AdjustPixels.CameraRawCurveColor` follows the older
-luminance-first behavior. This is a rendering difference, not simply a missing
-control.
+Windows now ports this commit without changing the document format:
 
-When porting this item:
+1. `CameraRawCurveSettings` is a runtime-only model for Shadows, Darks, Lights,
+   Highlights, and three dividers. Its 33 anchors use the upstream two gamma
+   bends (strength 1.66) and the shared shape-preserving cubic interpolation.
+2. `toneLut` composes the parametric result with the RGB point curve. The
+   renderer maps each unpremultiplied R/G/B channel through it, blends toward
+   the former luminance-only result at negative Refine Saturation, boosts chroma
+   above zero, then runs individual channel LUTs, Mixer, Point Color, and
+   Grading in their existing order.
+3. `ParametricCurveEditor` latches one pointer gesture to either a tonal region
+   or divider. `CurveEditor` now maintains selection, supports double-click
+   deletion, clears state on channel changes/capture loss, and uses Camera Raw's
+   16-point / 0.01-spacing constraints without changing persisted curve limits.
+4. Core tests include upstream's smoothness, monotonicity and Photoshop
+   `Darks=-51/Lights=59` trace, RGB/refine/alpha/clamp coverage, and a
+   format-11 schema guard. Headless Desktop tests cover page switching, point
+   drag/double-click deletion, parametric region/divider drags, one Apply event,
+   and resource completeness.
 
-- Keep the new settings **raw-only and transient**. Camera Raw is applied
-  destructively to layer pixels and is not a `LayerAdjustment` stored in a
-  `.comp` manifest.
-- Do not reuse or change the persisted `Format.CurvesSettings` contract merely
-  to represent Camera Raw’s parametric state.
-- Add the upstream behavioral tests as C# tests, then add pointer tests for the
-  Avalonia control.
-- Add every new visible string to both
-  `Desktop/Localization/Strings.resx` and
-  `Desktop/Localization/Strings.zh-TW.resx`; use Taiwan terms such as
-  `曲線`, `參數式`, `陰影`, `暗部`, `亮部`, and `亮部區域` as appropriate.
+`CameraRawSettings` remains raw-only and its Apply path still bakes pixels in a
+single existing history edit. Neither `Format.CurvesSettings` nor any manifest
+type changed; the Parametric page, selected point, channel, and drag state are
+view/session state.
 
 Existing Camera Raw gaps such as canvas-picked Point Color, auto/custom white
 balance, targeted curve/mixer adjustment, and defringe sampling predate this
@@ -227,7 +232,7 @@ These are not falsely attributed to 1.4.3–1.4.5 changes.
 |---|---|---|---|---|
 | A — compatibility and correctness | Preserve format-11 round trips; keep the completed Desktop PSD/PSB routing and self-authored mask/clipping/blend/adjustment fixtures; add a localized conversion-confirmation dialog and macOS reference fixtures before declaring exact parity. | `Core/IO/PSD/*`, `Core/Document/LayerPlacement.cs`, `Desktop/MainWindow.cs`, optional import/conversion dialog, resources. | Existing manifest/project round trips; PSD/PSB fixture and wrapper-group history tests; Desktop resource contract; no manifest delta. | High data-correctness risk; M–L. |
 | B — rendering behavior | Resolve Soft Light parity; compare adjustment/noise placement and clipping stacks; profile CPU tiles before considering a backend abstraction. | `Core/Pixels/BlendModes.cs`, `AdjustmentOperators.cs`, `Core/Rendering/DocumentRenderer.cs`. | Golden-pixel cases for blend modes, masks, adjustments, tiled-vs-whole render. | Rendering regressions; L. |
-| C — Camera Raw parity | Add transient parametric curve state, smooth RGB tone LUT, Refine semantics, Parametric/Point UI, and localized labels. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs`, `Desktop/CameraRawPanel.cs`, `Desktop/CurveEditor.cs`, both resource files. | Upstream curve profiles, monotonicity, RGB/chroma fixtures, Avalonia pointer tests, `.comp` serialization unchanged. | Algorithm/UI coupling; L. |
+| C — Camera Raw parity | ✅ Ported v1.4.5 curve state/math/UI and localized labels. Remaining pre-range Camera Raw gaps are canvas-picked Point Color, auto/custom white balance, targeted curve/mixer adjustment, and sampled defringe. | `Core/Document/CameraRawEdits.cs`, `Core/Pixels/AdjustPixels.cs`, `Desktop/ParametricCurveEditor.cs`, `Desktop/CameraRawPanel.cs`, `Desktop/CurveEditor.cs`, both resource files. | Upstream curve profiles, monotonicity, RGB/chroma fixtures, Avalonia pointer tests, `.comp` serialization unchanged. | Algorithm/UI coupling; L. |
 | D — tools and editor UI | The first batch is complete: selection-aware masks and mask-alone view, Shift selected-pixel axis lock, ungroup, and safe close/settlement. Remaining work includes tabs overflow/reorder and transform fields. | `Core/Document/SelectionEdits.cs`, `LayerMaskEdits.cs`, `LayerPlacement.cs`, `Desktop/MainWindow.cs`, `CanvasView.cs`, tab controls, shortcuts/resources. | History/undo tests, layer-order/mask tests, keyboard and pointer desktop tests, close/cancel tests. | Interaction/history regressions; S–M per item. |
 | E — Apple Vision replacements | Decide whether pre-existing subject/object/background selection merits a licensed ONNX-based replacement. | New opt-in integration only if approved; no change today. | Model-free interface tests; model/license acceptance tests if adopted. | Licensing/package/model quality; XL. |
 | F — packaging and polish | Scanlines filter, parallelize only after golden output is stable, OS clipboard/export extensions, tab/mask cursor polish. | Dither core/dialog, clipboard/export services, Desktop resources. | Dither pixel fixtures and performance thresholds; end-to-end clipboard/export tests. | Platform integration and performance; M–L. |
@@ -270,7 +275,7 @@ same commit-versus-cancel semantics.
   clipping, representative blends, unsupported adjustment notes, and format-11 round trip.
 - [ ] Add macOS/Photoshop reference pixels for Soft Light and scaled adjustment/noise;
   existing Add Noise positioning/tiled-render tests remain separate from PSD import.
-- [ ] Add Camera Raw 1.4.5 curve math/chroma tests before UI work.
+- [x] Port Camera Raw 1.4.5 curve math/chroma golden tests and Avalonia interaction coverage.
 - [x] Add lifecycle regression coverage for clean/changed/save-failure/cancel close decisions,
   active-first multi-tab confirmation, nested history state, picker cancellation, stale-preview
   invalidation, and pointer-release-safe gradient settlement.
@@ -299,6 +304,6 @@ IDs, command IDs, JSON property names, and serialized `.comp` values stable.
 - [x] Complete Phase A P0 PSD/PSB Desktop routing, wrapper-group handoff, and self-authored fixture coverage.
 - [ ] Finish Phase A conversion-confirmation UI and macOS/Photoshop reference-pixel comparison.
 - [ ] Complete Phase B rendering parity fixtures/fixes.
-- [ ] Complete Phase C Camera Raw 1.4.5 parity.
+- [x] Complete Phase C Camera Raw 1.4.5 curve parity; track only pre-range Camera Raw gaps separately.
 - [ ] Complete Phase D interaction parity.
 - [ ] Reassess Vision/ONNX only with explicit licensing and packaging approval.
