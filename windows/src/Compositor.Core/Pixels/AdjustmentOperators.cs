@@ -340,10 +340,18 @@ public static class AdjustmentOperators
     }
 
     /// <summary>
-    /// Shape-preserving cubic Hermite interpolation: the tangent at a handle is the harmonic mean of its two
-    /// neighbor slopes, or zero where they disagree in sign, so the curve cannot overshoot the handles.
+    /// The value of just one curve channel. Camera Raw applies its composite RGB tone curve before these
+    /// individual Red, Green, and Blue curves, whereas a persisted Curves adjustment composes the master
+    /// curve here. Keeping this evaluator separate prevents Camera Raw from applying its composite curve twice.
     /// </summary>
-    private static double CurveValue(List<CurvePoint> points, double x)
+    public static double CurveChannelValue(CurvesSettings curves, int channel, double x) =>
+        CurveValue(curves.Channels[channel], x);
+
+    /// <summary>
+    /// Shape-preserving cubic Hermite interpolation for a supplied sequence of ordered points. Camera Raw's
+    /// parametric curve uses the same interpolation as adjustment curves after it has made its 33 anchors.
+    /// </summary>
+    public static double CurveValue(IReadOnlyList<CurvePoint> points, double x)
     {
         int last = 0;
         for (int i = 0; i < points.Count; i++)
@@ -360,7 +368,11 @@ public static class AdjustmentOperators
         return Math.Min(255, Math.Max(0, y));
     }
 
-    private static double Slope(List<CurvePoint> points, int index)
+    /// <summary>
+    /// Shape-preserving cubic Hermite interpolation: the tangent at a handle is the harmonic mean of its two
+    /// neighbor slopes, or zero where they disagree in sign, so the curve cannot overshoot the handles.
+    /// </summary>
+    private static double Slope(IReadOnlyList<CurvePoint> points, int index)
     {
         if (index == 0) return Delta(points, 0);
         if (index == points.Count - 1) return Delta(points, points.Count - 2);
@@ -369,7 +381,7 @@ public static class AdjustmentOperators
         return 2 / (1 / before + 1 / after);
     }
 
-    private static double Delta(List<CurvePoint> points, int index) =>
+    private static double Delta(IReadOnlyList<CurvePoint> points, int index) =>
         (points[index + 1].Y - points[index].Y) / (points[index + 1].X - points[index].X);
 
     private static void ApplyExposure(LayerAdjustment adjustment, Span<byte> rgba, int width, int height, int stride)

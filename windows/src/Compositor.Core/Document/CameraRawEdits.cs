@@ -109,8 +109,14 @@ public sealed class CameraRawSettings
 
     // Calibration: the process version the sliders are read against
     // Curve and grading: the last of the filter's panels
-    /// <summary>The Curve panel's own curve, which bends the whole picture rather than one channel.</summary>
+    /// <summary>The Curve panel's point curves. These live only for the Camera Raw session; the filter is
+    /// baked into pixels on Apply, so this does not participate in the .comp manifest.</summary>
     public Format.CurvesSettings Curve { get; set; } = new();
+
+    /// <summary>The Curve panel's transient parametric curve. It is deliberately separate from
+    /// <see cref="Format.CurvesSettings"/>: that type is part of the persisted adjustment-layer format,
+    /// while Camera Raw is always baked into the selected image layer on Apply.</summary>
+    public CameraRawCurveSettings ParametricCurve { get; set; } = new();
 
     /// <summary>−100 to 100: how much of the curve's bend is held off the colours that are already saturated.</summary>
     public double RefineSaturation { get; set; }
@@ -191,7 +197,7 @@ public sealed class CameraRawSettings
 
     /// <summary>Whether the curve or what is held off it asks for anything.</summary>
     public bool AdjustsCurve =>
-        RefineSaturation != 0 || CurveMoves || AdjustsMixer || AdjustsPointColor;
+        RefineSaturation != 0 || CurveMoves || ParametricCurve.Adjusts || AdjustsMixer || AdjustsPointColor;
 
     /// <summary>Whether the grading asks for anything.</summary>
     public bool AdjustsGrading =>
@@ -199,28 +205,32 @@ public sealed class CameraRawSettings
         || HighlightSaturation != 0 || HighlightLuminance != 0
         || GlobalSaturation != 0 || GlobalLuminance != 0;
 
-    /// <summary>Whether the picture's curve has been moved off the straight line it opens as. The curve is the
-    /// very record the project holds, so its written form is compared rather than its points one by one.</summary>
-    public bool CurveMoves =>
-        System.Text.Json.JsonSerializer.Serialize(Curve, Format.ManifestJson.Options)
-        != System.Text.Json.JsonSerializer.Serialize(new Format.CurvesSettings(), Format.ManifestJson.Options);
+    /// <summary>
+    /// Whether Camera Raw's point curves differ from a straight line. Its selected channel is panel state,
+    /// not an adjustment, so it must never manufacture an Apply or history entry just because the user looked
+    /// at Red, Green, or Blue.
+    /// </summary>
+    public bool CurveMoves => Curve.Channels is { Count: 4 }
+        && Curve.Channels.Any(points => points.Count != 2 || points[0].X != 0 || points[0].Y != 0
+            || points[1].X != 255 || points[1].Y != 255);
 
     /// <summary>The curve as the four lookup tables the kernel reads: the whole picture's, then red, green and
     /// blue — each 256 entries of 0 to 1, which is what the kernel indexes and scales itself.</summary>
-    internal (float[] Luma, float[] Red, float[] Green, float[] Blue) Curves()
+    internal (float[] Tone, float[] Red, float[] Green, float[] Blue) Curves()
     {
-        var luma = new float[256];
+        var tone = ParametricCurve.ToneTable(Curve);
         var red = new float[256];
         var green = new float[256];
         var blue = new float[256];
         for (var value = 0; value < 256; value++)
         {
-            luma[value] = (float)(Pixels.AdjustmentOperators.CurvesValue(Curve, 0, value) / 255);
-            red[value] = (float)(Pixels.AdjustmentOperators.CurvesValue(Curve, 1, value) / 255);
-            green[value] = (float)(Pixels.AdjustmentOperators.CurvesValue(Curve, 2, value) / 255);
-            blue[value] = (float)(Pixels.AdjustmentOperators.CurvesValue(Curve, 3, value) / 255);
+            // The composite tone curve has already been applied before these individual red, green and blue
+            // curves. CurvesValue would include the composite curve again, so use the single-channel evaluator.
+            red[value] = (float)(Pixels.AdjustmentOperators.CurveChannelValue(Curve, 1, value) / 255);
+            green[value] = (float)(Pixels.AdjustmentOperators.CurveChannelValue(Curve, 2, value) / 255);
+            blue[value] = (float)(Pixels.AdjustmentOperators.CurveChannelValue(Curve, 3, value) / 255);
         }
-        return (luma, red, green, blue);
+        return (tone, red, green, blue);
     }
 
     /// <summary>1 to 6, as Photoshop numbers its process versions; six is the current one.</summary>
@@ -315,7 +325,8 @@ public sealed class CameraRawSettings
         && Within(ShadowTint, -100, 100) && Within(RedHue, -100, 100) && Within(RedSaturation, -100, 100)
         && Within(GreenHue, -100, 100) && Within(GreenSaturation, -100, 100)
         && Within(BlueHue, -100, 100) && Within(BlueSaturation, -100, 100)
-        && Within(RefineSaturation, -100, 100) && Curve.IsValid
+        && Within(RefineSaturation, -100, 100) && Curve.IsValid && Curve.Channels.All(points => points.Count <= CameraRawCurveSettings.MaximumPointCount)
+        && ParametricCurve.IsValid
         && Within(ShadowHue, 0, 360) && Within(ShadowSaturation, 0, 100) && Within(ShadowLuminance, -100, 100)
         && Within(MidtoneHue, 0, 360) && Within(MidtoneSaturation, 0, 100) && Within(MidtoneLuminance, -100, 100)
         && Within(HighlightHue, 0, 360) && Within(HighlightSaturation, 0, 100) && Within(HighlightLuminance, -100, 100)
@@ -330,6 +341,159 @@ public sealed class CameraRawSettings
 
     private static bool Within(double value, double least, double most) =>
         double.IsFinite(value) && value >= least && value <= most;
+}
+
+/// <summary>
+/// Camera Raw's transient parametric curve. It deliberately has no format-model counterpart: Camera Raw
+/// bakes pixels when it is applied, while <see cref="Format.CurvesSettings"/> belongs to saved adjustment
+/// layers. The point curve remains on <see cref="CameraRawSettings.Curve"/> so the existing editor can use
+/// the same point representation without adding a .comp field.
+/// </summary>
+public sealed class CameraRawCurveSettings
+{
+    /// <summary>The largest number of points Camera Raw accepts in one point-curve channel.</summary>
+    public const int MaximumPointCount = 16;
+
+    /// <summary>Parametric amounts, each in the Camera Raw range -100 through 100.</summary>
+    public double Shadows { get; set; }
+    public double Darks { get; set; }
+    public double Lights { get; set; }
+    public double Highlights { get; set; }
+
+    /// <summary>Three ordered tonal dividers, expressed as percentages.</summary>
+    public double ShadowSplit { get; set; } = 25;
+    public double DarkSplit { get; set; } = 50;
+    public double LightSplit { get; set; } = 75;
+
+    /// <summary>Whether at least one parametric slider changes the straight line.</summary>
+    public bool Adjusts => Shadows != 0 || Darks != 0 || Lights != 0 || Highlights != 0;
+
+    /// <summary>Whether the raw UI values are finite, ordered, and safe to normalize at the public apply boundary.</summary>
+    public bool IsValid =>
+        Within(Shadows, -100, 100) && Within(Darks, -100, 100)
+        && Within(Lights, -100, 100) && Within(Highlights, -100, 100)
+        // The graph uses Camera Raw's 2...98 interaction band; execution then normalizes into the fitted
+        // 5...90 / 95 / 98 anchor constraints. Do not reject a legal endpoint while a divider is dragged.
+        && Within(ShadowSplit, 2, 98)
+        && Within(DarkSplit, ShadowSplit + 2, 98)
+        && Within(LightSplit, DarkSplit + 2, 98);
+
+    /// <summary>A detached copy for panel state and previews.</summary>
+    public CameraRawCurveSettings Clone() => new()
+    {
+        Shadows = Shadows,
+        Darks = Darks,
+        Lights = Lights,
+        Highlights = Highlights,
+        ShadowSplit = ShadowSplit,
+        DarkSplit = DarkSplit,
+        LightSplit = LightSplit,
+    };
+
+    /// <summary>
+    /// A safe form for preview helpers. The panel keeps the normal values in range, but normalizing here makes
+    /// transient preview work resilient to an incomplete or programmatically-created settings bag.
+    /// </summary>
+    public CameraRawCurveSettings Normalized()
+    {
+        var shadow = Clamp(ShadowSplit, 5, 90, 25);
+        var dark = Clamp(DarkSplit, shadow + 2, 95, 50);
+        var light = Clamp(LightSplit, dark + 2, 98, 75);
+        return new CameraRawCurveSettings
+        {
+            Shadows = Clamp(Shadows, -100, 100, 0),
+            Darks = Clamp(Darks, -100, 100, 0),
+            Lights = Clamp(Lights, -100, 100, 0),
+            Highlights = Clamp(Highlights, -100, 100, 0),
+            ShadowSplit = shadow,
+            DarkSplit = dark,
+            LightSplit = light,
+        };
+    }
+
+    /// <summary>
+    /// Returns the parametric curve at a normalized tone. It uses the 33 anchors and the same shape-preserving
+    /// cubic interpolation as Image &gt; Curves, exactly as Camera Raw v1.4.5 does. The two gamma bends retain
+    /// fixed endpoints and keep the curve rising even at slider extremes.
+    /// </summary>
+    public double Parametric(double tone)
+    {
+        var normalized = Normalized();
+        return ParametricValue(Math.Clamp(tone, 0, 1), normalized.Anchors());
+    }
+
+    /// <summary>Evenly samples the fitted parametric curve without rebuilding its anchors per sample.</summary>
+    public double[] ParametricSamples(int count)
+    {
+        if (count < 2) throw new ArgumentOutOfRangeException(nameof(count));
+        var normalized = Normalized();
+        var anchors = normalized.Anchors();
+        var values = new double[count];
+        for (var index = 0; index < count; index++)
+        {
+            values[index] = ParametricValue(index / (double)(count - 1), anchors);
+        }
+        return values;
+    }
+
+    /// <summary>
+    /// The composite RGB lookup table: parametric curve first, then the existing RGB point curve. It is kept
+    /// internal because it is an execution detail of the baked Camera Raw filter rather than project data.
+    /// </summary>
+    internal float[] ToneTable(Format.CurvesSettings pointCurve)
+    {
+        var normalized = Normalized();
+        var table = new float[256];
+        var rgb = pointCurve.Channels[0];
+        var anchors = normalized.Anchors();
+        for (var value = 0; value < table.Length; value++)
+        {
+            var parametric = ParametricValue(value / 255.0, anchors);
+            table[value] = (float)(Pixels.AdjustmentOperators.CurveValue(rgb, parametric * 255) / 255);
+        }
+        return table;
+    }
+
+    /// <summary>Returns null for the exact identity fast path, otherwise the 33 upstream anchor points.</summary>
+    private IReadOnlyList<Format.CurvePoint>? Anchors()
+    {
+        if (!Adjusts) return null;
+        var anchors = new List<Format.CurvePoint>(33);
+        for (var index = 0; index <= 32; index++)
+        {
+            var x = index / 32.0;
+            var outer = Bend(x, ShadowSplit / 100, Shadows, LightSplit / 100, Highlights);
+            var y = Bend(outer, DarkSplit / 100, Darks, DarkSplit / 100, Lights);
+            anchors.Add(new Format.CurvePoint { X = x * 255, Y = y * 255 });
+        }
+        return anchors;
+    }
+
+    private static double ParametricValue(double tone, IReadOnlyList<Format.CurvePoint>? anchors) => anchors is null
+        ? tone
+        : Pixels.AdjustmentOperators.CurveValue(anchors, tone * 255) / 255;
+
+    /// <summary>One fitted gamma bend below and above its two stable tonal boundaries.</summary>
+    private static double Bend(double tone, double lower, double low, double upper, double high)
+    {
+        const double strength = 1.66;
+        if (tone < lower && lower > 0)
+        {
+            return lower * Math.Pow(tone / lower, Math.Pow(2, -low / 100 * strength));
+        }
+        if (tone > upper && upper < 1)
+        {
+            var rest = 1 - upper;
+            return 1 - rest * Math.Pow((1 - tone) / rest, Math.Pow(2, high / 100 * strength));
+        }
+        return tone;
+    }
+
+    private static bool Within(double value, double least, double most) =>
+        double.IsFinite(value) && value >= least && value <= most;
+
+    private static double Clamp(double value, double least, double most, double fallback) =>
+        double.IsFinite(value) ? Math.Clamp(value, least, most) : Math.Clamp(fallback, least, most);
 }
 
 /// <summary>
@@ -448,10 +612,10 @@ public static class CameraRawEdits
         }
         if (settings.AdjustsCurve || settings.AdjustsGrading)
         {
-            var (luma, red, green, blue) = settings.Curves();
+            var (tone, red, green, blue) = settings.Curves();
             // The kernel indexes the mixer and the grade whether or not anything is asked for, which is why
             // both are always given in full; the points are read only up to their count.
-            AdjustPixels.CameraRawCurveColor(pixels, width, height, stride, luma, red, green, blue,
+            AdjustPixels.CameraRawCurveColor(pixels, width, height, stride, tone, red, green, blue,
                 settings.RefineSaturation / 100, settings.MixerFloats(), settings.Points.Count, settings.PointFloats(),
                 settings.Grade, settings.GradeBlending / 100, settings.GradeBalance / 100, -1);
         }

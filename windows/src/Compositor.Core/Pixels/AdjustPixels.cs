@@ -1006,14 +1006,14 @@ public static class AdjustPixels
     }
 
     /// <summary>
-    /// Curve, Color Mixer, and Color Grading after the basic grade. <paramref name="lumaLut"/> and the
+    /// Curve, Color Mixer, and Color Grading after the basic grade. <paramref name="toneLut"/> and the
     /// channel LUTs are 256 entries. <paramref name="mixer"/> is 24 floats: hue, saturation, luminance for
     /// eight families, −1…1. Each point color is 9 floats (hue, saturation, luminance, three shifts −1…1,
     /// three range half-widths). <paramref name="grade"/> is four wheels of hue turns, saturation 0…1, and
     /// luminance −1…1. <paramref name="visualize"/> darkens pixels outside that point color.
     /// </summary>
     public static void CameraRawCurveColor(Span<byte> rgba, int width, int height, int stride,
-                                           ReadOnlySpan<float> lumaLut, ReadOnlySpan<float> redLut,
+                                           ReadOnlySpan<float> toneLut, ReadOnlySpan<float> redLut,
                                            ReadOnlySpan<float> greenLut, ReadOnlySpan<float> blueLut,
                                            double refineSaturation, ReadOnlySpan<float> mixer, int pointCount,
                                            ReadOnlySpan<float> points, ReadOnlySpan<float> grade,
@@ -1030,17 +1030,36 @@ public static class AdjustPixels
                 if (alpha == 0) continue;
                 double r = Math.Min(1.0, rgba[p] / alpha), g = Math.Min(1.0, rgba[p + 1] / alpha),
                        b = Math.Min(1.0, rgba[p + 2] / alpha);
-                double tone = Rec709(r, g, b);
-                double mapped = LutAt(lumaLut, tone);
-                ScaleLuminance(ref r, ref g, ref b, mapped);
-                if (refineSaturation != 0 && tone > 1e-4)
+                // Camera Raw's composite RGB curve maps every channel independently, not just Rec. 709
+                // luminance. That is why an S curve deepens color as it increases contrast. Negative Refine
+                // Saturation eases back toward the legacy brightness-only result; positive values boost the
+                // color distance from the curved luminance.
+                double curvedR = LutAt(toneLut, r);
+                double curvedG = LutAt(toneLut, g);
+                double curvedB = LutAt(toneLut, b);
+                if (refineSaturation < 0)
                 {
-                    double factor = 1 + refineSaturation * (mapped / tone - 1);
-                    double lum = Rec709(r, g, b);
-                    r = CameraClamp(lum + (r - lum) * factor);
-                    g = CameraClamp(lum + (g - lum) * factor);
-                    b = CameraClamp(lum + (b - lum) * factor);
+                    // Use the original uncurved channels for the brightness-only candidate. At -100 this is
+                    // exactly the former luma curve behavior, including its black-pixel handling.
+                    double brightnessR = r, brightnessG = g, brightnessB = b;
+                    ScaleLuminance(ref brightnessR, ref brightnessG, ref brightnessB,
+                        LutAt(toneLut, Rec709(r, g, b)));
+                    double mix = -refineSaturation;
+                    curvedR += (brightnessR - curvedR) * mix;
+                    curvedG += (brightnessG - curvedG) * mix;
+                    curvedB += (brightnessB - curvedB) * mix;
                 }
+                else if (refineSaturation > 0)
+                {
+                    double luminance = Rec709(curvedR, curvedG, curvedB);
+                    double factor = 1 + refineSaturation;
+                    curvedR = CameraClamp(luminance + (curvedR - luminance) * factor);
+                    curvedG = CameraClamp(luminance + (curvedG - luminance) * factor);
+                    curvedB = CameraClamp(luminance + (curvedB - luminance) * factor);
+                }
+                r = curvedR;
+                g = curvedG;
+                b = curvedB;
                 r = LutAt(redLut, r);
                 g = LutAt(greenLut, g);
                 b = LutAt(blueLut, b);
