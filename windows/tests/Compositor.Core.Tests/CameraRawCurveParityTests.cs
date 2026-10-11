@@ -150,6 +150,8 @@ public sealed class CameraRawCurveParityTests
             (0.616, 0.698), (0.690, 0.804), (0.765, 0.886), (0.840, 0.947), (0.915, 0.982),
         ];
 
+        // These values are the upstream's Photoshop/Camera Raw 18.6 trace rather than an analytic reference;
+        // retain its ±0.035 sampling tolerance while still catching a different curve shape or interpolation.
         foreach (var (tone, expected) in photoshop)
         {
             Assert.InRange(curve.Parametric(tone), expected - 0.035, expected + 0.035);
