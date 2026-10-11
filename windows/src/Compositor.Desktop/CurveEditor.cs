@@ -30,6 +30,24 @@ internal sealed class CurveEditor : Control
     private CurvesSettings _curves = new();
     private int _channel;
     private int _held = -1;
+    private int _selected = -1;
+
+    /// <summary>The point cap for this editor. Adjustment layers retain their format cap of 32; Camera Raw
+    /// supplies its Photoshop-compatible cap of 16 without changing the persisted curves schema.</summary>
+    public int MaximumPointCount { get; set; } = 32;
+
+    /// <summary>Minimum whole-curve input spacing and inset from either endpoint for newly placed points.</summary>
+    public int MinimumPointSpacing { get; set; } = 1;
+    public int EndpointInset { get; set; } = 1;
+
+    /// <summary>
+    /// Whether an individual channel graph includes the master curve before its own points. Persisted Curves
+    /// adjustments do; Camera Raw has already applied its RGB tone curve before its individual channel table.
+    /// </summary>
+    public bool ChannelIncludesMaster { get; set; } = true;
+
+    /// <summary>Current selection, exposed to the Desktop interaction tests only.</summary>
+    internal int SelectedPointIndex => _selected;
 
     public CurveEditor()
     {
@@ -47,6 +65,7 @@ internal sealed class CurveEditor : Control
         {
             _curves = value;
             _held = -1;
+            _selected = -1;
             InvalidateVisual();
         }
     }
@@ -59,6 +78,7 @@ internal sealed class CurveEditor : Control
         {
             _channel = Math.Clamp(value, 0, 3);
             _held = -1;
+            _selected = -1;
             InvalidateVisual();
         }
     }
@@ -81,7 +101,9 @@ internal sealed class CurveEditor : Control
         var line = new List<Point>(256);
         for (var input = 0; input <= 255; input++)
         {
-            var output = AdjustmentOperators.CurvesValue(_curves, _channel, input);
+            var output = ChannelIncludesMaster
+                ? AdjustmentOperators.CurvesValue(_curves, _channel, input)
+                : AdjustmentOperators.CurveChannelValue(_curves, _channel, input);
             line.Add(At(input, output));
         }
         for (var index = 1; index < line.Count; index++) context.DrawLine(CurvePen, line[index - 1], line[index]);
@@ -89,7 +111,7 @@ internal sealed class CurveEditor : Control
         for (var index = 0; index < points.Count; index++)
         {
             var at = At(points[index].X, points[index].Y);
-            var brush = index == _held ? ChosenBrush : HandleBrush;
+            var brush = index == _selected ? ChosenBrush : HandleBrush;
             context.FillRectangle(brush, new Rect(at.X - 4, at.Y - 4, 8, 8));
         }
     }
@@ -99,29 +121,52 @@ internal sealed class CurveEditor : Control
         base.OnPointerPressed(e);
         var at = e.GetPosition(this);
         _held = Nearest(at);
+        _selected = _held;
+        var point = e.GetCurrentPoint(this);
+        var points = _curves.Channels[_channel];
+        if (_held >= 0 && e.ClickCount > 1 && point.Properties.IsLeftButtonPressed)
+        {
+            // Camera Raw uses a double-click for removing an interior handle. Keep right-click support below
+            // as the established Windows affordance, but do not let either route remove an endpoint.
+            if (_held != 0 && _held != points.Count - 1)
+            {
+                points.RemoveAt(_held);
+                _held = -1;
+                _selected = -1;
+                Announce();
+            }
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            return;
+        }
         if (_held < 0 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             // A click on the line itself puts a handle on it, and it is then being dragged.
-            var points = _curves.Channels[_channel];
             var input = Math.Round(Input(at), MidpointRounding.AwayFromZero);
-            if (input > 0 && input < 255 && points.Count < 32)
+            var inset = Math.Clamp(EndpointInset, 1, 127);
+            var spacing = Math.Clamp(MinimumPointSpacing, 1, 127);
+            if (input >= inset && input <= 255 - inset && points.Count < Math.Clamp(MaximumPointCount, 2, 32)
+                && points.All(existing => Math.Abs(existing.X - input) >= spacing))
             {
-                var output = Math.Round(AdjustmentOperators.CurvesValue(_curves, _channel, input), MidpointRounding.AwayFromZero);
+                var output = Math.Round(ChannelIncludesMaster
+                    ? AdjustmentOperators.CurvesValue(_curves, _channel, input)
+                    : AdjustmentOperators.CurveChannelValue(_curves, _channel, input), MidpointRounding.AwayFromZero);
                 var made = new CurvePoint { X = input, Y = Math.Clamp(output, 0, 255) };
                 points.Add(made);
                 points.Sort((left, right) => left.X.CompareTo(right.X));
                 _held = points.IndexOf(made);
+                _selected = _held;
                 Announce();
             }
         }
         else if (_held >= 0 && e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
         {
             // A handle away from the ends is taken off by right-clicking it.
-            var points = _curves.Channels[_channel];
             if (_held != 0 && _held != points.Count - 1)
             {
                 points.RemoveAt(_held);
                 _held = -1;
+                _selected = -1;
                 Announce();
             }
         }
@@ -135,10 +180,16 @@ internal sealed class CurveEditor : Control
         if (_held < 0) return;
         var points = _curves.Channels[_channel];
         var at = e.GetPosition(this);
-        var input = Math.Clamp(Math.Round(Input(at), MidpointRounding.AwayFromZero),
-            points[_held == 0 ? 0 : _held - 1].X + 1, _held == points.Count - 1 ? 255 : points[_held + 1].X - 1);
+        var spacing = Math.Clamp(MinimumPointSpacing, 1, 127);
         // The ends stay where they are across; only their output moves.
-        if (_held != 0 && _held != points.Count - 1) points[_held].X = input;
+        if (_held != 0 && _held != points.Count - 1)
+        {
+            var least = points[_held - 1].X + spacing;
+            var most = points[_held + 1].X - spacing;
+            // A legacy/imported point pair can be closer than the new Camera Raw spacing. It remains usable,
+            // but cannot move horizontally until one neighbor has room, rather than making Math.Clamp throw.
+            if (least <= most) points[_held].X = Math.Clamp(Math.Round(Input(at), MidpointRounding.AwayFromZero), least, most);
+        }
         points[_held].Y = Math.Clamp(Math.Round(Output(at), MidpointRounding.AwayFromZero), 0, 255);
         Announce();
     }
@@ -148,6 +199,15 @@ internal sealed class CurveEditor : Control
         base.OnPointerReleased(e);
         _held = -1;
         e.Pointer.Capture(null);
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        // A panel can close or a channel can switch while a drag is captured. The point remains selected, but
+        // later pointer movement must not mutate the curve after that gesture has ended.
+        _held = -1;
         InvalidateVisual();
     }
 

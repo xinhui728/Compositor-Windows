@@ -581,6 +581,10 @@
   <data name="CameraRaw.Green" xml:space="preserve"><value>Green</value></data>
   <data name="CameraRaw.Blue" xml:space="preserve"><value>Blue</value></data>
   <data name="CameraRaw.RefineSaturation" xml:space="preserve"><value>Refine saturation</value></data>
+  <data name="CameraRaw.ParametricCurve" xml:space="preserve"><value>Parametric Curve</value></data>
+  <data name="CameraRaw.PointCurve" xml:space="preserve"><value>Point Curve</value></data>
+  <data name="CameraRaw.Darks" xml:space="preserve"><value>Darks</value></data>
+  <data name="CameraRaw.Lights" xml:space="preserve"><value>Lights</value></data>
   <data name="CameraRaw.ColorMixer" xml:space="preserve"><value>Color mixer</value></data>
   <data name="CameraRaw.MixerRow" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="CameraRaw.Mixer.Reds" xml:space="preserve"><value>Reds</value></data>

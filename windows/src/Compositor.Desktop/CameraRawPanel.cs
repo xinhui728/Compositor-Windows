@@ -21,12 +21,18 @@ internal sealed class CameraRawPanel
     private readonly ComboBox _glowStyle = new();
     private readonly ComboBox _vignetteStyle = new();
     private readonly ComboBox _geometryProjection = new();
+    private readonly ComboBox _curvePage = new();
     private readonly ComboBox _curveChannel = new();
     private readonly ListBox _points = new() { Height = 96 };
     private readonly List<CameraRawPointColor> _pointList = [];
     private CameraRawPointColor? _point;
     private bool _showingPoints;
     private CurveEditor? _curve;
+    private ParametricCurveEditor? _parametricCurve;
+    private Control? _parametricCurveControls;
+    private Control? _pointCurveControls;
+    private Control? _refineSaturationControl;
+    private bool _syncingCurveControls;
 
     /// <summary>
     /// Asks for the picture to be shown with the amounts as they stand, which is called on every change. The
@@ -138,6 +144,12 @@ internal sealed class CameraRawPanel
     /// the drawing cannot show the rows; the self check counts them here instead.</summary>
     internal int AmountCount => _rows.Count;
 
+    /// <summary>Test-only access to the two curve controls without coupling tests to the panel's visual tree.</summary>
+    internal ParametricCurveEditor? ParametricCurveEditor => _parametricCurve;
+    internal CurveEditor? PointCurveEditor => _curve;
+    internal int CurvePage => _curvePage.SelectedIndex;
+    internal void SelectCurvePage(int page) => _curvePage.SelectedIndex = Math.Clamp(page, 0, 1);
+
     /// <summary>Shows what is being asked for now, overlays and all.</summary>
     private void RefreshPreview() => Preview?.Invoke(Current(), _shadowClip.IsChecked == true,
         _highlightClip.IsChecked == true, _sharpenMaskView.IsChecked == true);
@@ -209,6 +221,7 @@ internal sealed class CameraRawPanel
     {
         foreach (var (slider, _, _, _) in _rows) slider.Value = 0;
         if (_curve is not null) _curve.Curves = new Compositor.Core.Format.CurvesSettings();
+        if (_parametricCurve is not null) _parametricCurve.Curve = new CameraRawCurveSettings();
         ClearGuides();
     }
 
@@ -245,6 +258,9 @@ internal sealed class CameraRawPanel
                 Upright = _upright,
             },
             Curve = _curve is { } curve ? curve.Curves : new Compositor.Core.Format.CurvesSettings(),
+            ParametricCurve = _parametricCurve is { } parametric
+                ? parametric.Curve.Clone()
+                : new CameraRawCurveSettings(),
             // The mixer's places are written into by the rows, so the settings the rows are handed have all
             // twenty-four of them whatever the layer's panel started from.
             Mixer = new double[24],
@@ -397,6 +413,36 @@ internal sealed class CameraRawPanel
         Add(groups, "Blue saturation", L.Get("CameraRaw.BlueSaturation"), -100, 100, start.BlueSaturation, (s, v) => s.BlueSaturation = v);
 
         groups.Children.Add(Heading(L.Get("CameraRaw.Curve")));
+        _curvePage.ItemsSource = new[]
+        {
+            L.Get("CameraRaw.ParametricCurve"),
+            L.Get("CameraRaw.PointCurve"),
+        };
+        _curvePage.SelectedIndex = 0;
+        _curvePage.Width = 160;
+        groups.Children.Add(_curvePage);
+
+        var curvePages = new StackPanel { Spacing = 4 };
+        var parametric = start.ParametricCurve.Clone();
+        _parametricCurve = new ParametricCurveEditor { Curve = parametric, Height = 220 };
+        _parametricCurve.Changed += SynchronizeParametricControls;
+        var parametricControls = new StackPanel { Spacing = 4, Children = { _parametricCurve } };
+        _parametricCurveControls = parametricControls;
+        Add(parametricControls, "Parametric shadows", L.Get("CameraRaw.Shadows"), -100, 100, parametric.Shadows,
+            (s, v) => s.ParametricCurve.Shadows = v);
+        Add(parametricControls, "Parametric darks", L.Get("CameraRaw.Darks"), -100, 100, parametric.Darks,
+            (s, v) => s.ParametricCurve.Darks = v);
+        Add(parametricControls, "Parametric lights", L.Get("CameraRaw.Lights"), -100, 100, parametric.Lights,
+            (s, v) => s.ParametricCurve.Lights = v);
+        Add(parametricControls, "Parametric highlights", L.Get("CameraRaw.Highlights"), -100, 100, parametric.Highlights,
+            (s, v) => s.ParametricCurve.Highlights = v);
+        BindParametricSlider("Parametric shadows", (curve, value) => curve.Shadows = value);
+        BindParametricSlider("Parametric darks", (curve, value) => curve.Darks = value);
+        BindParametricSlider("Parametric lights", (curve, value) => curve.Lights = value);
+        BindParametricSlider("Parametric highlights", (curve, value) => curve.Highlights = value);
+
+        var pointControls = new StackPanel { Spacing = 4 };
+        _pointCurveControls = pointControls;
         _curveChannel.ItemsSource = new[]
         {
             L.Get("CameraRaw.WholePicture"),
@@ -406,12 +452,32 @@ internal sealed class CameraRawPanel
         };
         _curveChannel.SelectedIndex = Math.Clamp((int)start.Curve.Channel, 0, 3);
         _curveChannel.Width = 160;
-        _curve = new CurveEditor { Curves = Clone(start.Curve), Height = 220 };
-        _curveChannel.SelectionChanged += (_, _) => _curve.Channel = Math.Max(0, _curveChannel.SelectedIndex);
+        _curve = new CurveEditor
+        {
+            Curves = Clone(start.Curve),
+            Channel = _curveChannel.SelectedIndex,
+            MaximumPointCount = CameraRawCurveSettings.MaximumPointCount,
+            MinimumPointSpacing = 3,
+            EndpointInset = 3,
+            ChannelIncludesMaster = false,
+            Height = 220,
+        };
+        _curveChannel.SelectionChanged += (_, _) =>
+        {
+            _curve.Channel = Math.Max(0, _curveChannel.SelectedIndex);
+            ShowRefineSaturation();
+        };
         _curve.Changed += RefreshPreview;
-        groups.Children.Add(_curveChannel);
-        groups.Children.Add(_curve);
-        Add(groups, "Refine saturation", L.Get("CameraRaw.RefineSaturation"), -100, 100, start.RefineSaturation, (s, v) => s.RefineSaturation = v);
+        pointControls.Children.Add(_curveChannel);
+        pointControls.Children.Add(_curve);
+        _refineSaturationControl = Add(pointControls, "Refine saturation", L.Get("CameraRaw.RefineSaturation"), -100, 100,
+            start.RefineSaturation, (s, v) => s.RefineSaturation = v);
+        curvePages.Children.Add(parametricControls);
+        curvePages.Children.Add(pointControls);
+        groups.Children.Add(curvePages);
+        _curvePage.SelectionChanged += (_, _) => ShowCurvePage();
+        ShowCurvePage();
+        ShowRefineSaturation();
 
         groups.Children.Add(Heading(L.Get("CameraRaw.ColorMixer")));
         // The hues come first in the mixer's own places and then the saturations, which is the order the
@@ -662,6 +728,54 @@ internal sealed class CameraRawPanel
     private static string GradingRow(string toneKey, string fieldKey) =>
         L.Get("CameraRaw.GradingRow", L.Get(toneKey), L.Get(fieldKey));
 
+    /// <summary>Switches between the two Camera Raw curve pages without changing either curve's state.</summary>
+    private void ShowCurvePage()
+    {
+        var parametric = _curvePage.SelectedIndex != 1;
+        if (_parametricCurveControls is not null) _parametricCurveControls.IsVisible = parametric;
+        if (_pointCurveControls is not null) _pointCurveControls.IsVisible = !parametric;
+    }
+
+    /// <summary>Refine Saturation affects the composite RGB tone curve, not an individual color channel.</summary>
+    private void ShowRefineSaturation()
+    {
+        if (_refineSaturationControl is not null) _refineSaturationControl.IsVisible = _curveChannel.SelectedIndex == 0;
+    }
+
+    /// <summary>
+    /// Keeps a parametric amount slider and the graph's independent transient curve state in step. A graph
+    /// drag updates all relevant sliders under a guard so it asks for one preview rather than four.
+    /// </summary>
+    private void BindParametricSlider(string id, Action<CameraRawCurveSettings, double> set)
+    {
+        if (!_labelled.TryGetValue(id, out var slider)) return;
+        slider.PropertyChanged += (_, change) =>
+        {
+            if (change.Property != Slider.ValueProperty || _syncingCurveControls || _parametricCurve is null) return;
+            set(_parametricCurve.Curve, slider.Value);
+            _parametricCurve.InvalidateVisual();
+        };
+    }
+
+    /// <summary>Reflects a graph drag in its four sliders, then schedules the one matching live preview.</summary>
+    private void SynchronizeParametricControls()
+    {
+        if (_parametricCurve is not { } graph) return;
+        _syncingCurveControls = true;
+        try
+        {
+            Move("Parametric shadows", graph.Curve.Shadows);
+            Move("Parametric darks", graph.Curve.Darks);
+            Move("Parametric lights", graph.Curve.Lights);
+            Move("Parametric highlights", graph.Curve.Highlights);
+        }
+        finally
+        {
+            _syncingCurveControls = false;
+        }
+        RefreshPreview();
+    }
+
     private static Control Heading(string text) => new TextBlock
     {
         Text = text,
@@ -669,7 +783,7 @@ internal sealed class CameraRawPanel
         Margin = new Thickness(0, 10, 0, 2),
     };
 
-    private void Add(StackPanel parent, string id, string label, double least, double most, double value,
+    private Control Add(StackPanel parent, string id, string label, double least, double most, double value,
         Action<CameraRawSettings, double> set, string format = "0.#")
     {
         var slider = new Slider { Minimum = least, Maximum = most, Value = value, Width = 260 };
@@ -679,10 +793,10 @@ internal sealed class CameraRawPanel
         {
             if (change.Property != Slider.ValueProperty) return;
             UpdateReadout();
-            RefreshPreview();
+            if (!_syncingCurveControls) RefreshPreview();
         };
         UpdateReadout();
-        parent.Children.Add(new StackPanel
+        var row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 8,
@@ -692,9 +806,11 @@ internal sealed class CameraRawPanel
                 slider,
                 readout,
             },
-        });
+        };
+        parent.Children.Add(row);
         _rows.Add((slider, set, readout, format));
         _labelled[id] = slider;
+        return row;
     }
 
     private static Control Choice(string label, ComboBox box, string[] options)

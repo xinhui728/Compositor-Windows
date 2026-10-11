@@ -489,7 +489,7 @@
   <data name="CameraRaw.Light" xml:space="preserve"><value>光源</value></data>
   <data name="CameraRaw.ExposureStops" xml:space="preserve"><value>曝光度（級）</value></data>
   <data name="CameraRaw.Contrast" xml:space="preserve"><value>對比</value></data>
-  <data name="CameraRaw.Highlights" xml:space="preserve"><value>亮部</value></data>
+  <data name="CameraRaw.Highlights" xml:space="preserve"><value>亮部區域</value></data>
   <data name="CameraRaw.Shadows" xml:space="preserve"><value>陰影</value></data>
   <data name="CameraRaw.Whites" xml:space="preserve"><value>白色</value></data>
   <data name="CameraRaw.Blacks" xml:space="preserve"><value>黑色</value></data>
@@ -576,7 +576,11 @@
   <data name="CameraRaw.Red" xml:space="preserve"><value>紅色</value></data>
   <data name="CameraRaw.Green" xml:space="preserve"><value>綠色</value></data>
   <data name="CameraRaw.Blue" xml:space="preserve"><value>藍色</value></data>
-  <data name="CameraRaw.RefineSaturation" xml:space="preserve"><value>微調飽和度</value></data>
+  <data name="CameraRaw.RefineSaturation" xml:space="preserve"><value>調整飽和度</value></data>
+  <data name="CameraRaw.ParametricCurve" xml:space="preserve"><value>參數式曲線</value></data>
+  <data name="CameraRaw.PointCurve" xml:space="preserve"><value>點曲線</value></data>
+  <data name="CameraRaw.Darks" xml:space="preserve"><value>暗部</value></data>
+  <data name="CameraRaw.Lights" xml:space="preserve"><value>亮部</value></data>
   <data name="CameraRaw.ColorMixer" xml:space="preserve"><value>顏色混合器</value></data>
   <data name="CameraRaw.MixerRow" xml:space="preserve"><value>{0}：{1}</value></data>
   <data name="CameraRaw.Mixer.Reds" xml:space="preserve"><value>紅色</value></data>

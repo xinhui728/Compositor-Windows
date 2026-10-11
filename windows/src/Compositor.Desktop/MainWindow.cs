@@ -1519,6 +1519,13 @@ public sealed class MainWindow : Window
         var was = target.Asset!.Image.GetPixel(0, 0);
         panel.Move("Exposure, stops", 1.5);
         panel.Move("Contrast", 40);
+        panel.Move("Parametric darks", -51);
+        panel.Move("Parametric lights", 59);
+        var parametric = panel.Current().ParametricCurve;
+        if (parametric.Darks != -51 || parametric.Lights != 59)
+        {
+            throw new InvalidOperationException("the Camera Raw parametric curve did not retain its slider values");
+        }
         ShowPreviewOnce(null, EventArgs.Empty);
         if (_preview is null) throw new InvalidOperationException("moving an amount did not start a preview");
         if (_history.IsModified) throw new InvalidOperationException("the preview wrote into the document's history");
@@ -1526,7 +1533,7 @@ public sealed class MainWindow : Window
         {
             throw new InvalidOperationException("the preview reached the layer's own pixels");
         }
-        report.Add("amounts moved: exposure 1.5 and contrast 40 are previewed, and the layer is untouched");
+        report.Add("amounts moved: exposure 1.5, contrast 40, darks -51 and lights 59 are previewed, and the layer is untouched");
 
         // The scope comes out of the same pass that made the picture, so it is there as soon as the preview is
         // and it has to have moved with the grade rather than describe the layer as it was.
@@ -1638,7 +1645,8 @@ public sealed class MainWindow : Window
         var applied = target.Asset.Image.GetPixel(0, 0);
         CameraRawFilter();
         if (_cameraRaw is not { } again) throw new InvalidOperationException("the panel did not open a second time");
-        if (again.SetTo("Exposure, stops") != 1.5 || again.SetTo("Contrast") != 40)
+        if (again.SetTo("Exposure, stops") != 1.5 || again.SetTo("Contrast") != 40
+            || again.SetTo("Parametric darks") != -51 || again.SetTo("Parametric lights") != 59)
         {
             throw new InvalidOperationException(
                 $"the panel opened with exposure {again.SetTo("Exposure, stops")} and contrast "
