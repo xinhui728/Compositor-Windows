@@ -1,4 +1,5 @@
 using Compositor.Core.Format;
+using Compositor.Core.Document;
 using Compositor.Core.Model;
 using Compositor.Core.Pixels;
 using SkiaSharp;
@@ -184,9 +185,9 @@ public static class DocumentRenderer
             _children.TryGetValue(folder.ID, out var children) ? children : [];
 
         /// <summary>
-        /// One sibling list, bottom to top. A base with no clipping source and no adjustment claims the
-        /// siblings that immediately follow it and are clipped to it; they composite as one. The base is
-        /// claimed whether or not it is visible, because it still supplies the clip's coverage.
+        /// One sibling list, bottom to top. A visible base with no clipping source and no adjustment claims the
+        /// siblings that immediately follow it and are clipped to it; they composite as one. A hidden source still
+        /// supplies coverage, but its dependants use the ordinary live-mask route rather than forming a visual stack.
         /// </summary>
         private void DrawSiblings(List<ImageLayer> siblings, Target target)
         {
@@ -194,11 +195,28 @@ public static class DocumentRenderer
             {
                 var layer = siblings[index];
                 var end = index + 1;
-                if (layer.MaskSourceID is null && layer.Adjustment is null && !layer.IsGroup)
+                var hasVisibleClippedMember = false;
+                // A hidden base does still supply live-mask coverage, but it is not a visible clipping-stack
+                // base. Its visible dependants are drawn through their ordinary live mask instead, just as the
+                // macOS renderer does after filtering the visible layer list.
+                if (layer.IsVisible && layer.MaskSourceID is null && layer.Adjustment is null && !layer.IsGroup)
                 {
-                    while (end < siblings.Count && siblings[end].MaskSourceID == layer.ID) end++;
+                    // Stack discovery happens after visibility filtering upstream. Consume invisible siblings
+                    // without letting one unrelated hidden layer split two adjacent visible stack members.
+                    while (end < siblings.Count)
+                    {
+                        var candidate = siblings[end];
+                        if (!candidate.IsVisible)
+                        {
+                            end++;
+                            continue;
+                        }
+                        if (candidate.MaskSourceID != layer.ID) break;
+                        hasVisibleClippedMember = true;
+                        end++;
+                    }
                 }
-                if (end > index + 1) DrawStack(siblings, index, end, target);
+                if (hasVisibleClippedMember) DrawStack(siblings, index, end, target);
                 else if (layer.IsVisible) DrawLayer(layer, target);
                 index = end;
             }
@@ -214,7 +232,9 @@ public static class DocumentRenderer
             if (layer.Effects is not null && layer.Asset is null) throw Unsupported(layer);
             if (layer.Adjustment is not null)
             {
-                DrawAdjustment(layer, target);
+                // Upstream only draws a clipped adjustment as a contiguous member of a visible clipping stack.
+                // A detached dependency has no layer pixels of its own to show through its source, so it is skipped.
+                if (layer.MaskSourceID is null) DrawAdjustment(layer, target);
                 return;
             }
 
@@ -222,7 +242,23 @@ public static class DocumentRenderer
             if (opacity <= 0) return;
             var content = Content(layer, out var bounds);
             if (content is null) return;
-            using (content) Composite(target, content, bounds, layer.BlendMode, opacity);
+            using (content)
+            {
+                SKBitmap? clipped = null;
+                try
+                {
+                    if (layer.MaskSourceID is { } source)
+                    {
+                        clipped = RestrictToLiveSource(content, bounds, source);
+                        if (clipped is null) return;
+                    }
+                    Composite(target, clipped ?? content, bounds, layer.BlendMode, opacity);
+                }
+                finally
+                {
+                    clipped?.Dispose();
+                }
+            }
         }
 
         /// <summary>
@@ -231,7 +267,7 @@ public static class DocumentRenderer
         /// mask. It is not a layer of its own: it affects everything composited below it, inside its folder
         /// and out, because a folder is pass-through.
         /// </summary>
-        private void DrawAdjustment(ImageLayer layer, Target target)
+        private void DrawAdjustment(ImageLayer layer, Target target, bool includeFolderMasks = true)
         {
             if (layer.Adjustment is not { } adjustment) return;
             var opacity = LayerOpacity.Effective(layer, _byID);
@@ -246,21 +282,26 @@ public static class DocumentRenderer
                 target.Origin.X, target.Origin.Y);
             if (layer.BlendMode != LayerBlendMode.Normal) Reblend(original, adjusted, layer.BlendMode);
 
-            using var mixed = Mix(original, adjusted, (float)opacity, null, default, Coverage.Gray);
-            SKBitmap? masked = null;
-            var painted = mixed;
-            if (layer.Mask is { } mask && mask.EnabledImage is { } maskPixels)
+            var painted = Mix(original, adjusted, (float)opacity, null, default, Coverage.Gray);
+            try
             {
-                var local = Shift(Bounds(layer.MaskTransform, 0), target.Origin);
-                masked = Mix(original, mixed, 1f, maskPixels, local, Coverage.Gray);
-                painted = masked;
-            }
-            var region = SKRectI.Create(target.Origin.X, target.Origin.Y, width, height);
-            using (var paint = new SKPaint { BlendMode = SKBlendMode.Src })
-            {
+                var region = TargetBounds(target);
+                foreach (var (mask, transform) in Masks(layer, includeOwn: true,
+                    includeFolderMasks: includeFolderMasks))
+                {
+                    using var coverage = MaskCoverage(mask, transform, region);
+                    var next = Mix(original, painted, 1f, coverage,
+                        SKRectI.Create(0, 0, width, height), Coverage.Gray);
+                    painted.Dispose();
+                    painted = next;
+                }
+                using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
                 target.Canvas.DrawBitmap(painted, region, OneToOne, paint);
             }
-            masked?.Dispose();
+            finally
+            {
+                painted.Dispose();
+            }
         }
 
         /// <summary>
@@ -308,7 +349,9 @@ public static class DocumentRenderer
 
             // The coverage comes from the base's pixels whether or not the base is drawn: it is the shape
             // the layers above it sit inside. No pixels, no coverage, and nothing above shows.
-            var baseContent = Content(baseLayer, out var baseBounds);
+            // A folder mask clips the completed stack, not every member separately. Own masks remain part of
+            // each member's content and therefore still participate in its local/effect rendering.
+            var baseContent = Content(baseLayer, out var baseBounds, includeFolderMasks: false);
             if (baseContent is null) return;
 
             // Every member is painted before the surface is made, because a layer's effects make it bigger
@@ -320,7 +363,7 @@ public static class DocumentRenderer
                 var child = siblings[index];
                 if (!child.IsVisible || child.Adjustment is not null) continue;
                 if (child.Effects is not null && child.Asset is null) throw Unsupported(child);
-                var content = Content(child, out var childBounds);
+                var content = Content(child, out var childBounds, includeFolderMasks: false);
                 painted[index] = (content, childBounds);
                 if (content is not null) bounds = SKRectI.Union(bounds, childBounds);
             }
@@ -328,10 +371,20 @@ public static class DocumentRenderer
             using (baseContent)
             {
                 using var surface = Allocate(bounds.Width, bounds.Height);
+                var coverage = BaseCoverage(baseContent, baseBounds, bounds);
                 using (var canvas = new SKCanvas(surface))
                 {
                     canvas.Translate(-bounds.Left, -bounds.Top);
-                    if (baseLayer.IsVisible) canvas.DrawBitmap(baseContent, baseBounds, OneToOne, new SKPaint());
+                    if (baseLayer.IsVisible)
+                    {
+                        using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
+                        canvas.DrawBitmap(baseContent, baseBounds, OneToOne, paint);
+                    }
+                    canvas.Flush();
+                    // A clipping stack carries the base's alpha. Blend its children over an opaque copy of the
+                    // base, then put that original coverage back once: otherwise every opaque clipped child
+                    // thickens a half-transparent base from alpha .5 to .75.
+                    BrushPixels.UnpremultiplyOpaque(surface.GetPixelSpan(), surface.RowBytes, surface.Width, surface.Height);
                     var group = new Target(surface, canvas, bounds.Location);
                     for (var index = start + 1; index < end; index++)
                     {
@@ -339,19 +392,37 @@ public static class DocumentRenderer
                         if (!child.IsVisible) continue;
                         if (child.Adjustment is not null)
                         {
-                            DrawAdjustment(child, group);
+                            DrawAdjustment(child, group, includeFolderMasks: false);
                             continue;
                         }
                         if (!painted.TryGetValue(index, out var member) || member.Content is null) continue;
                         using (member.Content)
                         {
-                            using var clipped = Restrict(member.Content, member.Bounds, baseContent, baseBounds, luminance: false);
-                            Composite(group, clipped, member.Bounds, child.BlendMode,
+                            Composite(group, member.Content, member.Bounds, child.BlendMode,
                                 LayerOpacity.Effective(child, _byID));
                         }
                     }
+                    canvas.Flush();
                 }
-                Composite(target, surface, bounds, baseLayer.BlendMode, opacity);
+                BrushPixels.RestoreAlpha(surface.GetPixelSpan(), surface.RowBytes, coverage, surface.Width,
+                    surface.Width, surface.Height);
+                SKBitmap? folderMasked = null;
+                try
+                {
+                    var completed = surface;
+                    foreach (var (mask, transform) in Masks(baseLayer, includeOwn: false))
+                    {
+                        var restricted = Restrict(completed, bounds, mask, transform);
+                        folderMasked?.Dispose();
+                        folderMasked = restricted;
+                        completed = restricted;
+                    }
+                    Composite(target, completed, bounds, baseLayer.BlendMode, opacity);
+                }
+                finally
+                {
+                    folderMasked?.Dispose();
+                }
             }
         }
 
@@ -361,32 +432,53 @@ public static class DocumentRenderer
         /// effects goes the other way round: its mask hides part of its pixels first and the effects are
         /// drawn around what is left, so its own mask must not be applied to the result a second time.
         /// </summary>
-        private SKBitmap? Content(ImageLayer layer, out SKRectI bounds)
+        private SKBitmap? Content(ImageLayer layer, out SKRectI bounds, bool includeFolderMasks = true)
         {
             bounds = Clip(Bounds(layer.Transform));
             if (layer.Asset is not { } asset || bounds.Width <= 0 || bounds.Height <= 0) return null;
-            if (layer.Effects is { } effects)
+            var ownMasked = OwnMaskedPixels(layer, asset);
+            var source = ownMasked ?? asset.Image;
+            try
             {
-                using var shown = ImageWithOwnMask(layer, asset);
-                if (EffectRasterizer.Render(shown, effects) is { } raster)
+                if (layer.Effects is { } effects)
                 {
-                    using (raster) return Raster(layer, raster, out bounds);
+                    // Effects operate on premultiplied pixels. An owned mask already made a premultiplied copy;
+                    // an unmasked asset is kept straight for ordinary drawing, so give effects their own copy.
+                    if (ownMasked is not null && EffectRasterizer.Render(ownMasked, effects) is { } maskedRaster)
+                    {
+                        using (maskedRaster) return Raster(layer, maskedRaster, out bounds, includeFolderMasks);
+                    }
+                    if (ownMasked is null)
+                    {
+                        using var shown = PremultipliedPixels(asset);
+                        if (EffectRasterizer.Render(shown, effects) is { } raster)
+                        {
+                            using (raster) return Raster(layer, raster, out bounds, includeFolderMasks);
+                        }
+                    }
                 }
+                var content = Allocate(bounds.Width, bounds.Height);
+                using (var canvas = new SKCanvas(content))
+                {
+                    canvas.Translate(-bounds.Left, -bounds.Top);
+                    using var paint = new SKPaint { IsAntialias = true };
+                    DrawTransformed(canvas, source, layer.Transform, SKBlendMode.SrcOver, paint);
+                }
+                if (includeFolderMasks)
+                {
+                    foreach (var (mask, transform) in Masks(layer, includeOwn: false))
+                    {
+                        var restricted = Restrict(content, bounds, mask, transform);
+                        content.Dispose();
+                        content = restricted;
+                    }
+                }
+                return content;
             }
-            var content = Allocate(bounds.Width, bounds.Height);
-            using (var canvas = new SKCanvas(content))
+            finally
             {
-                canvas.Translate(-bounds.Left, -bounds.Top);
-                using var paint = new SKPaint { IsAntialias = true };
-                DrawTransformed(canvas, asset.Image, layer.Transform, SKBlendMode.SrcOver, paint);
+                ownMasked?.Dispose();
             }
-            foreach (var (mask, transform) in Masks(layer, includeOwn: true))
-            {
-                var restricted = Restrict(content, bounds, mask, Bounds(transform, 0), luminance: true);
-                content.Dispose();
-                content = restricted;
-            }
-            return content;
         }
 
         /// <summary>
@@ -394,7 +486,7 @@ public static class DocumentRenderer
         /// <c>inset</c> pixels bigger on every side, so its transform is scaled up by the same proportion to
         /// land on the same centre.
         /// </summary>
-        private SKBitmap? Raster(ImageLayer layer, EffectRaster raster, out SKRectI bounds)
+        private SKBitmap? Raster(ImageLayer layer, EffectRaster raster, out SKRectI bounds, bool includeFolderMasks)
         {
             var transform = Grown(layer.Transform, raster);
             bounds = Clip(Bounds(transform));
@@ -406,11 +498,14 @@ public static class DocumentRenderer
                 using var paint = new SKPaint { IsAntialias = true };
                 DrawTransformed(canvas, raster.Pixels, transform, SKBlendMode.SrcOver, paint);
             }
-            foreach (var (mask, maskTransform) in Masks(layer, includeOwn: false))
+            if (includeFolderMasks)
             {
-                var restricted = Restrict(content, bounds, mask, Bounds(maskTransform, 0), luminance: true);
-                content.Dispose();
-                content = restricted;
+                foreach (var (mask, maskTransform) in Masks(layer, includeOwn: false))
+                {
+                    var restricted = Restrict(content, bounds, mask, maskTransform);
+                    content.Dispose();
+                    content = restricted;
+                }
             }
             return content;
         }
@@ -431,40 +526,223 @@ public static class DocumentRenderer
                 transform.Rotation, transform.FlipX, transform.FlipY, transform.Sampling);
         }
 
-        /// <summary>The layer's pixels in their own grid with its own mask applied, as the effects path wants.</summary>
-        private static SKBitmap ImageWithOwnMask(ImageLayer layer, ImportedImage asset)
+        /// <summary>
+        /// The layer's local pixels with its own mask applied before either travels through the layer transform.
+        /// A moved mask is first resampled through document space into this local grid, so an unlinked mask stays
+        /// put while its layer moves, rotates or scales.
+        /// </summary>
+        private static SKBitmap? OwnMaskedPixels(ImageLayer layer, ImportedImage asset)
         {
-            var bounds = SKRectI.Create(0, 0, asset.Width, asset.Height);
+            if (layer.Mask is not { } mask || mask.EnabledImage is null) return null;
+            var image = PremultipliedPixels(asset);
+            using var coverage = MaskCoverage(mask, layer.MaskTransform, layer.Transform, asset.Width, asset.Height);
+            ApplyCoverage(image, coverage);
+            return image;
+        }
+
+        /// <summary>A layer asset copied into the premultiplied form pixel effects and coverage multiplication require.</summary>
+        private static SKBitmap PremultipliedPixels(ImportedImage asset)
+        {
             var image = Allocate(asset.Width, asset.Height);
-            using (var canvas = new SKCanvas(image))
-            {
-                using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
-                using var source = SKImage.FromBitmap(asset.Image);
-                canvas.DrawImage(source, SKRect.Create(0, 0, asset.Width, asset.Height), OneToOne, paint);
-            }
-            if (layer.Mask is { } mask && mask.EnabledImage is { } maskPixels)
-            {
-                var restricted = Restrict(image, bounds, maskPixels, bounds, luminance: true);
-                image.Dispose();
-                image = restricted;
-            }
+            using var canvas = new SKCanvas(image);
+            using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
+            using var source = SKImage.FromBitmap(asset.Image);
+            canvas.DrawImage(source, SKRect.Create(0, 0, asset.Width, asset.Height), OneToOne, paint);
             return image;
         }
 
         /// <summary>The layer's own enabled mask, then each enclosing folder's, innermost first.</summary>
-        private IEnumerable<(SKBitmap Image, Model.LayerTransform Transform)> Masks(ImageLayer layer, bool includeOwn)
+        private IEnumerable<(Model.LayerMask Mask, Model.LayerTransform Transform)> Masks(ImageLayer layer, bool includeOwn,
+            bool includeFolderMasks = true)
         {
-            if (includeOwn && layer.Mask is { } mask && mask.EnabledImage is { } own) yield return (own, layer.MaskTransform);
+            if (includeOwn && layer.Mask is { } mask && mask.EnabledImage is not null) yield return (mask, layer.MaskTransform);
+            if (!includeFolderMasks) yield break;
             var parent = layer.ParentID;
             for (var depth = 0; parent is { } id && depth < 64; depth++)
             {
                 if (!_byID.TryGetValue(id, out var folder)) break;
-                if (folder.Mask is { } folderMask && folderMask.EnabledImage is { } pixels)
+                if (folder.Mask is { } folderMask && folderMask.EnabledImage is not null)
                 {
-                    yield return (pixels, folderMask.Placement ?? folder.Transform);
+                    yield return (folderMask, folderMask.Placement ?? folder.Transform);
                 }
                 parent = folder.ParentID;
             }
+        }
+
+        /// <summary>
+        /// The alpha a live-mask source supplies over one document-space rectangle. This deliberately does not ask
+        /// whether the source is visible: a hidden layer can still be a clipping source. Its own mask and any source
+        /// chain apply, but a folder's display mask belongs to the layer being drawn, not to a detached dependency.
+        /// </summary>
+        private SKBitmap? LiveCoverage(Guid sourceID, SKRectI region, HashSet<Guid> visiting)
+        {
+            if (region.Width <= 0 || region.Height <= 0 || !_byID.TryGetValue(sourceID, out var source)
+                || source.IsGroup || source.Adjustment is not null || !visiting.Add(sourceID))
+            {
+                return null;
+            }
+
+            try
+            {
+                var coverage = Bitmaps.Allocate(Bitmaps.MaskInfo(region.Width, region.Height));
+                coverage.Erase(SKColors.Black);
+                try
+                {
+                    var content = Content(source, out var bounds, includeFolderMasks: false);
+                    if (content is null) return coverage;
+                    using (content)
+                    {
+                        SKBitmap? constrained = null;
+                        try
+                        {
+                            if (source.MaskSourceID is { } upstream)
+                            {
+                                var upstreamCoverage = LiveCoverage(upstream, bounds, visiting);
+                                if (upstreamCoverage is null) return coverage;
+                                using (upstreamCoverage)
+                                {
+                                    constrained = Restrict(content, bounds, upstreamCoverage, bounds, luminance: true);
+                                }
+                            }
+                            CopyAlpha(coverage, region, constrained ?? content, bounds,
+                                LayerOpacity.Effective(source, _byID));
+                        }
+                        finally
+                        {
+                            constrained?.Dispose();
+                        }
+                    }
+                    return coverage;
+                }
+                catch
+                {
+                    coverage.Dispose();
+                    throw;
+                }
+            }
+            finally
+            {
+                visiting.Remove(sourceID);
+            }
+        }
+
+        /// <summary>Holds <paramref name="content"/> to the alpha of its source layer, in the content's own rectangle.</summary>
+        private SKBitmap? RestrictToLiveSource(SKBitmap content, SKRectI bounds, Guid source)
+        {
+            using var coverage = LiveCoverage(source, bounds, []);
+            return coverage is null ? null : Restrict(content, bounds, coverage, bounds, luminance: true);
+        }
+
+        /// <summary>Copies one source's alpha (and its effective opacity) into an empty grayscale coverage surface.</summary>
+        private static void CopyAlpha(SKBitmap target, SKRectI targetBounds, SKBitmap source, SKRectI sourceBounds,
+            double opacity)
+        {
+            var overlap = SKRectI.Intersect(targetBounds, sourceBounds);
+            if (overlap.Width <= 0 || overlap.Height <= 0) return;
+            var amount = (float)Math.Clamp(opacity, 0, 1);
+            var into = target.GetPixelSpan();
+            var from = source.GetPixelSpan();
+            for (var y = overlap.Top; y < overlap.Bottom; y++)
+            {
+                var targetRow = (y - targetBounds.Top) * target.RowBytes;
+                var sourceRow = (y - sourceBounds.Top) * source.RowBytes;
+                for (var x = overlap.Left; x < overlap.Right; x++)
+                {
+                    var alpha = from[sourceRow + (x - sourceBounds.Left) * 4 + 3] * amount;
+                    into[targetRow + x - targetBounds.Left] = (byte)MathF.Round(alpha, MidpointRounding.AwayFromZero);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A mask resampled to a layer or document grid. The transform is always composed through document space, so
+        /// an unlinked mask stays where it was placed while the layer it covers moves, rotates, or scales.
+        /// </summary>
+        private static SKBitmap MaskCoverage(Model.LayerMask mask, Model.LayerTransform placement,
+            Model.LayerTransform grid, int width, int height)
+        {
+            var coverage = Bitmaps.Allocate(Bitmaps.MaskInfo(width, height));
+            var background = Model.LayerMask.Background(mask.Asset.Thumbnail);
+            coverage.Erase(new SKColor(background, background, background));
+            var source = mask.Asset.Image;
+            // A new all-reveal/all-hide mask is deliberately one pixel. It covers its complete matching grid
+            // without filtering against an edge beyond that pixel. A separately placed one-pixel gray mask still
+            // has a real placement, though, so it must take the ordinary document-space sampling path below.
+            if (source.Width == 1 && source.Height == 1 && placement.SamePlacement(grid))
+            {
+                var value = source.GetPixelSpan()[0];
+                coverage.Erase(new SKColor(value, value, value));
+                return coverage;
+            }
+
+            var maskToDocument = BrushEdits.PixelToDocument(placement, source.Width, source.Height);
+            if (!BrushEdits.PixelToDocument(grid, width, height).TryInvert(out var documentToGrid)) return coverage;
+            using var canvas = new SKCanvas(coverage);
+            canvas.Concat(SKMatrix.Concat(documentToGrid, maskToDocument));
+            using var paint = new SKPaint { BlendMode = SKBlendMode.Src, IsAntialias = true };
+            var sampling = placement.SamePlacement(grid)
+                ? Sampling(placement, source.Width, source.Height)
+                : new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.None);
+            canvas.DrawBitmap(source, SKRect.Create(0, 0, source.Width, source.Height), sampling, paint);
+            canvas.Flush();
+            return coverage;
+        }
+
+        /// <summary>A mask placed over a document-space rectangle, for folder and adjustment masks.</summary>
+        private static SKBitmap MaskCoverage(Model.LayerMask mask, Model.LayerTransform placement, SKRectI region) =>
+            MaskCoverage(mask, placement,
+                new Model.LayerTransform(region.Left, region.Top, region.Width, region.Height), region.Width, region.Height);
+
+        /// <summary>Multiplies every premultiplied channel by one matching Gray8 coverage bitmap.</summary>
+        private static void ApplyCoverage(SKBitmap image, SKBitmap coverage)
+        {
+            var pixels = image.GetPixelSpan();
+            var mask = coverage.GetPixelSpan();
+            for (var y = 0; y < image.Height; y++)
+            {
+                var pixelRow = y * image.RowBytes;
+                var maskRow = y * coverage.RowBytes;
+                for (var x = 0; x < image.Width; x++)
+                {
+                    var amount = mask[maskRow + x];
+                    var at = pixelRow + x * 4;
+                    for (var channel = 0; channel < 4; channel++)
+                    {
+                        pixels[at + channel] = (byte)((pixels[at + channel] * amount + 127) / 255);
+                    }
+                }
+            }
+        }
+
+        /// <summary>The rectangle one rendering target covers in document coordinates.</summary>
+        private static SKRectI TargetBounds(Target target) =>
+            SKRectI.Create(target.Origin.X, target.Origin.Y, target.Bitmap.Width, target.Bitmap.Height);
+
+        /// <summary>The base alpha fitted into a clipping stack surface, before children draw over opaque color.</summary>
+        private static byte[] BaseCoverage(SKBitmap content, SKRectI contentBounds, SKRectI stackBounds)
+        {
+            var coverage = new byte[stackBounds.Width * stackBounds.Height];
+            var overlap = SKRectI.Intersect(contentBounds, stackBounds);
+            if (overlap.Width <= 0 || overlap.Height <= 0) return coverage;
+            var pixels = content.GetPixelSpan();
+            for (var y = overlap.Top; y < overlap.Bottom; y++)
+            {
+                var sourceRow = (y - contentBounds.Top) * content.RowBytes;
+                var targetRow = (y - stackBounds.Top) * stackBounds.Width;
+                for (var x = overlap.Left; x < overlap.Right; x++)
+                {
+                    coverage[targetRow + x - stackBounds.Left] = pixels[sourceRow + (x - contentBounds.Left) * 4 + 3];
+                }
+            }
+            return coverage;
+        }
+
+        /// <summary>Holds content to a placed Gray8 mask without treating its document bounds as axis-aligned pixels.</summary>
+        private static SKBitmap Restrict(SKBitmap content, SKRectI bounds, Model.LayerMask mask,
+            Model.LayerTransform placement)
+        {
+            using var coverage = MaskCoverage(mask, placement, bounds);
+            return Restrict(content, bounds, coverage, bounds, luminance: true);
         }
 
         /// <summary>

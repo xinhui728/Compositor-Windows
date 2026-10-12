@@ -38,8 +38,10 @@ public sealed class LayerMask : IDisposable
     public static LayerMask AssetFrom(SKBitmap image)
     {
         if (!IsValid(image)) throw new IO.ProjectException(IO.ProjectError.Invalid);
-        var (width, height) = ImportedImage.ThumbnailSize(image.Width, image.Height);
-        return new LayerMask(new ImportedImage(image, Bitmaps.DrawAsMask(image, width, height), "Layer Mask"));
+        // Keep the mask's gray coverage in its thumbnail. The edge-majority fallback for a placed mask reads
+        // this image, so turning an opaque Gray8 source into an alpha-only preview would incorrectly make every
+        // new mask look like a reveal mask until it was saved and loaded again.
+        return new LayerMask(new ImportedImage(image, Bitmaps.Thumbnail(image), "Layer Mask"));
     }
 
     /// <summary>
