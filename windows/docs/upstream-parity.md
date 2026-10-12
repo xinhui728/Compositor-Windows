@@ -6,7 +6,7 @@ release notes. Do not merge macOS source into the Windows branch to close an
 item: port the behavior into the C# / Avalonia / SkiaSharp architecture and add
 tests around it.
 
-Last audited: 2026-10-11
+Last audited: 2026-10-12
 
 ## Evidence and baseline
 
@@ -151,6 +151,40 @@ Existing Camera Raw gaps such as canvas-picked Point Color, auto/custom white
 balance, targeted curve/mixer adjustment, and defringe sampling predate this
 range. They are baseline gaps and should not be presented as v1.4.5 regressions.
 
+## Rendering parity: Phase B (2026-10-12)
+
+The source-backed Phase B correction and regression suite is recorded in
+[`rendering-parity.md`](rendering-parity.md). It covers the upstream Soft Light
+golden, clipping-stack alpha restoration and visibility ordering,
+document-space linked/unlinked mask placement, folder and adjustment mask
+coverage, newly-created mask thumbnail/round-trip coverage, hidden/non-contiguous
+live-mask sources, and Add Noise region/tile anchoring.
+
+This closes the known Windows renderer defects in those paths without changing
+the project schema or renderer architecture:
+
+1. [x] A clipping child no longer raises a half-opaque base's coverage while
+   compositing the stack; the captured base alpha is restored after children are
+   blended and the completed stack retains the base blend mode.
+2. [x] Mask sampling follows the full placement/transform chain instead of an
+   axis-aligned rectangle, including unlinked masks and the established
+   edge-majority reveal/hide background. Newly-created Gray8 mask thumbnails
+   preserve their coverage so saving and reopening cannot change that edge
+   decision.
+3. [x] Non-contiguous and hidden live-mask sources supply alpha rather than
+   colour/blend semantics; detached clipped adjustments remain absent outside a
+   visual stack. Hidden unrelated siblings do not split a visible clipping
+   stack, and enclosing folder masks cover the completed stack exactly once.
+4. [x] Whole-document, off-origin region, and tiled Add Noise renders are
+   byte-identical for seeded fixtures.
+5. [x] The upstream Soft Light gray Photoshop fixture and independent colored
+   / semi-transparent source-over oracles pass on Skia.
+
+These results are **A/C evidence**, not a claim that a broad macOS or Photoshop
+binary fixture matrix was available. The outstanding B-level comparisons and
+the separate linked-mask `PlacementMoving` interaction semantics remain listed
+in the rendering record.
+
 ## `.comp` compatibility
 
 ### Schema conclusion
@@ -273,8 +307,12 @@ same commit-versus-cancel semantics.
 - [x] Tag/source audit completed; format schema verified unchanged.
 - [x] Add self-authored PSD/PSB fixtures for Levels/Curves/Hue, mask placement,
   clipping, representative blends, unsupported adjustment notes, and format-11 round trip.
-- [ ] Add macOS/Photoshop reference pixels for Soft Light and scaled adjustment/noise;
-  existing Add Noise positioning/tiled-render tests remain separate from PSD import.
+- [x] Add source/analytical and internal rendering fixtures for Soft Light,
+  clipping alpha, placed masks, live masks, adjustments, and seeded Add Noise
+  region/tile invariance.
+- [ ] Capture broader macOS/Photoshop binary fixtures for Soft Light, clipping,
+  masks, and scaled destructive adjustment/noise output before claiming exact
+  cross-platform pixels.
 - [x] Port Camera Raw 1.4.5 curve math/chroma golden tests and Avalonia interaction coverage.
 - [x] Add lifecycle regression coverage for clean/changed/save-failure/cancel close decisions,
   active-first multi-tab confirmation, nested history state, picker cancellation, stale-preview
@@ -303,7 +341,8 @@ IDs, command IDs, JSON property names, and serialized `.comp` values stable.
 - [x] Complete the first Phase D selection/mask/layer interaction batch.
 - [x] Complete Phase A P0 PSD/PSB Desktop routing, wrapper-group handoff, and self-authored fixture coverage.
 - [ ] Finish Phase A conversion-confirmation UI and macOS/Photoshop reference-pixel comparison.
-- [ ] Complete Phase B rendering parity fixtures/fixes.
+- [x] Complete source-verified Phase B rendering fixes and A/C fixtures.
+- [ ] Complete Phase B macOS/Photoshop B-level reference comparison.
 - [x] Complete Phase C Camera Raw 1.4.5 curve parity; track only pre-range Camera Raw gaps separately.
 - [ ] Complete Phase D interaction parity.
 - [ ] Reassess Vision/ONNX only with explicit licensing and packaging approval.
