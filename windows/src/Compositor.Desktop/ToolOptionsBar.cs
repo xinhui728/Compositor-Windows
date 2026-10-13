@@ -112,7 +112,7 @@ internal sealed class ToolOptionsBar : Border
             On("transform", tool == Tool.Move && hasDocument);
             On("type", tool == Tool.Type);
             On("zoom", tool == Tool.Pan);
-            _title.Text = Name(tool);
+            _title.Text = ToolDisplayName(tool);
             // The marquee's shape and the lasso's kind *are* the tool in hand, so the bar follows the tool
             // rather than the other way round: picking one here asks for the tool the window already has.
             _marqueeShape.SelectedIndex = tool == Tool.Ellipse ? 1 : 0;
@@ -227,7 +227,7 @@ internal sealed class ToolOptionsBar : Border
     private readonly Button _editText = new() { Content = L.Get("ToolOptions.EditText") };
 
     /// <summary>What each tool's strip is called, which is the Mac's own title.</summary>
-    private static string Name(Tool tool) => tool switch
+    private static string ToolDisplayName(Tool tool) => tool switch
     {
         Tool.Pan => L.Get("ToolOptions.Tool.Pan"),
         Tool.Move => L.Get("ToolOptions.Tool.Transform"),
