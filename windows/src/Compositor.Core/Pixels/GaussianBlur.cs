@@ -38,6 +38,14 @@ public static class GaussianBlur
     /// keeps a transparent surround from pulling its colour into the picture.
     /// </summary>
     public static void Clamped(Span<byte> bytes, int width, int height, int channels, int stride, double sigma) =>
+        _ = TryClamped(bytes, width, height, channels, stride, sigma);
+
+    /// <summary>
+    /// The clamped blur with an explicit allocation result. Existing filter callers intentionally preserve
+    /// their best-effort behaviour through <see cref="Clamped"/>; bounded brush samples use this form so an
+    /// out-of-memory condition cannot quietly turn a requested blur into an unblurred paint operation.
+    /// </summary>
+    public static bool TryClamped(Span<byte> bytes, int width, int height, int channels, int stride, double sigma) =>
         Bytes(bytes, width, height, channels, stride, sigma, zeroPadded: false);
 
     /// <summary>
@@ -47,12 +55,12 @@ public static class GaussianBlur
     /// padded out onto, uncropped and unclamped, and cuts back down afterwards.
     /// </summary>
     public static void ZeroPadded(Span<byte> bytes, int width, int height, int channels, int stride, double sigma) =>
-        Bytes(bytes, width, height, channels, stride, sigma, zeroPadded: true);
+        _ = Bytes(bytes, width, height, channels, stride, sigma, zeroPadded: true);
 
-    private static void Bytes(Span<byte> bytes, int width, int height, int channels, int stride, double sigma,
+    private static bool Bytes(Span<byte> bytes, int width, int height, int channels, int stride, double sigma,
                               bool zeroPadded)
     {
-        if (!(sigma > 0) || width <= 0 || height <= 0 || channels <= 0) return;
+        if (!(sigma > 0) || width <= 0 || height <= 0 || channels <= 0) return true;
         var half = Half(sigma);
         var exact = half <= ExactHalf;
         var weights = exact ? Weights((float)sigma, half) : [];
@@ -75,7 +83,7 @@ public static class GaussianBlur
         }
         catch (OutOfMemoryException)
         {
-            return;
+            return false;
         }
         for (var channel = 0; channel < channels; channel++)
         {
@@ -101,6 +109,7 @@ public static class GaussianBlur
                 }
             }
         }
+        return true;
     }
 
     /// <summary>Puts a padded plane's room back to nothing, the data in its middle left alone.</summary>
