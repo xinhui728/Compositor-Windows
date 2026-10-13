@@ -80,7 +80,7 @@ Status meanings:
 | 1.4 | `60bde4f` — Shift constrains selected-pixel drag | Locks a moved selection’s pixels horizontally or vertically. | ✅ `CanvasView` constrains only the floating selected-pixel drag through `SelectionEdits.ConstrainPixelDrag`; it chooses the current dominant axis and returns to free movement when Shift is released. | `Desktop/CanvasView.cs`, `Core/Document/SelectionEdits.cs`, `tests/Compositor.Core.Tests/SelectionPixelsTests.cs` | S | P2 |
 | 1.4 | `451281e` — Cmd-A from Layers selects canvas | Layer-list focus no longer consumes Select All as row selection. | ✅ Window shortcut dispatch routes Ctrl+A to `SelectionEdits.SelectAll` unless a text field owns the edit chord. | `Desktop/MainWindow.cs`, `Core/IO/Shortcuts.cs` | S | P2 |
 | 1.4.1 | `133c34a` — precise paint-refusal feedback; Select All then Inverse clears selection | Explains why painting cannot proceed; canonicalizes full inverse to no active selection. | 🟡 `SelectionEdits.Invert` now canonicalizes a full inverse to `DocumentSelection.All`; Windows still has only the existing tool-specific paint-refusal messages rather than every upstream reason. | `Desktop/MainWindow.cs`, `Core/Document/SelectionEdits.cs`, `tests/Compositor.Core.Tests/SelectionCanonicalizationTests.cs` | S | P2 |
-| 1.4.1 | `d3170ab` — Clone Stamp and Blur at native layer resolution | Samples and paints scaled/rotated/flipped layers on their own pixel grid. | ⚠️ Output is written on the native grid, but Clone/Blur sampling is explicitly made at document size; this is not the same scaled-layer behavior. | `Core/Document/BrushEdits.cs` | L | P1 |
+| 1.4.1 | `d3170ab` — Clone Stamp and Blur at native layer resolution | Samples and paints scaled/rotated/flipped layers on their own pixel grid. | ✅ Current Layer Clone borrows the pre-stroke native layer raster and maps its document-space offset through the full inverse placement transform. Blur builds a native-grid, three-sigma ROI with a canvas-radius-to-grid sigma conversion; mask blur uses its own placement/grid and the established edge-majority background. Sample All Layers deliberately retains a document-composite snapshot. | `Core/Document/BrushSampling.cs`, `Core/Document/BrushEdits.cs`, `Core/Pixels/GaussianBlur.cs`, `tests/Compositor.Core.Tests/NativeResolutionBrushTests.cs` | L | P1 |
 | 1.4.1 | `67cc31e` — transform Apply/Cancel and scaled-size labels | Only persistent transforms show Apply/Cancel; layer rows expose non-100% scale. | 🟡 Direct canvas transforms are one undo step on release, but there is no equivalent transform inspector/scale label workflow. | `Desktop/CanvasView.cs`, `Desktop/MainWindow.cs` | M | P2 |
 | 1.4.1 | `b3419ab` — selection-aware masks and mask-alone view | Add Mask reveals selection; Option-add hides selection; Option-click displays only the mask. | ✅ `LayerMaskEdits.Add` creates existing Gray8 mask assets from selections and consumes the selection; Alt-clicking the Avalonia mask target toggles a view-only grayscale mask preview without history or serialization changes. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs`, `Core/Document/LayerMaskEdits.cs`, `Core/Rendering/MaskPreviewRenderer.cs`, tests | M | P1 |
 | 1.4.1 | `bca8f13` — live Command Auto Select and Shift aspect-lock state | Held modifiers invert Auto Select/aspect lock and update the controls while held. | 🟡 Shift toggles transform aspect ratio during a drag, but Windows has no Auto Select option or live modifier-state UI. | `Desktop/CanvasView.cs`, `Desktop/ToolOptions.cs`, `Desktop/ToolOptionsBar.cs` | S | P2 |
@@ -92,7 +92,7 @@ Status meanings:
 | 1.4.2 | `7164dd4` — Liquify stays sharp | Uses source/displacement textures to avoid repeated resampling during a stroke. | ⚠️ C# uses a CPU local scratch buffer per dab; it is a different resampling model and has no equivalent upstream sharpness golden test. | `Core/Document/WarpEdits.cs`, `tests/Compositor.Core.Tests/WarpEditsTests.cs` | L | P2 |
 | 1.4.2 | `ad9ad7c` — Smudge avoids ghost copies | Carries the prior dab’s pickup instead of repeatedly reusing stroke-start content. | ✅ C# updates its carried pickup after each dab and spaces smudge dabs continuously. | `Core/Document/WarpEdits.cs` | M | P2 |
 | 1.4.2 | `504129d` — Blur Radius independent of Strength | Adds a dedicated Blur Radius setting and control. | ✅ `BrushSettings.BlurRadius`, tool options, and the blur kernel keep radius separate from opacity/strength. | `Core/Document/BrushEdits.cs`, `Desktop/ToolOptionsBar.cs`, `Desktop/MainWindow.cs` | S | P2 |
-| 1.4.3 | `095da2f` — large-canvas Blur/Smudge/Liquify performance | Tiles/coarsens brush sources and replays sparse warp points rather than repeatedly processing full images. | ❌ Windows Blur/Clone samples and Warp allocate a full document surface; behavior exists but this large-canvas strategy does not. | `Core/Document/BrushEdits.cs`, `Core/Document/WarpEdits.cs` | L | P2 |
+| 1.4.3 | `095da2f` — large-canvas Blur/Smudge/Liquify performance | Tiles/coarsens brush sources and replays sparse warp points rather than repeatedly processing full images. | 🟡 Clone/Blur no longer allocate a document-sized Current Layer surface. Blur is limited to its native ROI, coarsens that working surface beyond 16M pixels, and rejects a stroke before allocation when the estimated working set exceeds a quarter of the runtime-reported available memory. The upstream lazy per-tile sample cache and the Smudge/Liquify performance changes are still not ported. | `Core/Document/BrushSampling.cs`, `Core/Document/BrushEdits.cs`, `Core/Document/WarpEdits.cs` | L | P2 |
 | 1.4.4 | `1aad384` — safe quit/close with pending edits | Applies pending gradient/pixel move and cancels dialogs/previews before close. | ✅ `Window.Closing` now uses a cancel-then-async-confirm bridge; it commits active gradient, floating pixels, text and transform, cancels crop/filter/Camera Raw/adjustment/colour-range/picker previews, and asks every changed tab Save / Don't Save / Cancel before disposal. Delayed previews are tab-owned and invalidated before bitmap disposal. Windows deliberately settles on tab switching (rather than upstream's v1.4.4 `canSwitch` block) to prevent cross-document state. Brush/shape/distort/guide drags still block until pointer release because final geometry is not safely inferable. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs`, `Desktop/DocumentCloseFlow.cs`, `Desktop/UnsavedChangesDialog.cs` | M | P1 |
 | 1.4.4 | `9c99853`, `cd2f998` — Dither > Scanlines (CRT), then parallel rendering | Adds CRT scanlines with line spacing, glow, dots, wobble, and parallel/cheaper render path. | ❌ Windows has the preceding ten Dither looks but no `Scanlines` enum/settings/UI/kernel. | `Core/Document/DitherEdits.cs`, `Core/Pixels/DitherPixels.cs`, `Desktop/DitherDialog.cs` | M | P2 |
 | 1.4.5 | `60d9117` — Camera Raw point curve interaction and Parametric curve | Fixes gesture competition; point curves drag/add/delete with selection; parametric regions and dividers are interactive. | ✅ Windows has separate Parametric/Point pages. The parametric graph latches region/divider drags; Point mode has selected handles, add/drag/double-click delete, per-channel state, a 16-point cap, and pointer-capture cleanup. Right-click deletion remains as an additional Windows affordance. | `Desktop/ParametricCurveEditor.cs`, `Desktop/CurveEditor.cs`, `Desktop/CameraRawPanel.cs`, Desktop tests | L | P1 |
@@ -184,6 +184,40 @@ These results are **A/C evidence**, not a claim that a broad macOS or Photoshop
 binary fixture matrix was available. The outstanding B-level comparisons and
 the separate linked-mask `PlacementMoving` interaction semantics remain listed
 in the rendering record.
+
+## Native-resolution Clone and Blur: `d3170ab` / `095da2f`
+
+The Windows brush path now keeps the two relevant coordinate systems explicit:
+document space is used for pointer positions and Clone Stamp offsets, while
+Current Layer source pixels, brush coverage, blur kernels, and mask pixels use
+their native layer grids. `LayerPixelSpace` owns that affine conversion, so a
+rotated, flipped, or non-uniformly scaled placement does not introduce a
+document-sized Current Layer intermediate.
+
+1. Current Layer Clone retains the source layer's pre-stroke raster for the
+   duration of a stroke. Its document offset is transformed back into that
+   raster; already-written dabs cannot become later source pixels. Sample All
+   Layers intentionally remains a single document-composite snapshot because
+   it must copy the displayed canvas rather than a layer asset.
+2. Blur captures only the native-grid brush ROI plus a three-sigma halo. Its
+   document-space radius is converted by the placement's geometric pixel size.
+   Mask blur follows the mask's own `MaskTransform` and samples beyond its
+   bounds with `LayerMask.Background`, preserving the existing edge-majority
+   reveal/hide semantics.
+3. A sample is coarsened when its native ROI exceeds **16M working pixels**.
+   Before allocating it, the Core path also rejects an estimated working set
+   greater than one quarter of the runtime-reported available memory. A
+   refused impractical stroke leaves the layer unchanged rather than allocating
+   a document-sized surface or accepting a partial blur.
+4. The regression fixtures are analytical C# oracles: they inspect native
+   pixels after scaled-down clone/blur and independently calculate affine
+   coordinates for rotation, flips, and non-uniform scale. They are not macOS
+   binary-pixel fixtures, so the result is source-backed behavior parity rather
+   than a claim of byte-for-byte cross-platform Gaussian equivalence.
+
+The 1.4.3 lazy per-tile source/sample cache is deliberately not ported in this
+batch. Nor are its Smudge/Liquify sparse-replay performance changes; both remain
+separate follow-up work after profiling the bounded Windows ROI path.
 
 ## `.comp` compatibility
 
