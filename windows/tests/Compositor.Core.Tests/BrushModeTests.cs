@@ -110,11 +110,14 @@ public class BrushModeTests
         Assert.True(BrushEdits.Paint(soft, softLayer.ID, stroke,
             new BrushSettings(Diameter: 30, Mode: BrushMode.Blur, BlurRadius: 12)));
 
-        // Four pixels in from the boundary: a radius of 1 barely reaches it, a radius of 12 mixes it well.
+        // Four pixels in from the boundary: a radius of 1 barely reaches it, while a radius of 12 must
+        // substantially mix it. Native-resolution blur deliberately includes transparent room around the
+        // source, unlike the former document-sized clamped proxy, so compare the two radii rather than a
+        // proxy-specific absolute level.
         var near = sharpLayer.Asset!.Image.GetPixel(16, 10).Red;
         var mixed = softLayer.Asset!.Image.GetPixel(16, 10).Red;
         Assert.True(near > 200, $"a radius of 1 left {near}");
-        Assert.True(mixed < 200, $"a radius of 12 left {mixed}");
+        Assert.True(mixed < near - 20, $"a radius of 12 left {mixed}, versus {near} for radius 1");
     }
 
     [Fact]

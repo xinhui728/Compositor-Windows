@@ -104,6 +104,20 @@ public class BrushTests
     }
 
     [Fact]
+    public void AStrokeCrossingTheLayerFromOutsideStillPaintsItsInterior()
+    {
+        var (document, layer) = Flat(40, 20, SKColors.White);
+        using var _ = document;
+
+        // ROI coverage is calculated before allocation. Both endpoints are outside the native grid, but the
+        // segment passes through it; clipping endpoint boxes independently would wrongly discard this stroke.
+        Assert.True(BrushEdits.Paint(document, layer.ID,
+            [new SKPoint(-20, 10.5f), new SKPoint(60, 10.5f)], new BrushSettings(Diameter: 6, Red: 1)));
+
+        Assert.Equal(new SKColor(255, 0, 0, 255), At(layer, 20, 10));
+    }
+
+    [Fact]
     public void OverlappingDabsStayWithinTheStrokesOpacity()
     {
         var (document, layer) = Flat(20, 20, SKColors.White);

@@ -75,6 +75,58 @@ public sealed record BrushSettings(
 /// </summary>
 public static class BrushEdits
 {
+    // A brush normally touches a small part of even a very large native layer. Coverage is therefore held in
+    // that native-grid ROI, not as one float for every layer pixel. Apart from avoiding a document-sized
+    // allocation for Clone/Blur, this gives an explicit, recoverable ceiling for a malformed or impractical
+    // stroke instead of allowing an allocation to take the editor down.
+    private const long MaxCoveragePixels = 8_000_000;
+
+    private sealed class StrokeCoverage
+    {
+        private int _inkLeft;
+        private int _inkTop;
+        private int _inkRight;
+        private int _inkBottom;
+
+        public StrokeCoverage(SKRectI bounds, float[] values)
+        {
+            Bounds = bounds;
+            Values = values;
+            _inkLeft = Width;
+            _inkTop = Height;
+        }
+
+        public SKRectI Bounds { get; }
+        public float[] Values { get; }
+        public int Width => Bounds.Width;
+        public int Height => Bounds.Height;
+
+        public float At(int x, int y) => (uint)(x - Bounds.Left) < (uint)Width
+            && (uint)(y - Bounds.Top) < (uint)Height
+            ? Values[(y - Bounds.Top) * Width + x - Bounds.Left]
+            : 0;
+
+        public void Combine(int x, int y, float value, bool hard)
+        {
+            var index = (y - Bounds.Top) * Width + x - Bounds.Left;
+            Values[index] = hard ? Math.Max(Values[index], value) : Values[index] + value - Values[index] * value;
+            if (Values[index] <= 0) return;
+            var localX = x - Bounds.Left;
+            var localY = y - Bounds.Top;
+            _inkLeft = Math.Min(_inkLeft, localX);
+            _inkTop = Math.Min(_inkTop, localY);
+            _inkRight = Math.Max(_inkRight, localX + 1);
+            _inkBottom = Math.Max(_inkBottom, localY + 1);
+        }
+
+        /// <summary>The tight half-open native-grid bounds of real coverage, not just the generous dab box.</summary>
+        public SKRectI InkBounds()
+        {
+            return _inkRight <= _inkLeft || _inkBottom <= _inkTop ? default
+                : SKRectI.Create(Bounds.Left + _inkLeft, Bounds.Top + _inkTop, _inkRight - _inkLeft, _inkBottom - _inkTop);
+        }
+    }
+
     /// <summary>Soft-brush falloff across the region between the hardness radius and the rim.</summary>
     public static double Falloff(double u)
     {
@@ -134,38 +186,36 @@ public static class BrushEdits
         var height = asset.Height;
         if (width <= 0 || height <= 0) return false;
 
-        var toDocument = PixelToDocument(layer.Transform, width, height);
-        if (!toDocument.TryInvert(out var toPixel)) return false;
+        if (!LayerPixelSpace.TryCreate(layer.Transform, width, height, out var pixelSpace)) return false;
+        if (!Stroke(document, points, settings, pixelSpace, out var coverage)) return false;
 
-        // What the stroke paints from, taken now: the Clone Stamp's sample of the layer or the canvas, or
-        // the layer as it is before the stroke, softened. Taken once, so going over an area again within a
-        // stroke does not blur what it has just painted.
-        SKBitmap? sample = null;
-        if (settings.Mode is BrushMode.Clone or BrushMode.Blur)
-        {
-            sample = Sampled(document, layer, settings);
-            if (sample is null) return false;
-        }
-        using var _sample = sample;
-        if (!Stroke(document, points, settings, toDocument, toPixel, width, height, out var coverage)) return false;
+        // Current Layer samples borrow the immutable pre-stroke image. Blur and Sample All Layers own their
+        // snapshots and are disposed below. Either way the sample is fixed before the first destination pixel
+        // is written, so one stroke never reads an earlier dab from itself.
+        using var sample = CreateColorSample(document, layer, settings, pixelSpace, coverage);
+        if (settings.Mode is BrushMode.Clone or BrushMode.Blur && sample is null) return false;
 
-        var painted = new SKBitmap(Bitmaps.ColorInfo(width, height));
-        using (var canvas = new SKCanvas(painted))
+        SKBitmap? painted = null;
+        try
         {
-            using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
-            using var source = SKImage.FromBitmap(asset.Image);
-            canvas.DrawImage(source, SKRect.Create(0, 0, width, height), new SKSamplingOptions(SKFilterMode.Nearest), paint);
+            painted = Bitmaps.Allocate(Bitmaps.ColorInfo(width, height));
+            asset.Image.CopyTo(painted);
+            var paintedNow = sample is not null
+                ? ApplySampled(painted, coverage, settings, sample, pixelSpace)
+                : settings.Mode == BrushMode.Heal ? Heal(painted, coverage, settings) : Apply(painted, coverage, settings);
+            if (!paintedNow) return false;
+            layer.Asset = ImportedImage.Create(painted, asset.Name);
+            painted = null;
+            return true;
         }
-        var paintedNow = sample is not null
-            ? ApplySampled(painted, coverage, settings, sample, toDocument)
-            : settings.Mode == BrushMode.Heal ? Heal(painted, coverage, settings) : Apply(painted, coverage, settings);
-        if (!paintedNow)
+        catch (Exception error) when (error is InvalidOperationException or OutOfMemoryException)
         {
-            painted.Dispose();
             return false;
         }
-        layer.Asset = ImportedImage.Create(painted, asset.Name);
-        return true;
+        finally
+        {
+            painted?.Dispose();
+        }
     }
 
     /// <summary>
@@ -173,21 +223,20 @@ public static class BrushEdits
     /// in one go. The Mac build shows a dark wash while the stroke is being drawn and does this when it
     /// ends; this port does the same work without the wash, so the picture changes on release.
     /// </summary>
-    private static bool Heal(SKBitmap painted, float[] coverage, BrushSettings settings)
+    private static bool Heal(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings)
     {
         var width = painted.Width;
         var height = painted.Height;
-        var bounds = new int[4];
-        CoverageBounds(coverage, width, height, bounds);
-        if (bounds[2] <= bounds[0] || bounds[3] <= bounds[1]) return true;
+        var covered = coverage.InkBounds();
+        if (covered.Width <= 0 || covered.Height <= 0) return true;
 
         // Room for the kernel's patch search, which looks up to about three spot-widths away.
-        var portrait = Math.Max(bounds[2] - bounds[0], bounds[3] - bounds[1]);
+        var portrait = Math.Max(covered.Width, covered.Height);
         var reach = (int)Math.Ceiling((portrait + 32) * 3.2);
-        var left = Math.Max(0, bounds[0] - reach);
-        var top = Math.Max(0, bounds[1] - reach);
-        var right = Math.Min(width, bounds[2] + reach);
-        var bottom = Math.Min(height, bounds[3] + reach);
+        var left = Math.Max(0, covered.Left - reach);
+        var top = Math.Max(0, covered.Top - reach);
+        var right = Math.Min(width, covered.Right + reach);
+        var bottom = Math.Min(height, covered.Bottom + reach);
         var w = right - left;
         var h = bottom - top;
         if (w <= 0 || h <= 0) return true;
@@ -210,7 +259,7 @@ public static class BrushEdits
                     room[to + channel] = (byte)((pixels[from + channel] * alpha + 127) / 255);
                 }
                 room[to + 3] = alpha;
-                gray[y * w + x] = (byte)Math.Clamp(Math.Round(coverage[(top + y) * width + left + x] * 255), 0, 255);
+                gray[y * w + x] = (byte)Math.Clamp(Math.Round(coverage.At(left + x, top + y) * 255), 0, 255);
             }
         }
 
@@ -235,27 +284,6 @@ public static class BrushEdits
         return true;
     }
 
-    /// <summary>Half-open bounds of the pixels a stroke covered, written as x0, y0, x1, y1.</summary>
-    private static void CoverageBounds(float[] coverage, int width, int height, int[] bounds)
-    {
-        int left = width, top = height, right = 0, bottom = 0;
-        for (var y = 0; y < height; y++)
-        {
-            for (var x = 0; x < width; x++)
-            {
-                if (coverage[y * width + x] <= 0) continue;
-                if (x < left) left = x;
-                if (x + 1 > right) right = x + 1;
-                if (y < top) top = y;
-                if (y + 1 > bottom) bottom = y + 1;
-            }
-        }
-        bounds[0] = left;
-        bounds[1] = top;
-        bounds[2] = right;
-        bounds[3] = bottom;
-    }
-
     /// <summary>
     /// The coverage of a stroke over one pixel grid: the tip stamped along the path at the spacing the Mac
     /// build uses, scaled by the selection so a dab that straddles a feathered edge is painted in part
@@ -263,10 +291,21 @@ public static class BrushEdits
     /// painting without it would paint outside the selection.
     /// </summary>
     private static bool Stroke(CanvasDocument document, IReadOnlyList<SKPoint> points, BrushSettings settings,
-        SKMatrix toDocument, SKMatrix toPixel, int width, int height, out float[] coverage)
+        LayerPixelSpace pixelSpace, out StrokeCoverage coverage)
     {
-        coverage = new float[width * height];
+        coverage = null!;
         var radius = settings.Diameter / 2;
+        var bounds = StrokeBounds(points, radius, pixelSpace);
+        var pixels = (long)bounds.Width * bounds.Height;
+        if (bounds.Width <= 0 || bounds.Height <= 0 || pixels > MaxCoveragePixels) return false;
+        try
+        {
+            coverage = new StrokeCoverage(bounds, new float[checked((int)pixels)]);
+        }
+        catch (OutOfMemoryException)
+        {
+            return false;
+        }
         var spacing = Spacing(settings.Diameter, settings.Hardness);
         var hard = settings.Hardness >= 1;
         var region = document.Selection.CoverageRect(document.Width, document.Height);
@@ -275,7 +314,7 @@ public static class BrushEdits
         {
             clip = document.Selection.Coverage(region);
         }
-        catch (InvalidOperationException)
+        catch (Exception error) when (error is InvalidOperationException or OutOfMemoryException)
         {
             return false;
         }
@@ -284,7 +323,7 @@ public static class BrushEdits
         var selection = new Clip(clipped, clip?.RowBytes ?? 0, region);
         // The first dab sits on the first sample; the rest follow it at even spacing, carrying whatever
         // distance is left over the end of one run into the next so a fast pointer leaves no gaps.
-        Stamp(coverage, width, height, points[0], radius, toDocument, toPixel, hard, settings.Hardness, selection);
+        Stamp(coverage, points[0], radius, pixelSpace, hard, settings.Hardness, selection);
         var next = spacing;
         for (var index = 1; index < points.Count; index++)
         {
@@ -297,13 +336,69 @@ public static class BrushEdits
             while (next <= length)
             {
                 var at = new SKPoint((float)(from.X + dx * next / length), (float)(from.Y + dy * next / length));
-                Stamp(coverage, width, height, at, radius, toDocument, toPixel, hard, settings.Hardness, selection);
+                Stamp(coverage, at, radius, pixelSpace, hard, settings.Hardness, selection);
                 next += spacing;
             }
             next -= length;
         }
         return true;
     }
+
+    /// <summary>
+    /// The smallest practical native-grid rectangle that can contain every dab. A document-space line stays
+    /// inside the union of its endpoint boxes after an affine transform, so calculating this before the
+    /// coverage allocation avoids one float for every pixel of a large layer.
+    /// </summary>
+    private static SKRectI StrokeBounds(IReadOnlyList<SKPoint> points, double radius, LayerPixelSpace pixelSpace)
+    {
+        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+        foreach (var point in points)
+        {
+            DabExtents(point, radius, pixelSpace, out var dabMinX, out var dabMinY, out var dabMaxX, out var dabMaxY);
+            minX = Math.Min(minX, dabMinX);
+            minY = Math.Min(minY, dabMinY);
+            maxX = Math.Max(maxX, dabMaxX);
+            maxY = Math.Max(maxY, dabMaxY);
+        }
+        var left = GridFloor(minX - 1, pixelSpace.Width);
+        var top = GridFloor(minY - 1, pixelSpace.Height);
+        var right = GridCeiling(maxX + 1, pixelSpace.Width);
+        var bottom = GridCeiling(maxY + 1, pixelSpace.Height);
+        return right <= left || bottom <= top ? default : SKRectI.Create(left, top, right - left, bottom - top);
+    }
+
+    private static SKRectI DabBounds(SKPoint centre, double radius, LayerPixelSpace pixelSpace)
+    {
+        DabExtents(centre, radius, pixelSpace, out var minX, out var minY, out var maxX, out var maxY);
+        var left = GridFloor(minX - 1, pixelSpace.Width);
+        var top = GridFloor(minY - 1, pixelSpace.Height);
+        var right = GridCeiling(maxX + 1, pixelSpace.Width);
+        var bottom = GridCeiling(maxY + 1, pixelSpace.Height);
+        return right <= left || bottom <= top ? default : SKRectI.Create(left, top, right - left, bottom - top);
+    }
+
+    private static void DabExtents(SKPoint centre, double radius, LayerPixelSpace pixelSpace,
+        out double minX, out double minY, out double maxX, out double maxY)
+    {
+        minX = double.MaxValue;
+        minY = double.MaxValue;
+        maxX = double.MinValue;
+        maxY = double.MinValue;
+        foreach (var (dx, dy) in new[] { (-radius, -radius), (radius, -radius), (radius, radius), (-radius, radius) })
+        {
+            var corner = pixelSpace.ToPixel.MapPoint(centre.X + (float)dx, centre.Y + (float)dy);
+            minX = Math.Min(minX, corner.X);
+            minY = Math.Min(minY, corner.Y);
+            maxX = Math.Max(maxX, corner.X);
+            maxY = Math.Max(maxY, corner.Y);
+        }
+    }
+
+    private static int GridFloor(double value, int maximum) => !double.IsFinite(value) ? value > 0 ? maximum : 0
+        : (int)Math.Clamp(Math.Floor(value), 0, maximum);
+
+    private static int GridCeiling(double value, int maximum) => !double.IsFinite(value) ? value > 0 ? maximum : 0
+        : (int)Math.Clamp(Math.Ceiling(value), 0, maximum);
 
     /// <summary>
     /// Gives a uniform mask the pixels of the layer it covers, which is what the Mac build does when a brush
@@ -314,8 +409,15 @@ public static class BrushEdits
     {
         if (document.Layers.FirstOrDefault(layer => layer.ID == layerID) is not { Mask: { } mask } layer) return false;
         if (mask.Asset.Width > 1 || mask.Asset.Height > 1) return false;
-        var width = Math.Max(1, (int)Math.Round(layer.Transform.Width));
-        var height = Math.Max(1, (int)Math.Round(layer.Transform.Height));
+        // A linked solid mask adopts the active layer's native grid. An unlinked placed solid mask has no
+        // layer-grid relationship, so it adopts one pixel per document pixel of its own placement instead.
+        // In particular, a 1000px layer shown at 100px must not acquire a 100px linked mask.
+        var width = mask.Placement is { } placement
+            ? Math.Max(1, (int)Math.Round(placement.Width))
+            : layer.Asset?.Width ?? Math.Max(1, (int)Math.Round(layer.Transform.Width));
+        var height = mask.Placement is { } placed
+            ? Math.Max(1, (int)Math.Round(placed.Height))
+            : layer.Asset?.Height ?? Math.Max(1, (int)Math.Round(layer.Transform.Height));
         if (width > DocumentLimits.MaxSide || height > DocumentLimits.MaxSide
             || (long)width * height > DocumentLimits.MaxSurfacePixels)
         {
@@ -336,121 +438,128 @@ public static class BrushEdits
         BrushSettings settings)
     {
         if (points.Count == 0 || settings.Diameter <= 0 || settings.Opacity <= 0) return false;
-        if (document.Layers.FirstOrDefault(layer => layer.ID == layerID) is not { Mask: not null }) return false;
+        if (document.Layers.FirstOrDefault(layer => layer.ID == layerID) is not { Mask: { } initialMask }) return false;
         // A mask the menu made is one pixel stretched over the layer, which a dab cannot land in: it takes
         // the layer's own pixels first, as the Mac build's brush does.
-        GrowMask(document, layerID);
+        if (initialMask.Asset.Width <= 1 && initialMask.Asset.Height <= 1 && !GrowMask(document, layerID)) return false;
         if (document.Layers.FirstOrDefault(layer => layer.ID == layerID) is not { Mask: { } mask } layer) return false;
         var width = mask.Asset.Width;
         var height = mask.Asset.Height;
         if (width <= 0 || height <= 0) return false;
-        var toDocument = PixelToDocument(layer.MaskTransform, width, height);
-        if (!toDocument.TryInvert(out var toPixel)) return false;
-        if (!Stroke(document, points, settings, toDocument, toPixel, width, height, out var coverage)) return false;
+        if (!LayerPixelSpace.TryCreate(layer.MaskTransform, width, height, out var pixelSpace)) return false;
+        if (!Stroke(document, points, settings, pixelSpace, out var coverage)) return false;
 
-        var painted = Bitmaps.Allocate(Bitmaps.MaskInfo(width, height));
-        using (var canvas = new SKCanvas(painted))
+        SKBitmap? painted = null;
+        try
         {
-            using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
-            using var source = SKImage.FromBitmap(mask.Asset.Image);
-            canvas.DrawImage(source, SKRect.Create(0, 0, width, height), new SKSamplingOptions(SKFilterMode.Nearest), paint);
+            painted = Bitmaps.Allocate(Bitmaps.MaskInfo(width, height));
+            mask.Asset.Image.CopyTo(painted);
+            if (settings.Mode == BrushMode.Blur)
+            {
+                // A placed mask's outside is the mask's edge majority, not transparent. This deliberately
+                // runs on the mask's own pixel grid and preserves an unlinked mask placement.
+                using var sample = NativeBlurMaskSample.Create(mask.Asset.Image,
+                    LayerMask.Background(mask.Asset.Thumbnail), pixelSpace, coverage.InkBounds(), settings.BlurRadius);
+                if (sample is null || !ApplyBlurredMask(painted, coverage, settings, sample)) return false;
+            }
+            else
+            {
+                ApplyToMask(painted.GetPixelSpan(), painted.RowBytes, coverage, settings);
+            }
+            layer.Mask = mask.Replacing(ImportedImage.Create(painted, mask.Asset.Name));
+            painted = null;
+            return true;
         }
-        ApplyToMask(painted.GetPixelSpan(), coverage, settings);
-        layer.Mask = mask.Replacing(ImportedImage.Create(painted, mask.Asset.Name));
-        return true;
+        catch (Exception error) when (error is InvalidOperationException or OutOfMemoryException)
+        {
+            return false;
+        }
+        finally
+        {
+            painted?.Dispose();
+        }
     }
 
     /// <summary>Moves a mask's gray level towards the brush's, so a mask stroke sets coverage rather than painting a colour.</summary>
-    private static void ApplyToMask(Span<byte> mask, float[] coverage, BrushSettings settings)
+    private static void ApplyToMask(Span<byte> mask, int stride, StrokeCoverage coverage, BrushSettings settings)
     {
         var value = (byte)Math.Clamp(Math.Round((settings.Red + settings.Green + settings.Blue) / 3 * 255), 0, 255);
-        for (var index = 0; index < coverage.Length; index++)
+        for (var y = 0; y < coverage.Height; y++)
         {
-            var alpha = Math.Clamp(coverage[index] * settings.Opacity, 0, 1);
-            if (alpha <= 0) continue;
-            mask[index] = (byte)Math.Round(mask[index] + (value - mask[index]) * alpha);
+            for (var x = 0; x < coverage.Width; x++)
+            {
+                var alpha = Math.Clamp(coverage.Values[y * coverage.Width + x] * settings.Opacity, 0, 1);
+                if (alpha <= 0) continue;
+                var at = (coverage.Bounds.Top + y) * stride + coverage.Bounds.Left + x;
+                mask[at] = (byte)Math.Round(mask[at] + (value - mask[at]) * alpha);
+            }
         }
     }
 
-    /// <summary>
-    /// What a Clone Stamp or Blur stroke paints from, at document size: the layer's own pixels, or every
-    /// visible layer as the canvas shows them, softened by the Blur Radius when the brush is the Blur tool.
-    /// Null when the layer holds nothing to copy.
-    /// </summary>
-    private static SKBitmap? Sampled(CanvasDocument document, ImageLayer layer, BrushSettings settings)
+    private static bool ApplyBlurredMask(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings,
+        NativeBlurMaskSample sample)
     {
-        SKBitmap? sample = null;
+        var pixels = painted.GetPixelSpan();
+        for (var y = 0; y < coverage.Height; y++)
+        {
+            for (var x = 0; x < coverage.Width; x++)
+            {
+                var alpha = Math.Clamp(coverage.Values[y * coverage.Width + x] * settings.Opacity, 0, 1);
+                if (alpha <= 0 || !sample.TryRead(coverage.Bounds.Left + x, coverage.Bounds.Top + y, out var value)) continue;
+                var at = (coverage.Bounds.Top + y) * painted.RowBytes + coverage.Bounds.Left + x;
+                pixels[at] = (byte)Math.Round(pixels[at] + (value - pixels[at]) * alpha);
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Captures a source before the stroke changes the destination. Current-layer Clone and Blur remain in
+    /// the layer's native grid; only Clone's Sample All Layers option owns a document-space composite.
+    /// </summary>
+    private static BrushColorSample? CreateColorSample(CanvasDocument document, ImageLayer layer,
+        BrushSettings settings, LayerPixelSpace pixelSpace, StrokeCoverage coverage)
+    {
         try
         {
-            sample = DocumentRenderer.Allocate(document.Width, document.Height);
-            using (var canvas = new SKCanvas(sample))
+            if (settings.Mode == BrushMode.Clone)
             {
-                if (settings.Mode == BrushMode.Clone && settings.CloneAllLayers) return Composite(document);
-                DocumentRenderer.DrawLayerPixels(canvas, layer);
+                if (!settings.CloneAllLayers) return new NativeLayerColorSample(layer.Asset!.Image, pixelSpace);
+                return new DocumentColorSample(DocumentRenderer.Render(document));
             }
-            if (settings.Mode == BrushMode.Blur)
-            {
-                // The Radius the options bar sets, measured on the canvas — which is what the Mac build's blur
-                // tool blurs by (`min(max(radius, 0.5), 50)` of it, divided there by the layer's own scale). The
-                // sample this softens is already at document size, so there is no scale to divide out here.
-                var sigma = Math.Clamp(settings.BlurRadius, 0.5, 50);
-                GaussianBlur.Clamped(sample.GetPixelSpan(), sample.Width, sample.Height, 4, sample.RowBytes, sigma);
-            }
-            return sample;
+            return settings.Mode == BrushMode.Blur
+                ? NativeBlurColorSample.Create(layer.Asset!.Image, pixelSpace, coverage.InkBounds(), settings.BlurRadius)
+                : null;
         }
-        catch (InvalidOperationException)
+        catch (Exception error) when (error is InvalidOperationException or OutOfMemoryException)
         {
-            sample?.Dispose();
             return null;
         }
     }
 
-    /// <summary>The whole canvas as it is shown, in a buffer the sample can be read from.</summary>
-    private static SKBitmap Composite(CanvasDocument document)
-    {
-        using var rendered = DocumentRenderer.Render(document);
-        var copy = DocumentRenderer.Allocate(rendered.Width, rendered.Height);
-        using (var canvas = new SKCanvas(copy))
-        {
-            using var paint = new SKPaint { BlendMode = SKBlendMode.Src };
-            canvas.DrawBitmap(rendered, SKRect.Create(0, 0, rendered.Width, rendered.Height),
-                new SKSamplingOptions(SKFilterMode.Nearest), paint);
-        }
-        return copy;
-    }
-
     /// <summary>
-    /// Paints what the sample holds, through the coverage: the Clone Stamp's copy, or the softened copy the
-    /// Blur brush paints. A layer pixel is carried to the document, the sample read a whole-pixel offset
-    /// from there, and the sample's own alpha scales the dab — so a transparent part of the sample leaves
-    /// the layer as it was, as drawing it would.
+    /// Paints what the fixed source holds through native-grid coverage: the Clone Stamp's copy, or Blur's
+    /// softened snapshot. The source maps each target pixel through its declared coordinate space, and its
+    /// alpha scales the dab — so a transparent source leaves the layer as it was, as drawing it would.
     /// </summary>
-    private static bool ApplySampled(SKBitmap painted, float[] coverage, BrushSettings settings, SKBitmap sample,
-        SKMatrix toDocument)
+    private static bool ApplySampled(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings,
+        BrushColorSample sample, LayerPixelSpace pixelSpace)
     {
-        var offset = settings.CloneFrom ?? default;
+        var offset = settings.Mode == BrushMode.Clone ? settings.CloneFrom ?? default : default;
         var destination = painted.GetPixelSpan();
-        var source = sample.GetPixelSpan();
-        var sourceStride = sample.RowBytes;
-        for (var y = 0; y < painted.Height; y++)
+        for (var y = 0; y < coverage.Height; y++)
         {
-            for (var x = 0; x < painted.Width; x++)
+            for (var x = 0; x < coverage.Width; x++)
             {
-                var index = y * painted.Width + x;
-                if (coverage[index] <= 0) continue;
-                var at = toDocument.MapPoint(x + 0.5f, y + 0.5f);
-                var sx = (int)Math.Floor(at.X) + offset.X;
-                var sy = (int)Math.Floor(at.Y) + offset.Y;
-                if (sx < 0 || sy < 0 || sx >= sample.Width || sy >= sample.Height) continue;
-                var from = sy * sourceStride + sx * 4;
-                var sourceAlpha = source[from + 3];
-                var alpha = Math.Clamp(coverage[index] * settings.Opacity * (sourceAlpha / 255.0), 0, 1);
+                var amount = coverage.Values[y * coverage.Width + x];
+                if (amount <= 0) continue;
+                var gridX = coverage.Bounds.Left + x;
+                var gridY = coverage.Bounds.Top + y;
+                if (!sample.TryRead(pixelSpace, gridX, gridY, offset, out var colour) || colour.Alpha == 0) continue;
+                var alpha = Math.Clamp(amount * settings.Opacity * (colour.Alpha / 255.0), 0, 1);
                 if (alpha <= 0) continue;
-                // The sample is premultiplied, as every render is; the layer's pixels are straight.
-                var red = sourceAlpha == 0 ? 0 : Math.Min(255.0, source[from] * 255.0 / sourceAlpha) / 255.0;
-                var green = sourceAlpha == 0 ? 0 : Math.Min(255.0, source[from + 1] * 255.0 / sourceAlpha) / 255.0;
-                var blue = sourceAlpha == 0 ? 0 : Math.Min(255.0, source[from + 2] * 255.0 / sourceAlpha) / 255.0;
-                Blend(destination, index * 4, alpha, red, green, blue);
+                var at = gridY * painted.RowBytes + gridX * 4;
+                Blend(destination, at, alpha, colour.Red / 255.0, colour.Green / 255.0, colour.Blue / 255.0);
             }
         }
         return true;
@@ -501,37 +610,18 @@ public static class BrushEdits
     /// pixel near the dab is carried back to the document and asked how far it is from the middle. The
     /// selection scales each pixel, so a dab that straddles a feathered edge is painted in part.
     /// </summary>
-    private static void Stamp(float[] coverage, int width, int height, SKPoint centre, double radius,
-        SKMatrix toDocument, SKMatrix toPixel, bool hard, double hardness, Clip selection)
+    private static void Stamp(StrokeCoverage coverage, SKPoint centre, double radius, LayerPixelSpace pixelSpace,
+        bool hard, double hardness, Clip selection)
     {
-        // The document square around the dab, brought into pixels: a generous box, since the transform may
-        // turn it.
-        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
-        foreach (var (dx, dy) in new[] { (-radius, -radius), (radius, -radius), (radius, radius), (-radius, radius) })
+        var box = DabBounds(centre, radius, pixelSpace);
+        for (var y = box.Top; y < box.Bottom; y++)
         {
-            var corner = toPixel.MapPoint(centre.X + (float)dx, centre.Y + (float)dy);
-            minX = Math.Min(minX, corner.X);
-            minY = Math.Min(minY, corner.Y);
-            maxX = Math.Max(maxX, corner.X);
-            maxY = Math.Max(maxY, corner.Y);
-        }
-        var left = Math.Max(0, (int)Math.Floor(minX) - 1);
-        var top = Math.Max(0, (int)Math.Floor(minY) - 1);
-        var right = Math.Min(width, (int)Math.Ceiling(maxX) + 1);
-        var bottom = Math.Min(height, (int)Math.Ceiling(maxY) + 1);
-        for (var y = top; y < bottom; y++)
-        {
-            for (var x = left; x < right; x++)
+            for (var x = box.Left; x < box.Right; x++)
             {
-                var at = toDocument.MapPoint(x + 0.5f, y + 0.5f);
+                var at = pixelSpace.DocumentAt(x, y);
                 var distance = Math.Sqrt(Math.Pow(at.X - centre.X, 2) + Math.Pow(at.Y - centre.Y, 2));
                 var tip = Tip(distance, radius, hardness) * selection.At(at.X, at.Y);
-                if (tip <= 0) continue;
-                var index = y * width + x;
-                // Overlapping dabs within one stroke must not build up: they take the larger coverage, or
-                // blend, so the stroke's opacity is what caps it.
-                coverage[index] = hard ? Math.Max(coverage[index], (float)tip)
-                    : coverage[index] + (float)tip - coverage[index] * (float)tip;
+                if (tip > 0) coverage.Combine(x, y, (float)tip, hard);
             }
         }
     }
@@ -565,21 +655,25 @@ public static class BrushEdits
     }
 
     /// <summary>Paints the colour through the coverage, or takes the alpha away when erasing.</summary>
-    private static bool Apply(SKBitmap pixels, float[] coverage, BrushSettings settings)
+    private static bool Apply(SKBitmap pixels, StrokeCoverage coverage, BrushSettings settings)
     {
         var span = pixels.GetPixelSpan();
-        for (var index = 0; index < coverage.Length; index++)
+        for (var y = 0; y < coverage.Height; y++)
         {
-            var alpha = Math.Clamp(coverage[index] * settings.Opacity, 0, 1);
-            if (alpha <= 0) continue;
-            var at = index * 4;
-            if (settings.Erasing)
+            for (var x = 0; x < coverage.Width; x++)
             {
-                span[at + 3] = (byte)Math.Round(span[at + 3] / 255.0 * (1 - alpha) * 255);
-                continue;
+                var alpha = Math.Clamp(coverage.Values[y * coverage.Width + x] * settings.Opacity, 0, 1);
+                if (alpha <= 0) continue;
+                var at = (coverage.Bounds.Top + y) * pixels.RowBytes + (coverage.Bounds.Left + x) * 4;
+                if (settings.Erasing)
+                {
+                    span[at + 3] = (byte)Math.Round(span[at + 3] / 255.0 * (1 - alpha) * 255);
+                    continue;
+                }
+                Blend(span, at, alpha, settings.Red, settings.Green, settings.Blue);
             }
-            Blend(span, at, alpha, settings.Red, settings.Green, settings.Blue);
         }
         return true;
     }
+
 }
