@@ -1888,8 +1888,12 @@ public sealed class MainWindow : Window
             ?? throw new InvalidOperationException("the canvas is not in the window");
         Point Aim(SKPoint at)
         {
+            // Rulers and other panels can move the canvas during this check. Resolve its window origin for
+            // each gesture so later pointer events still land on the document point they claim to test.
+            var origin = _canvas.TranslatePoint(new Point(0, 0), this)
+                ?? throw new InvalidOperationException("the canvas is not in the window");
             var placed = _canvas.InView(at);
-            return new Point(corner.X + placed.X, corner.Y + placed.Y);
+            return new Point(origin.X + placed.X, origin.Y + placed.Y);
         }
         report.Add($"the canvas sits at {corner.X:0},{corner.Y:0} in the window, "
             + $"{_canvas.Bounds.Width:0}x{_canvas.Bounds.Height:0} of it");
@@ -2013,6 +2017,13 @@ public sealed class MainWindow : Window
             UpdateRulers();
             UpdateLayout();
         }
+        // A fresh installation hides guides by default, and saved settings may lock them. The pointer check
+        // needs both switches on the canvas without changing the person's persisted tool defaults.
+        _guidesVisible = true;
+        _guidesLocked = false;
+        _showGuides.IsChecked = true;
+        _lockGuides.IsChecked = false;
+        PushViewSwitches();
         if (_rulerAcross.TranslatePoint(new Point(0, 0), this) is { } strip)
         {
             var grab = new Point(strip.X + _canvas.InView(new SKPoint(60, 0)).X, strip.Y + RulerThickness / 2);
@@ -2196,13 +2207,13 @@ public sealed class MainWindow : Window
             ?? throw new InvalidOperationException("the Filter menu's verb opened no panel");
         // Its amounts are inside a scroll view, whose content is only attached when a layout pass runs.
         filterPanel.UpdateLayout();
-        var vignetteAmount = AmountIn(filterPanel, "Amount");
+        var vignetteAmount = AmountIn(filterPanel, L.Get("Filter.Amount"));
         ClickIn(filterPanel, vignetteAmount, 0.85);
         var asked = filterPanel.Current().VignetteAmount;
         if (asked < 60) throw new InvalidOperationException($"the click left the amount at {asked}, near where it started");
         // Reset puts the panel back to what the filter is made with, the colour included — which is the one
         // place the two kinds of control share.
-        PressIn(filterPanel, "Reset");
+        PressIn(filterPanel, L.Get("Common.Reset"));
         var reset = filterPanel.Current();
         report.Add($"the panel's Reset: amount {reset.VignetteAmount:0.#}, colour "
             + $"{reset.VignetteRed:0.00},{reset.VignetteGreen:0.00},{reset.VignetteBlue:0.00}");
@@ -2271,7 +2282,7 @@ public sealed class MainWindow : Window
         // The panel's buttons are below the fold of its own scroll view, and a click outside the viewport does
         // not reach them: the view is scrolled the way a hand would scroll it first.
         ScrollToEnd(filterPanel);
-        PressIn(filterPanel, "Apply");
+        PressIn(filterPanel, L.Get("Common.Apply"));
         Dispatcher.UIThread.RunJobs();
         if (!filtering.IsCompletedSuccessfully) throw new InvalidOperationException("the filter verb never finished");
         var inkedAfterFilter = InkOf(document.Layers.First(one => one.ID == target.ID).Asset!.Image);
@@ -2305,7 +2316,7 @@ public sealed class MainWindow : Window
             new Point(curve.Bounds.Width / 2, curve.Bounds.Height / 2),
             new Point(curve.Bounds.Width / 2, curve.Bounds.Height / 4));
         ScrollToEnd(curvePanel);
-        PressIn(curvePanel, "Apply");
+        PressIn(curvePanel, L.Get("Common.Apply"));
         Dispatcher.UIThread.RunJobs();
         if (!adjusting.IsCompletedSuccessfully) throw new InvalidOperationException("the Curves verb never finished");
         var inkedAfterCurve = InkOf(document.Layers.First(one => one.ID == target.ID).Asset!.Image);
@@ -2334,7 +2345,7 @@ public sealed class MainWindow : Window
         Press(mapPicker, At(mapPicker, mapPicker.Ok, 0.5));
         Dispatcher.UIThread.RunJobs();
         ScrollToEnd(mapPanel);
-        PressIn(mapPanel, "Apply");
+        PressIn(mapPanel, L.Get("Common.Apply"));
         Dispatcher.UIThread.RunJobs();
         if (!mapping.IsCompletedSuccessfully) throw new InvalidOperationException("the Gradient Map verb never finished");
         var inkedAfterMap = InkOf(document.Layers.First(one => one.ID == target.ID).Asset!.Image);
@@ -2357,15 +2368,17 @@ public sealed class MainWindow : Window
         {
             throw new InvalidOperationException("the Dither panel has no list of looks");
         }
-        var halftone = look.Items.Cast<object>().ToList().FindIndex(item => LabelOf(item) == "Halftone Dots");
+        var halftoneLabel = L.Get("Dither.Style.HalftoneDots");
+        var halftone = look.Items.Cast<object>().ToList().FindIndex(item => LabelOf(item) == halftoneLabel);
         if (halftone < 0) throw new InvalidOperationException("the Dither panel has no Halftone Dots look");
         look.SelectedIndex = halftone;
         // Two Colors is the choice whose ink and paper are the panel's own, so it is the one that shows the
         // two swatches; the ink is then chosen through the picker, as the Mac's panel does it.
+        var twoColorsLabel = L.Get("Dither.TwoColors");
         var inkAndPaper = ditherPanel.GetVisualDescendants().OfType<ComboBox>()
-            .FirstOrDefault(box => box.Items.Cast<object>().Any(item => LabelOf(item) == "Two Colors"))
+            .FirstOrDefault(box => box.Items.Cast<object>().Any(item => LabelOf(item) == twoColorsLabel))
             ?? throw new InvalidOperationException("the Dither panel has no Ink and paper list");
-        inkAndPaper.SelectedIndex = inkAndPaper.Items.Cast<object>().ToList().FindIndex(item => LabelOf(item) == "Two Colors");
+        inkAndPaper.SelectedIndex = inkAndPaper.Items.Cast<object>().ToList().FindIndex(item => LabelOf(item) == twoColorsLabel);
         Dispatcher.UIThread.RunJobs();
         if (ditherPanel.GetVisualDescendants().OfType<ColorSwatch>().FirstOrDefault() is not { } ink)
         {
@@ -2384,12 +2397,12 @@ public sealed class MainWindow : Window
         if (inkNow.DarkRed <= 0.5) throw new InvalidOperationException("the picker's colour never reached the ink");
         if (inkNow.Colors != DitherColors.TwoColors) throw new InvalidOperationException("the ink choice was lost");
         // Contrast is an amount every look shows, so it is the one to click.
-        var contrast = AmountIn(ditherPanel, "Contrast");
+        var contrast = AmountIn(ditherPanel, L.Get("Dither.Contrast"));
         ClickIn(ditherPanel, contrast, 0.9);
         var wantedContrast = ditherPanel.Current().Contrast;
         if (Math.Abs(wantedContrast) < 20) throw new InvalidOperationException($"the click left contrast at {wantedContrast}");
         ScrollToEnd(ditherPanel);
-        PressIn(ditherPanel, "Apply");
+        PressIn(ditherPanel, L.Get("Common.Apply"));
         Dispatcher.UIThread.RunJobs();
         if (!dithering.IsCompletedSuccessfully) throw new InvalidOperationException("the Dither verb never finished");
         var inkedAfterDither = InkOf(document.Layers.First(one => one.ID == target.ID).Asset!.Image);
@@ -2416,7 +2429,7 @@ public sealed class MainWindow : Window
                 $"the Dither panel opened with contrast {kept.Contrast} rather than {wantedContrast}");
         }
         ScrollToEnd(reopened);
-        PressIn(reopened, "Cancel");
+        PressIn(reopened, L.Get("Common.Cancel"));
         Dispatcher.UIThread.RunJobs();
         if (!ditheringAgain.IsCompletedSuccessfully) throw new InvalidOperationException("the dismissed Dither panel never finished");
 
@@ -2539,7 +2552,7 @@ public sealed class MainWindow : Window
 
         // The panel's own Fuzziness is not only one of its amounts: it is what the selection is rebuilt from, so
         // moving it has to move the selection.
-        var rangeFuzziness = AmountIn(range, "Fuzziness");
+        var rangeFuzziness = AmountIn(range, L.Get("ColorRange.Fuzziness"));
         var coveredWas = Covered();
         ClickIn(range, rangeFuzziness, 0.05);
         var coveredNow = Covered();
@@ -2549,7 +2562,7 @@ public sealed class MainWindow : Window
         if (coveredNow >= coveredWas) throw new InvalidOperationException("the fuzziness changed nothing");
 
         // Add, and Alt held while a click is made, are the panel's two ways of picking more than one colour.
-        PressIn(range, "Add");
+        PressIn(range, L.Get("ColorRange.Mode.Add"));
         Click(Aim(new SKPoint(90, 50)));
         report.Add($"a second click with Add chosen makes the range {_colorRange?.Include.Count} colour(s)");
         if (_colorRange is not { Include.Count: 2 }) throw new InvalidOperationException("Add did not join the range");
@@ -2565,7 +2578,7 @@ public sealed class MainWindow : Window
 
         // OK keeps the selection as one step; the panel and its sample go with it.
         var stood = document.Selection.Path?.Bounds ?? SKRect.Empty;
-        PressIn(range, "OK");
+        PressIn(range, L.Get("Common.OK"));
         Dispatcher.UIThread.RunJobs();
         if (_colorRange is not null) throw new InvalidOperationException("OK left the panel up");
         if (_history.UndoName != "Color Range") throw new InvalidOperationException($"the range made a \"{_history.UndoName}\" step");
@@ -2581,7 +2594,7 @@ public sealed class MainWindow : Window
         // A second panel starts with no colours of its own: the ones that made the selection went with the panel.
         if (second.ShowingMask) throw new InvalidOperationException("the second panel started with a selection of its own");
         Click(Aim(new SKPoint(30, 30)));
-        PressIn(second, "Cancel");
+        PressIn(second, L.Get("Common.Cancel"));
         Dispatcher.UIThread.RunJobs();
         if (_colorRange is not null) throw new InvalidOperationException("Cancel left the panel up");
         var back = document.Selection.Path?.Bounds ?? SKRect.Empty;
@@ -2614,7 +2627,7 @@ public sealed class MainWindow : Window
         }
         catch (Exception failure)
         {
-            report.Add($"FAILED: {failure.Message}");
+            report.Add($"FAILED: {failure}");
         }
         return string.Join(Environment.NewLine, report);
     }
@@ -6064,17 +6077,13 @@ public sealed class MainWindow : Window
                 if (record.BlendMode is { } blend && blend != LayerBlendMode.Normal) notes.Add(LocalizedNames.BlendMode(blend));
                 if (record.Opacity is { } opacity and < 1) notes.Add($"{opacity:0.##}");
                 if (record.MaskSourceID is not null) notes.Add(L.Get("Layer.Clipped"));
-                var row = new ListBoxItem
+                var label = new TextBlock
                 {
-                    // The row carries the layer it stands for, so a multi-selection can be read back.
-                    Tag = record.ID,
-                    Content = new TextBlock
-                    {
-                        Text = new string(' ', entry.Depth * 3) + record.Name +
-                            (notes.Count > 0 ? "  ·  " + string.Join(", ", notes) : ""),
-                        Foreground = Ink,
-                    },
+                    Text = new string(' ', entry.Depth * 3) + record.Name +
+                        (notes.Count > 0 ? "  ·  " + string.Join(", ", notes) : ""),
+                    Foreground = Ink,
                 };
+                Control rowContent = label;
                 if (record.MaskFile is not null)
                 {
                     // The compact target stands in for the macOS mask thumbnail. Alt-clicking it toggles the
@@ -6094,14 +6103,19 @@ public sealed class MainWindow : Window
                         SelectMaskTarget(record.ID, e.KeyModifiers.HasFlag(KeyModifiers.Alt));
                         e.Handled = true;
                     };
-                    var existing = (Control)row.Content!;
-                    row.Content = new StackPanel
+                    rowContent = new StackPanel
                     {
                         Orientation = Orientation.Horizontal,
                         Spacing = 5,
-                        Children = { existing, mask },
+                        Children = { label, mask },
                     };
                 }
+                var row = new ListBoxItem
+                {
+                    // The row carries the layer it stands for, so a multi-selection can be read back.
+                    Tag = record.ID,
+                    Content = rowContent,
+                };
                 // Selecting the layer's pixels is one of the ways the upstream editor leaves mask-only view.
                 // The mask button handles its own event, so it does not take this route.
                 row.PointerPressed += (_, e) =>
