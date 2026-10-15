@@ -78,6 +78,22 @@ public class WarpEditsTests
     }
 
     [Fact]
+    public void ManySmallPointerMovesAccumulateUntilTheyReachWarpSpacing()
+    {
+        var (document, layer) = Split(40);
+        using var _ = document;
+        // Pointer input is commonly denser than Smudge's 8%-diameter dab spacing. The streaming path
+        // retains its last emitted anchor until that spacing is reached; a preflight plan must do the same.
+        var points = Enumerable.Range(0, 41).Select(index => new SKPoint(10 + index * .5f, 20)).ToArray();
+
+        WarpEditsDiagnostics.Reset();
+        Assert.True(WarpEdits.Warp(document, layer.ID, points, WarpMode.Smudge,
+            Brush(diameter: 20, hardness: .6)));
+        Assert.True(WarpEditsDiagnostics.Last.DabCount > 0);
+        Assert.True(IsRed(At(layer, 28, 20)), "dense pointer input should still drag the carried colour");
+    }
+
+    [Fact]
     public void ADabOnlyReachesAsFarAsTheBrushAndItsRim()
     {
         var (document, layer) = Split(40);
