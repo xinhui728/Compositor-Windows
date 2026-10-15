@@ -1,8 +1,11 @@
+using System.Text;
+using System.Text.Json;
 using Compositor.Core.Document;
 using Compositor.Core.IO;
 using Compositor.Core.Model;
 using Compositor.Core.Rendering;
 using SkiaSharp;
+using Format = Compositor.Core.Format;
 
 namespace Compositor.Core.Tests;
 
@@ -79,6 +82,43 @@ public sealed class NativeResolutionBrushPersistenceTests : ProjectTestBase
         }
     }
 
+    [Fact]
+    public void TransformedNativeBlurSurvivesAFormatElevenRoundTripAndTiledRender()
+    {
+        using var document = TransformedBlurFixture(out var layer, out var stroke, out var settings);
+        var sourcePixels = RawPixels(layer.Asset!.Image);
+        Assert.True(BrushEdits.Paint(document, layer.ID, [stroke], settings));
+        var expectedPixels = RawPixels(layer.Asset!.Image);
+        Assert.False(sourcePixels.SequenceEqual(expectedPixels));
+
+        // The brush only changes the native PNG asset.  The writer must therefore keep the ordinary v11
+        // manifest shape byte-for-byte rather than introducing a brush-specific field or format revision.
+        var snapshot = ProjectSnapshot.FromDocument(document);
+        var expectedManifest = Encoding.UTF8.GetString(Format.ManifestJson.Serialize(snapshot.Manifest));
+        var package = PathIn("NativeBlur.comp");
+        ProjectStore.Save(snapshot, package);
+        var persistedManifest = File.ReadAllText(Path.Combine(package, ProjectStore.ManifestName), Encoding.UTF8);
+
+        Assert.Equal(expectedManifest, persistedManifest);
+        using (var manifest = JsonDocument.Parse(persistedManifest))
+        {
+            Assert.Equal(
+            ["activeLayerID", "colorSpace", "documentID", "format", "height", "layers", "resolution", "version", "width"],
+                manifest.RootElement.EnumerateObject().Select(property => property.Name));
+        }
+
+        using var loaded = ProjectStore.Load(package);
+        Assert.Equal(11, Format.ProjectManifest.Current);
+        Assert.Equal(Format.ProjectManifest.Current, loaded.Manifest.Version);
+        Assert.Equal(expectedManifest, Encoding.UTF8.GetString(Format.ManifestJson.Serialize(loaded.Manifest)));
+        var record = Assert.Single(loaded.Manifest.Layers);
+        Assert.Equal(layer.Transform, record.Transform.ToRuntime());
+        Assert.Equal(expectedPixels, RawPixels(loaded.Images[layer.ID].Image));
+
+        using var reloaded = loaded.ToDocument();
+        AssertRegionMatchesWhole(reloaded, SKRectI.Create(64, 48, 160, 112));
+    }
+
     private static CanvasDocument TransformedCloneFixture(out ImageLayer layer, out SKPoint stroke,
         out BrushSettings settings, out int targetX, out int targetY)
     {
@@ -115,6 +155,36 @@ public sealed class NativeResolutionBrushPersistenceTests : ProjectTestBase
         return document;
     }
 
+    private static CanvasDocument TransformedBlurFixture(out ImageLayer layer, out SKPoint stroke,
+        out BrushSettings settings)
+    {
+        const int width = 96;
+        const int height = 64;
+        var pixels = new SKBitmap(Bitmaps.ColorInfo(width, height));
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                // One-pixel high-frequency bands make this a real native-resolution blur fixture: a
+                // document-space proxy would lose the source detail before the PNG round trip.
+                pixels.SetPixel(x, y, (x & 1) == 0
+                    ? new SKColor(24, 80, 240, 255)
+                    : new SKColor(240, 172, 20, 255));
+            }
+        }
+
+        var transform = new LayerTransform(92, 66, 144, 72, Rotation: 0, FlipX: true, FlipY: true,
+            Sampling: Format.LayerSampling.Nearest);
+        layer = new ImageLayer(Guid.NewGuid(), ImportedImage.Create(pixels, "Native blur"), transform,
+            "Native blur");
+        var document = new CanvasDocument(Guid.NewGuid(), 300, 220);
+        document.Layers.Add(layer);
+        var toDocument = BrushEdits.PixelToDocument(transform, width, height);
+        stroke = toDocument.MapPoint(48.5f, 32.5f);
+        settings = new BrushSettings(Diameter: 28, Hardness: 1, Opacity: 1, Mode: BrushMode.Blur, BlurRadius: 3);
+        return document;
+    }
+
     private static byte[] RawPixels(SKBitmap bitmap) => bitmap.GetPixelSpan().ToArray();
 
     private static SKColor Pixel(byte[] pixels, int rowBytes, int x, int y)
@@ -132,6 +202,19 @@ public sealed class NativeResolutionBrushPersistenceTests : ProjectTestBase
             for (var x = 0; x < expected.Width; x++)
             {
                 Assert.Equal(expected.GetPixel(x, y), actual.GetPixel(x, y));
+            }
+        }
+    }
+
+    private static void AssertRegionMatchesWhole(CanvasDocument document, SKRectI region)
+    {
+        using var whole = DocumentRenderer.Render(document);
+        using var piece = DocumentRenderer.RenderRegion(document, region);
+        for (var y = 0; y < region.Height; y++)
+        {
+            for (var x = 0; x < region.Width; x++)
+            {
+                Assert.Equal(whole.GetPixel(region.Left + x, region.Top + y), piece.GetPixel(x, y));
             }
         }
     }
