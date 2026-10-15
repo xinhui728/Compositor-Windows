@@ -6,7 +6,7 @@ release notes. Do not merge macOS source into the Windows branch to close an
 item: port the behavior into the C# / Avalonia / SkiaSharp architecture and add
 tests around it.
 
-Last audited: 2026-10-12
+Last audited: 2026-10-15
 
 ## Evidence and baseline
 
@@ -92,7 +92,7 @@ Status meanings:
 | 1.4.2 | `7164dd4` — Liquify stays sharp | Uses source/displacement textures to avoid repeated resampling during a stroke. | ⚠️ C# uses a CPU local scratch buffer per dab; it is a different resampling model and has no equivalent upstream sharpness golden test. | `Core/Document/WarpEdits.cs`, `tests/Compositor.Core.Tests/WarpEditsTests.cs` | L | P2 |
 | 1.4.2 | `ad9ad7c` — Smudge avoids ghost copies | Carries the prior dab’s pickup instead of repeatedly reusing stroke-start content. | ✅ C# updates its carried pickup after each dab and spaces smudge dabs continuously. | `Core/Document/WarpEdits.cs` | M | P2 |
 | 1.4.2 | `504129d` — Blur Radius independent of Strength | Adds a dedicated Blur Radius setting and control. | ✅ `BrushSettings.BlurRadius`, tool options, and the blur kernel keep radius separate from opacity/strength. | `Core/Document/BrushEdits.cs`, `Desktop/ToolOptionsBar.cs`, `Desktop/MainWindow.cs` | S | P2 |
-| 1.4.3 | `095da2f` — large-canvas Blur/Smudge/Liquify performance | Tiles/coarsens brush sources and replays sparse warp points rather than repeatedly processing full images. | 🟡 Clone/Blur no longer allocate a document-sized Current Layer surface. Blur is limited to its native ROI, coarsens that working surface beyond 16M pixels, and rejects a stroke before allocation when the estimated working set exceeds a quarter of the runtime-reported available memory. The upstream lazy per-tile sample cache and the Smudge/Liquify performance changes are still not ported. | `Core/Document/BrushSampling.cs`, `Core/Document/BrushEdits.cs`, `Core/Document/WarpEdits.cs` | L | P2 |
+| 1.4.3 | `095da2f` — large-canvas Blur/Smudge/Liquify performance | Tiles/coarsens brush sources and replays sparse warp points rather than repeatedly processing full images. | ⚠️ Windows now lazily evaluates bounded 256px native Blur tiles from a pre-stroke snapshot, with a shared coarsening grid, three-sigma halo, Gray8 edge background, and deterministic diagnostics. Smudge/Liquify now use a bounded document ROI, pooled per-stroke buffers, and spatially indexed native write-back instead of a full canvas plus layer-times-dabs scan. The CPU/Skia warp is intentionally not a Metal binary-pixel implementation. | `Core/Document/BrushSampling.cs`, `Core/Document/BrushEdits.cs`, `Core/Document/WarpEdits.cs`, `tests/Compositor.Core.Tests/LargeCanvasBrushRegressionTests.cs`, `WarpEditsLargeCanvasTests.cs` | L | P2 |
 | 1.4.4 | `1aad384` — safe quit/close with pending edits | Applies pending gradient/pixel move and cancels dialogs/previews before close. | ✅ `Window.Closing` now uses a cancel-then-async-confirm bridge; it commits active gradient, floating pixels, text and transform, cancels crop/filter/Camera Raw/adjustment/colour-range/picker previews, and asks every changed tab Save / Don't Save / Cancel before disposal. Delayed previews are tab-owned and invalidated before bitmap disposal. Windows deliberately settles on tab switching (rather than upstream's v1.4.4 `canSwitch` block) to prevent cross-document state. Brush/shape/distort/guide drags still block until pointer release because final geometry is not safely inferable. | `Desktop/MainWindow.cs`, `Desktop/CanvasView.cs`, `Desktop/DocumentCloseFlow.cs`, `Desktop/UnsavedChangesDialog.cs` | M | P1 |
 | 1.4.4 | `9c99853`, `cd2f998` — Dither > Scanlines (CRT), then parallel rendering | Adds CRT scanlines with line spacing, glow, dots, wobble, and parallel/cheaper render path. | ❌ Windows has the preceding ten Dither looks but no `Scanlines` enum/settings/UI/kernel. | `Core/Document/DitherEdits.cs`, `Core/Pixels/DitherPixels.cs`, `Desktop/DitherDialog.cs` | M | P2 |
 | 1.4.5 | `60d9117` — Camera Raw point curve interaction and Parametric curve | Fixes gesture competition; point curves drag/add/delete with selection; parametric regions and dividers are interactive. | ✅ Windows has separate Parametric/Point pages. The parametric graph latches region/divider drags; Point mode has selected handles, add/drag/double-click delete, per-channel state, a 16-point cap, and pointer-capture cleanup. Right-click deletion remains as an additional Windows affordance. | `Desktop/ParametricCurveEditor.cs`, `Desktop/CurveEditor.cs`, `Desktop/CameraRawPanel.cs`, Desktop tests | L | P1 |
@@ -199,14 +199,15 @@ document-sized Current Layer intermediate.
    raster; already-written dabs cannot become later source pixels. Sample All
    Layers intentionally remains a single document-composite snapshot because
    it must copy the displayed canvas rather than a layer asset.
-2. Blur captures only the native-grid brush ROI plus a three-sigma halo. Its
-   document-space radius is converted by the placement's geometric pixel size.
-   Mask blur follows the mask's own `MaskTransform` and samples beyond its
-   bounds with `LayerMask.Background`, preserving the existing edge-majority
-   reveal/hide semantics.
-3. A sample is coarsened when its native ROI exceeds **16M working pixels**.
-   Before allocating it, the Core path also rejects an estimated working set
-   greater than one quarter of the runtime-reported available memory. A
+2. Blur lazily evaluates only the touched 256px native-grid tiles plus a
+   three-sigma halo. Its document-space radius is converted by the placement's
+   geometric pixel size. Mask blur follows the mask's own `MaskTransform` and
+   samples beyond its bounds with `LayerMask.Background`, preserving the
+   existing edge-majority reveal/hide semantics.
+3. A single stroke-wide coarsening grid follows the upstream 16M/four-canvas
+   budget shape, while a stricter one-million-pixel cap protects an individual
+   tile. Before allocating it, the Core path also rejects an estimated working
+   set greater than one quarter of the runtime-reported available memory. A
    refused impractical stroke leaves the layer unchanged rather than allocating
    a document-sized surface or accepting a partial blur.
 4. The regression fixtures are analytical C# oracles: they inspect native
@@ -215,9 +216,13 @@ document-sized Current Layer intermediate.
    binary-pixel fixtures, so the result is source-backed behavior parity rather
    than a claim of byte-for-byte cross-platform Gaussian equivalence.
 
-The 1.4.3 lazy per-tile source/sample cache is deliberately not ported in this
-batch. Nor are its Smudge/Liquify sparse-replay performance changes; both remain
-separate follow-up work after profiling the bounded Windows ROI path.
+The v1.4.3 implementation record, including the lazy Blur tile-cache contract,
+bounded-memory diagnostics, pixel regression strategy, and bounded
+Smudge/Liquify ROI path, is in
+[`large-canvas-brush-performance.md`](large-canvas-brush-performance.md). Do
+not treat a bounded Current Layer Blur implementation as a reason to restore a
+document-sized source sample; `Sample All Layers` is the only intentionally
+document-space brush source.
 
 ## `.comp` compatibility
 
