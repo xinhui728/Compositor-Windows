@@ -459,7 +459,8 @@ public static class BrushEdits
                 // A placed mask's outside is the mask's edge majority, not transparent. This deliberately
                 // runs on the mask's own pixel grid and preserves an unlinked mask placement.
                 using var sample = NativeBlurMaskSample.Create(mask.Asset.Image,
-                    LayerMask.Background(mask.Asset.Thumbnail), pixelSpace, coverage.InkBounds(), settings.BlurRadius);
+                    LayerMask.Background(mask.Asset.Thumbnail), pixelSpace, coverage.InkBounds(), settings.BlurRadius,
+                    (long)document.Width * document.Height);
                 if (sample is null || !ApplyBlurredMask(painted, coverage, settings, sample)) return false;
             }
             else
@@ -499,14 +500,34 @@ public static class BrushEdits
     private static bool ApplyBlurredMask(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings,
         NativeBlurMaskSample sample)
     {
-        var pixels = painted.GetPixelSpan();
-        for (var y = 0; y < coverage.Height; y++)
+        // Process coverage tile by tile. The lazy source can then release old tiles without ever rebuilding
+        // one during a long, wide stroke, while still only evaluating source pieces that contain real ink.
+        var ink = coverage.InkBounds();
+        for (var top = TileStart(ink.Top); top < ink.Bottom; top += NativeBrushSampleLimits.BlurTileSize)
         {
-            for (var x = 0; x < coverage.Width; x++)
+            for (var left = TileStart(ink.Left); left < ink.Right; left += NativeBrushSampleLimits.BlurTileSize)
             {
-                var alpha = Math.Clamp(coverage.Values[y * coverage.Width + x] * settings.Opacity, 0, 1);
-                if (alpha <= 0 || !sample.TryRead(coverage.Bounds.Left + x, coverage.Bounds.Top + y, out var value)) continue;
-                var at = (coverage.Bounds.Top + y) * painted.RowBytes + coverage.Bounds.Left + x;
+                var tile = SKRectI.Intersect(coverage.Bounds, SKRectI.Create(left, top,
+                    NativeBrushSampleLimits.BlurTileSize, NativeBrushSampleLimits.BlurTileSize));
+                if (tile.Width <= 0 || tile.Height <= 0 || !HasCoverage(coverage, tile)) continue;
+                if (!ApplyBlurredMaskRange(painted, coverage, settings, sample, tile)) return false;
+            }
+        }
+        return !sample.Failed;
+    }
+
+    private static bool ApplyBlurredMaskRange(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings,
+        NativeBlurMaskSample sample, SKRectI range)
+    {
+        var pixels = painted.GetPixelSpan();
+        for (var y = range.Top; y < range.Bottom; y++)
+        {
+            for (var x = range.Left; x < range.Right; x++)
+            {
+                var alpha = Math.Clamp(coverage.At(x, y) * settings.Opacity, 0, 1);
+                if (alpha <= 0) continue;
+                if (!sample.TryRead(x, y, out var value)) return !sample.Failed;
+                var at = y * painted.RowBytes + x;
                 pixels[at] = (byte)Math.Round(pixels[at] + (value - pixels[at]) * alpha);
             }
         }
@@ -528,7 +549,8 @@ public static class BrushEdits
                 return new DocumentColorSample(DocumentRenderer.Render(document));
             }
             return settings.Mode == BrushMode.Blur
-                ? NativeBlurColorSample.Create(layer.Asset!.Image, pixelSpace, coverage.InkBounds(), settings.BlurRadius)
+                ? NativeBlurColorSample.Create(layer.Asset!.Image, pixelSpace, coverage.InkBounds(), settings.BlurRadius,
+                    (long)document.Width * document.Height)
                 : null;
         }
         catch (Exception error) when (error is InvalidOperationException or OutOfMemoryException)
@@ -545,17 +567,41 @@ public static class BrushEdits
     private static bool ApplySampled(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings,
         BrushColorSample sample, LayerPixelSpace pixelSpace)
     {
+        if (sample is NativeBlurColorSample)
+        {
+            var ink = coverage.InkBounds();
+            for (var top = TileStart(ink.Top); top < ink.Bottom; top += NativeBrushSampleLimits.BlurTileSize)
+            {
+                for (var left = TileStart(ink.Left); left < ink.Right; left += NativeBrushSampleLimits.BlurTileSize)
+                {
+                    var tile = SKRectI.Intersect(coverage.Bounds, SKRectI.Create(left, top,
+                        NativeBrushSampleLimits.BlurTileSize, NativeBrushSampleLimits.BlurTileSize));
+                    if (tile.Width <= 0 || tile.Height <= 0 || !HasCoverage(coverage, tile)) continue;
+                    if (!ApplySampledRange(painted, coverage, settings, sample, pixelSpace, tile)) return false;
+                }
+            }
+            return !sample.Failed;
+        }
+        return ApplySampledRange(painted, coverage, settings, sample, pixelSpace, coverage.Bounds);
+    }
+
+    private static bool ApplySampledRange(SKBitmap painted, StrokeCoverage coverage, BrushSettings settings,
+        BrushColorSample sample, LayerPixelSpace pixelSpace, SKRectI range)
+    {
         var offset = settings.Mode == BrushMode.Clone ? settings.CloneFrom ?? default : default;
         var destination = painted.GetPixelSpan();
-        for (var y = 0; y < coverage.Height; y++)
+        for (var gridY = range.Top; gridY < range.Bottom; gridY++)
         {
-            for (var x = 0; x < coverage.Width; x++)
+            for (var gridX = range.Left; gridX < range.Right; gridX++)
             {
-                var amount = coverage.Values[y * coverage.Width + x];
+                var amount = coverage.At(gridX, gridY);
                 if (amount <= 0) continue;
-                var gridX = coverage.Bounds.Left + x;
-                var gridY = coverage.Bounds.Top + y;
-                if (!sample.TryRead(pixelSpace, gridX, gridY, offset, out var colour) || colour.Alpha == 0) continue;
+                if (!sample.TryRead(pixelSpace, gridX, gridY, offset, out var colour))
+                {
+                    if (sample.Failed) return false;
+                    continue;
+                }
+                if (colour.Alpha == 0) continue;
                 var alpha = Math.Clamp(amount * settings.Opacity * (colour.Alpha / 255.0), 0, 1);
                 if (alpha <= 0) continue;
                 var at = gridY * painted.RowBytes + gridX * 4;
@@ -563,6 +609,21 @@ public static class BrushEdits
             }
         }
         return true;
+    }
+
+    private static int TileStart(int coordinate) => coordinate / NativeBrushSampleLimits.BlurTileSize
+        * NativeBrushSampleLimits.BlurTileSize;
+
+    private static bool HasCoverage(StrokeCoverage coverage, SKRectI range)
+    {
+        for (var y = range.Top; y < range.Bottom; y++)
+        {
+            for (var x = range.Left; x < range.Right; x++)
+            {
+                if (coverage.At(x, y) > 0) return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>Straight (unpremultiplied) source-over, which is the form a layer's pixels are held in.</summary>
