@@ -1165,4 +1165,11 @@
   <data name="History.Ungroup Layers" xml:space="preserve"><value>取消圖層群組</value></data>
   <data name="History.Reveal Selection" xml:space="preserve"><value>顯示選取範圍</value></data>
   <data name="History.Hide Selection" xml:space="preserve"><value>隱藏選取範圍</value></data>
+  <data name="Dither.Style.Scanlines" xml:space="preserve"><value>掃描線（CRT）</value></data>
+  <data name="Dither.LineSpacing" xml:space="preserve"><value>掃描線間距</value></data>
+  <data name="Dither.Glow" xml:space="preserve"><value>光暈</value></data>
+  <data name="Dither.Dots" xml:space="preserve"><value>光點</value></data>
+  <data name="Dither.Wobble" xml:space="preserve"><value>水平波動</value></data>
+  <data name="Status.DitherStyleApplied" xml:space="preserve"><value>已套用網點：{0}</value></data>
+  <data name="Status.DitherFailed" xml:space="preserve"><value>無法套用網點濾鏡，影像可能超出工作記憶體上限。</value></data>
 </root>

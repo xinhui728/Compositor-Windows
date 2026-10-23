@@ -76,9 +76,19 @@ internal sealed class DitherDialog : DialogWindow
 
         Heading(group, L.Get("Dither.Pixels"));
         _pixelSize = Add(group, L.Get("Dither.PixelSize"), 1, 32, start.PixelSize, defaults.PixelSize,
-            (s, v) => s.PixelSize = v, "0", () => Style() != DitherStyle.Ascii);
+            (s, v) => s.PixelSize = v, "0", () => DitherSettings.UsesPixelSize(Style()));
         Choice(group, L.Get("Dither.PixelShape"), _shape, [L.Get("Dither.Square"), L.Get("Dither.Dot")], (int)start.PixelShape,
-            () => _pixelSize.Value > 1 && Style() != DitherStyle.Ascii);
+            () => _pixelSize.Value > 1 && DitherSettings.UsesPixelSize(Style()));
+
+        Heading(group, L.Get("Dither.Style.Scanlines"));
+        Add(group, L.Get("Dither.LineSpacing"), 2, 32, start.LineSpacing, defaults.LineSpacing,
+            (s, v) => s.LineSpacing = v, "0' px'", () => Style() == DitherStyle.Scanlines);
+        Add(group, L.Get("Dither.Glow"), 0, 100, start.Glow, defaults.Glow,
+            (s, v) => s.Glow = v, "0'%'", () => Style() == DitherStyle.Scanlines);
+        Add(group, L.Get("Dither.Dots"), 0, 100, start.Dots, defaults.Dots,
+            (s, v) => s.Dots = v, "0'%'", () => Style() == DitherStyle.Scanlines);
+        Add(group, L.Get("Dither.Wobble"), 0, 64, start.Wobble, defaults.Wobble,
+            (s, v) => s.Wobble = v, "0' px'", () => Style() == DitherStyle.Scanlines);
 
         Heading(group, L.Get("Dither.Tones"));
         Add(group, L.Get("Dither.Tones"), 2, 8, start.Levels, defaults.Levels, (s, v) => s.Levels = v, "0",
@@ -154,6 +164,8 @@ internal sealed class DitherDialog : DialogWindow
         _style.SelectionChanged += (_, _) => Refresh();
         _shape.SelectionChanged += (_, _) => Refresh();
         _colors.SelectionChanged += (_, _) => Refresh();
+        _lightOnDark.IsCheckedChanged += (_, _) => Preview?.Invoke(Style(), Current());
+        _characters.TextChanged += (_, _) => Preview?.Invoke(Style(), Current());
         _pixelSize.PropertyChanged += (_, change) =>
         {
             if (change.Property == Slider.ValueProperty) Refresh();
@@ -175,6 +187,7 @@ internal sealed class DitherDialog : DialogWindow
         DitherStyle.Lines => L.Get("Dither.Style.HalftoneLines"),
         DitherStyle.Diamonds => L.Get("Dither.Style.HalftoneDiamonds"),
         DitherStyle.Patterns => L.Get("Dither.Style.MacPatterns"),
+        DitherStyle.Scanlines => L.Get("Dither.Style.Scanlines"),
         _ => L.Get("Dither.Style.Ascii"),
     };
 
@@ -186,6 +199,7 @@ internal sealed class DitherDialog : DialogWindow
     {
         foreach (var (row, applies) in _rows) row.IsVisible = applies();
         foreach (var (heading, rows) in _sections) heading.IsVisible = rows.Exists(row => row.IsVisible);
+        Preview?.Invoke(Style(), Current());
     }
 
     private void Heading(StackPanel parent, string text)
@@ -323,7 +337,7 @@ internal sealed class DitherDialog : DialogWindow
     /// them to see which amounts the panel opened with.</summary>
     internal DitherSettings Current()
     {
-        var settings = _amounts;
+        var settings = _amounts.Copy();
         settings.PixelShape = (DitherPixelShape)Math.Max(0, _shape.SelectedIndex);
         settings.Colors = (DitherColors)Math.Max(0, _colors.SelectedIndex);
         settings.LightOnDark = _lightOnDark.IsChecked == true;

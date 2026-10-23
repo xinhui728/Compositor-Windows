@@ -1165,4 +1165,11 @@
   <data name="Shortcut.Command.Canvas &amp; Layers:Nudge Down 10 px" xml:space="preserve"><value>Nudge Down 10 px</value></data>
   <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Down 1 px" xml:space="preserve"><value>Move selected pixels Down 1 px</value></data>
   <data name="Shortcut.Command.Canvas &amp; Layers:Move selected pixels Down 10 px" xml:space="preserve"><value>Move selected pixels Down 10 px</value></data>
+  <data name="Dither.Style.Scanlines" xml:space="preserve"><value>Scanlines (CRT)</value></data>
+  <data name="Dither.LineSpacing" xml:space="preserve"><value>Line Spacing</value></data>
+  <data name="Dither.Glow" xml:space="preserve"><value>Glow</value></data>
+  <data name="Dither.Dots" xml:space="preserve"><value>Dots</value></data>
+  <data name="Dither.Wobble" xml:space="preserve"><value>Wobble</value></data>
+  <data name="Status.DitherStyleApplied" xml:space="preserve"><value>Dither: {0}</value></data>
+  <data name="Status.DitherFailed" xml:space="preserve"><value>Unable to apply Dither. The image may exceed the working memory limit.</value></data>
 </root>

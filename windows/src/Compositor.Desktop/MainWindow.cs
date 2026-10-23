@@ -4336,9 +4336,15 @@ public sealed class MainWindow : Window
         // The look as well as the amounts: Dither opens again on the one it was last used with.
         _ditherLook = chosen.Style;
         _ditherAmounts = chosen.Settings;
-        Edit("Dither", () => DitherEdits.Apply(document, id, chosen.Style, chosen.Settings));
+        if (!Edit("Dither", () => DitherEdits.Apply(document, id, chosen.Style, chosen.Settings)))
+        {
+            Say(L.Get("Status.DitherFailed"));
+            return;
+        }
         Reselect(id);
-        Say(L.Get("Status.DitherApplied", LocalizedNames.Dither(chosen.Style), chosen.Settings.Levels));
+        Say(chosen.Style == DitherStyle.Scanlines
+            ? L.Get("Status.DitherStyleApplied", LocalizedNames.Dither(chosen.Style))
+            : L.Get("Status.DitherApplied", LocalizedNames.Dither(chosen.Style), chosen.Settings.Levels));
     }
 
     /// <summary>

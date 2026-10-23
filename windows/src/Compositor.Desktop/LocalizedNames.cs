@@ -33,6 +33,7 @@ internal static class LocalizedNames
 
     public static string Dither(DitherStyle style) => style switch
     {
+        DitherStyle.Scanlines => L.Get("Dither.Style.Scanlines"),
         DitherStyle.Atkinson => L.Get("Dither.Style.Atkinson"),
         DitherStyle.FloydSteinberg => L.Get("Dither.Style.FloydSteinberg"),
         DitherStyle.Bayer2 => L.Get("Dither.Style.Bayer2"),
