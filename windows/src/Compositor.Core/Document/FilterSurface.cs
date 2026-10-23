@@ -109,20 +109,24 @@ internal static class FilterSurface
     /// filter inside a selection leaves everything else alone. Both buffers are in the same grid, so a pixel
     /// mixes with the pixel that was in its place. Nothing to mix when there is no selection at all.
     /// </summary>
-    public static void Keep(CanvasDocument document, SKBitmap was, SKBitmap filtered, LayerTransform placement)
+    public static void Keep(CanvasDocument document, SKBitmap was, SKBitmap filtered, LayerTransform placement) =>
+        _ = TryKeep(document, was, filtered, placement);
+
+    /// <summary>Allocation-aware selection mixing for filters that must refuse rather than lose clipping.</summary>
+    public static bool TryKeep(CanvasDocument document, SKBitmap was, SKBitmap filtered, LayerTransform placement)
     {
-        if (document.Selection.Path is null) return;
+        if (document.Selection.Path is null) return true;
         var region = document.Selection.CoverageRect(document.Width, document.Height);
         SKBitmap? coverage;
         try
         {
             coverage = document.Selection.Coverage(region);
         }
-        catch (InvalidOperationException)
+        catch (Exception error) when (error is InvalidOperationException or OutOfMemoryException)
         {
-            return;
+            return false;
         }
-        if (coverage is null) return;
+        if (coverage is null) return false;
         using var _ = coverage;
         var toDocument = BrushEdits.PixelToDocument(placement, filtered.Width, filtered.Height);
         var clip = coverage.GetPixelSpan();
@@ -148,6 +152,7 @@ internal static class FilterSurface
                 }
             }
         }
+        return true;
     }
 
     /// <summary>

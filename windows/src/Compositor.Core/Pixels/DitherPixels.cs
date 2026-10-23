@@ -45,6 +45,8 @@ public sealed class DitherParams
     public float[]? GlyphCoverage;
 
     public int GlyphCount;
+    public float Dots;
+    public float Wobble;
 }
 
 /// <summary>Port of <c>Rendering/DitherPixels.c</c>.</summary>
@@ -61,6 +63,7 @@ public static class DitherPixels
     public const int Diamonds = 7;
     public const int Patterns = 8;
     public const int Glyphs = 9;
+    public const int Scanlines = 10;
 
     private static float Clamp01(float v) => v < 0 ? 0 : v > 1 ? 1 : v;
 
@@ -214,6 +217,7 @@ public static class DitherPixels
     /// </summary>
     public static int DitherApply(Span<byte> rgba, int width, int height, int stride, DitherParams p)
     {
+        if (p.Style == Scanlines) return ScanlinesPixels.Apply(rgba, width, height, stride, p) ? 1 : 0;
         int count = width * height;
         if (count == 0) return 1;
         int planes = p.OriginalColors ? 3 : 1;

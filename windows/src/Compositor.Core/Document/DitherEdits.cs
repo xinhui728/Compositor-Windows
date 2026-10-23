@@ -17,6 +17,7 @@ public enum DitherStyle
     Diamonds,
     Patterns,
     Ascii,
+    Scanlines,
 }
 
 /// <summary>How a chunky pixel is drawn: a solid square, or a round dot with the gap colour showing around it.</summary>
@@ -53,7 +54,7 @@ public sealed class DitherSettings
         [DitherStyle.Atkinson, DitherStyle.FloydSteinberg],
         [DitherStyle.Bayer2, DitherStyle.Bayer4, DitherStyle.Bayer8],
         [DitherStyle.Dots, DitherStyle.Lines, DitherStyle.Diamonds],
-        [DitherStyle.Patterns, DitherStyle.Ascii],
+        [DitherStyle.Patterns, DitherStyle.Ascii, DitherStyle.Scanlines],
     ];
 
     /// <summary>Each dithered pixel covers this many layer pixels on a side, for chunky old-screen pixels.</summary>
@@ -63,6 +64,10 @@ public sealed class DitherSettings
     public double CellSize { get; set; } = 8;
     /// <summary>ASCII's line height in layer pixels; the characters are about six tenths as wide.</summary>
     public double TextSize { get; set; } = 14;
+    public double LineSpacing { get; set; } = 4;
+    public double Glow { get; set; } = 35;
+    public double Dots { get; set; }
+    public double Wobble { get; set; }
     /// <summary>Halftone screen angle in degrees, −90 to 90.</summary>
     public double Angle { get; set; } = 45;
     /// <summary>Tones per channel for diffusion and ordered styles, 2 to 8. Two is pure 1-bit.</summary>
@@ -100,7 +105,9 @@ public sealed class DitherSettings
     /// Halftone shapes, patterns and characters mark one tone on the other, so which of the two the mark is
     /// matters — the Mac build's <c>drawsMarks</c>, and what its panel gates "Light on Dark" on.
     /// </summary>
-    public static bool DrawsMarks(DitherStyle style) => !HasTones(style);
+    public static bool DrawsMarks(DitherStyle style) => !HasTones(style) && style != DitherStyle.Scanlines;
+
+    public static bool UsesPixelSize(DitherStyle style) => style is not (DitherStyle.Ascii or DitherStyle.Scanlines);
 
     private static double Clamp(double value, double least, double most, double fallback) =>
         double.IsFinite(value) ? Math.Clamp(value, least, most) : fallback;
@@ -118,6 +125,10 @@ public sealed class DitherSettings
         PixelShape = PixelShape,
         CellSize = Math.Round(Clamp(CellSize, 4, 64, 8)),
         TextSize = Math.Round(Clamp(TextSize, 6, 64, 14)),
+        LineSpacing = Math.Round(Clamp(LineSpacing, 2, 32, 4), MidpointRounding.AwayFromZero),
+        Glow = Clamp(Glow, 0, 100, 35),
+        Dots = Clamp(Dots, 0, 100, 0),
+        Wobble = Clamp(Wobble, 0, 64, 0),
         Angle = Clamp(Angle, -90, 90, 45),
         Levels = Math.Round(Clamp(Levels, 2, 8, 2)),
         Diffusion = Clamp(Diffusion, 0, 100, 100),
@@ -148,13 +159,14 @@ public static class DitherEdits
     public static bool Apply(CanvasDocument document, Guid layerID, DitherStyle style, DitherSettings settings)
     {
         var values = settings.Normalized();
+        if (style == DitherStyle.Scanlines) return ApplyScanlines(document, layerID, values);
         if (document.Layers.FirstOrDefault(layer => layer.ID == layerID) is not { } layer) return false;
         if (!FilterSurface.Begin(layer, 0, out var work, out var placement)) return false;
         using var _ = work;
         using var was = document.Selection.Path is null ? null : FilterSurface.Copy(work);
 
         // ASCII draws its characters at full resolution: shrinking first would blur them into one another.
-        var block = style == DitherStyle.Ascii ? 1 : (int)values.PixelSize;
+        var block = DitherSettings.UsesPixelSize(style) ? (int)values.PixelSize : 1;
         if (block > 1)
         {
             // Chunky pixels: average the layer down, dither that, then blow it back up without smoothing.
@@ -184,6 +196,45 @@ public static class DitherEdits
         if (was is not null) FilterSurface.Keep(document, was, work, placement);
         FilterSurface.Finish(layer, work, placement);
         return true;
+    }
+
+    // A Scanlines edit is prepared entirely off-document, including its glow and selection mix. Allocation
+    // refusal therefore never installs a partly filtered asset or changes its placement/history.
+    internal static bool ApplyScanlines(CanvasDocument document, Guid layerID, DitherSettings settings,
+        long memoryBudget = ScanlinesPixels.MaxWorkingBytes)
+    {
+        if (document.Layers.FirstOrDefault(layer => layer.ID == layerID) is not { Asset: { } asset } layer
+            || layer.IsGroup) return false;
+        var values = settings.Normalized();
+        var selectionRect = document.Selection.Path is null ? default : document.Selection.CoverageRect(document.Width, document.Height);
+        var selectionBytes = (long)selectionRect.Width * selectionRect.Height;
+        if (!ScanlinesPixels.CanPrepare(asset.Width, asset.Height, values.LineSpacing, values.Glow,
+                document.Selection.Path is not null, memoryBudget, selectionBytes)) return false;
+        try
+        {
+            if (!FilterSurface.Begin(layer, 0, out var work, out var placement)) return false;
+            using var held = work;
+            using var was = document.Selection.Path is null ? null : FilterSurface.Copy(work);
+            var two = values.Colors == DitherColors.TwoColors;
+            var parameters = new DitherParams
+            {
+                Style = DitherPixels.Scanlines, Cell = (int)values.LineSpacing,
+                Density = (float)(values.Density / 100), Contrast = (float)(values.Contrast / 100),
+                Dots = (float)(values.Dots / 100), Wobble = (float)values.Wobble,
+                OriginalColors = values.Colors == DitherColors.Original,
+                Dark = two ? [Byte(values.DarkRed), Byte(values.DarkGreen), Byte(values.DarkBlue)] : [0, 0, 0],
+                Light = two ? [Byte(values.LightRed), Byte(values.LightGreen), Byte(values.LightBlue)] : [255, 255, 255],
+            };
+            if (!ScanlinesPixels.Apply(work, parameters) || !ScanlinesPixels.Glow(work, values.LineSpacing, values.Glow))
+                return false;
+            if (was is not null && !FilterSurface.TryKeep(document, was, work, placement)) return false;
+            FilterSurface.Finish(layer, work, placement);
+            return true;
+        }
+        catch (Exception error) when (error is OutOfMemoryException or InvalidOperationException or OverflowException)
+        {
+            return false;
+        }
     }
 
     /// <summary>The kernel over one buffer, in the premultiplied form it reads.</summary>

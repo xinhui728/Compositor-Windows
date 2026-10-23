@@ -56,8 +56,10 @@ public class DitherEditsTests
         Assert.True(DitherSettings.DrawsMarks(DitherStyle.Patterns));
         Assert.True(DitherSettings.DrawsMarks(DitherStyle.Ascii));
         Assert.False(DitherSettings.DrawsMarks(DitherStyle.Bayer2));
-        // Every look either quantizes to tones or marks them, never neither and never both.
-        foreach (var style in Enum.GetValues<DitherStyle>())
+        // The original looks either quantize to tones or draw marks; CRT drives a continuous beam instead.
+        Assert.False(DitherSettings.HasTones(DitherStyle.Scanlines));
+        Assert.False(DitherSettings.DrawsMarks(DitherStyle.Scanlines));
+        foreach (var style in Enum.GetValues<DitherStyle>().Where(style => style != DitherStyle.Scanlines))
             Assert.NotEqual(DitherSettings.HasTones(style), DitherSettings.DrawsMarks(style));
     }
 
